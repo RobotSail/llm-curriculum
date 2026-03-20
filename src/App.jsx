@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
+import ModuleView, { getModuleProgress } from './components/ModuleView';
+import { MODULES } from './modules';
 
 const CURRICULUM = [
   {
@@ -717,6 +719,7 @@ export default function App() {
   });
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [activeModule, setActiveModule] = useState(null);
 
   const save = useCallback((next) => {
     setCompleted(next);
@@ -794,6 +797,14 @@ export default function App() {
   const pctAll = stats._all.total > 0 ? Math.round(stats._all.done / stats._all.total * 100) : 0;
 
   return (
+    <>
+    {activeModule && (
+      <ModuleView
+        module={activeModule.module}
+        tierColor={activeModule.tierColor}
+        onClose={() => setActiveModule(null)}
+      />
+    )}
     <div style={{maxWidth:'800px',margin:'0 auto',padding:'1.5rem 0'}}>
       <div style={{marginBottom:'2rem'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:'8px',flexWrap:'wrap',gap:'8px'}}>
@@ -935,6 +946,39 @@ export default function App() {
                               ))}
                             </div>
                           </div>
+                          {MODULES[sec.id] && (
+                            <div style={{marginTop:'16px'}}>
+                              <div style={{fontSize:'11px',fontWeight:500,textTransform:'uppercase',letterSpacing:'0.05em',color:tier.color,marginBottom:'8px'}}>
+                                Interactive Modules
+                              </div>
+                              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                                {MODULES[sec.id].map(mod => {
+                                  const prog = getModuleProgress()[mod.id];
+                                  const dc = {easy:'#1D9E75',medium:'#BA7517',hard:'#D85A30'}[mod.difficulty];
+                                  return (
+                                    <button key={mod.id} onClick={(e) => {e.stopPropagation(); setActiveModule({module:mod,tierColor:tier.color});}}
+                                      style={{
+                                        display:'flex',alignItems:'center',gap:'8px',
+                                        padding:'8px 14px',borderRadius:'var(--border-radius-md)',
+                                        background:'var(--color-background-primary)',
+                                        border:'0.5px solid var(--color-border-tertiary)',
+                                        cursor:'pointer',fontFamily:'inherit',textAlign:'left',
+                                        color:'var(--color-text-primary)',
+                                      }}>
+                                      <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
+                                        background:dc+'18',color:dc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
+                                        {mod.difficulty}
+                                      </span>
+                                      <span style={{fontSize:'13px',flex:1}}>{mod.title}</span>
+                                      <span style={{fontSize:'11px',color: prog?.completed ? '#1D9E75' : 'var(--color-text-tertiary)',flexShrink:0}}>
+                                        {prog?.completed ? '\u2713 Done' : `~${mod.estimatedMinutes}m`}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -952,5 +996,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </>
   );
 }
