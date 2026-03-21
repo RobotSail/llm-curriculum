@@ -171,8 +171,8 @@ export const mediumModule = {
         "$H$ must be positive semi-definite (all eigenvalues $\\geq 0$)",
         "$H$ can have any eigenvalue signs"
       ],
-      correct: 1,
-      explanation: "At a local minimum, the second-order necessary condition requires $H \\succeq 0$ (PSD). The second-order **sufficient** condition requires $H \\succ 0$ (positive definite, all eigenvalues strictly positive). If any eigenvalue is negative, the point is a saddle (not a minimum). If all eigenvalues are zero, the test is inconclusive. In neural network training, Hessians at minima are often nearly PSD with many near-zero eigenvalues (flat directions)."
+      correct: 2,
+      explanation: "The second-order **necessary** condition at a local minimum is $H \\succeq 0$ (PSD — all eigenvalues $\\geq 0$). Positive definiteness ($H \\succ 0$) is the **sufficient** condition that *confirms* a minimum, but it is not required — local minima with zero eigenvalues (flat directions) are common and valid. In neural network training, Hessians at minima routinely have many near-zero eigenvalues. The key distinction: if any eigenvalue is **negative**, the point is a saddle, not a minimum; if all are $\\geq 0$, it can be a minimum."
     },
     {
       type: "mc",
