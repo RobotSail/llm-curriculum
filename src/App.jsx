@@ -745,13 +745,32 @@ export default function App() {
       if (!grouped[g.sectionId]) grouped[g.sectionId] = [];
       grouped[g.sectionId].push(g);
     });
+
+    // Collect existing module titles per section for context
+    const existingBySection = {};
+    for (const sectionId of Object.keys(grouped)) {
+      const mods = MODULES[sectionId];
+      if (mods) {
+        existingBySection[sectionId] = mods.map(m =>
+          `"${m.title}" (${m.difficulty}, ${m.estimatedMinutes}m)`
+        );
+      }
+    }
+
     let text = "I need deeper learning content on these topics from my LLM curriculum.\n";
-    text += "Please create interactive modules (easy/medium/hard with Brilliant-style questions) covering each:\n\n";
+    text += "Please create interactive modules (easy/medium/hard with Brilliant-style questions) covering each gap.\n\n";
     for (const [sectionId, items] of Object.entries(grouped)) {
       text += `Section ${sectionId} \u2014 ${getSectionTitle(sectionId)}:\n`;
+      text += "  Gaps to cover:\n";
       items.forEach(g => {
-        text += `  - "${g.label}" (from ${g.moduleTitle}, ${g.difficulty})\n`;
+        text += `    - "${g.label}" (from ${g.moduleTitle}, ${g.difficulty})\n`;
       });
+      if (existingBySection[sectionId]) {
+        text += "  Existing modules (avoid duplicating these):\n";
+        existingBySection[sectionId].forEach(m => {
+          text += `    - ${m}\n`;
+        });
+      }
       text += "\n";
     }
     navigator.clipboard.writeText(text.trim());

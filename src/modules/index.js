@@ -8,6 +8,7 @@ import { bayesianAssessment } from './prob-assessment-bayesian';
 import { samplingAssessment } from './prob-assessment-sampling';
 import { concentrationAssessment } from './prob-assessment-concentration';
 import { appliedInfoTheoryAssessment } from './prob-assessment-applied';
+import { entropyEasy, entropyMedium, entropyHard } from './entropy-cross-entropy-mi';
 
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
@@ -22,9 +23,13 @@ export const MODULES = {
     samplingAssessment,
     concentrationAssessment,
     appliedInfoTheoryAssessment,
-    // Deep-dive teaching modules
+    // Deep-dive teaching modules — f-divergences
     easyModule,
     mediumModule,
     hardModule,
+    // Deep-dive teaching modules — entropy, cross-entropy, MI
+    entropyEasy,
+    entropyMedium,
+    entropyHard,
   ],
 };
