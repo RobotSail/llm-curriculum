@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
-import ModuleView, { getModuleProgress } from './components/ModuleView';
+import ModuleView, { getModuleProgress, getGaps, removeGap, clearAllGaps } from './components/ModuleView';
+import MathText from './components/MathText';
 import { MODULES } from './modules';
 
 const CURRICULUM = [
@@ -722,6 +723,53 @@ export default function App() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [activeModule, setActiveModule] = useState(null);
+  const [showGaps, setShowGaps] = useState(false);
+  const [gapsVersion, setGapsVersion] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const gaps = useMemo(() => getGaps(), [showGaps, gapsVersion]);
+
+  const getSectionTitle = useCallback((sectionId) => {
+    for (const tier of CURRICULUM) {
+      for (const sec of tier.sections) {
+        if (sec.id === sectionId) return sec.title;
+      }
+    }
+    return sectionId;
+  }, []);
+
+  const copyGapsToClipboard = useCallback(() => {
+    if (gaps.length === 0) return;
+    const grouped = {};
+    gaps.forEach(g => {
+      if (!grouped[g.sectionId]) grouped[g.sectionId] = [];
+      grouped[g.sectionId].push(g);
+    });
+    let text = "I need deeper learning content on these topics from my LLM curriculum.\n";
+    text += "Please create interactive modules (easy/medium/hard with Brilliant-style questions) covering each:\n\n";
+    for (const [sectionId, items] of Object.entries(grouped)) {
+      text += `Section ${sectionId} \u2014 ${getSectionTitle(sectionId)}:\n`;
+      items.forEach(g => {
+        text += `  - "${g.label}" (from ${g.moduleTitle}, ${g.difficulty})\n`;
+      });
+      text += "\n";
+    }
+    navigator.clipboard.writeText(text.trim());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [gaps, getSectionTitle]);
+
+  const handleRemoveGap = useCallback((id) => {
+    removeGap(id);
+    setGapsVersion(v => v + 1);
+  }, []);
+
+  const handleClearGaps = useCallback(() => {
+    if (confirm("Clear all learning gaps?")) {
+      clearAllGaps();
+      setGapsVersion(v => v + 1);
+    }
+  }, []);
 
   const save = useCallback((next) => {
     setCompleted(next);
@@ -804,8 +852,67 @@ export default function App() {
       <ModuleView
         module={activeModule.module}
         tierColor={activeModule.tierColor}
-        onClose={() => setActiveModule(null)}
+        onClose={() => { setActiveModule(null); setGapsVersion(v => v + 1); }}
       />
+    )}
+    {showGaps && (
+      <div style={{position:'fixed',inset:0,zIndex:2000,display:'flex',justifyContent:'center',alignItems:'flex-start'}}>
+        <div onClick={() => setShowGaps(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.4)'}}/>
+        <div style={{position:'relative',background:'var(--color-background-primary)',borderRadius:'var(--border-radius-lg)',maxWidth:560,width:'100%',margin:'48px 16px',maxHeight:'calc(100vh - 96px)',overflow:'auto',border:'0.5px solid var(--color-border-tertiary)',padding:'24px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+            <h3 style={{fontSize:16,fontWeight:600,margin:0}}>Learning Gaps</h3>
+            <button onClick={() => setShowGaps(false)} style={{background:'transparent',border:'none',fontSize:20,cursor:'pointer',color:'var(--color-text-tertiary)',fontFamily:'inherit',padding:'0 4px'}}>&times;</button>
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:'20px'}}>
+            <button onClick={copyGapsToClipboard} style={{
+              fontSize:13,padding:'6px 16px',borderRadius:'var(--border-radius-md)',
+              border:'none',background: copied ? '#1D9E75' : '#BA7517',color:'white',
+              cursor:'pointer',fontFamily:'inherit',transition:'background 0.15s',
+            }}>
+              {copied ? '\u2713 Copied!' : 'Copy as prompt'}
+            </button>
+            <button onClick={handleClearGaps} style={{
+              fontSize:13,padding:'6px 16px',borderRadius:'var(--border-radius-md)',
+              border:'0.5px solid var(--color-border-tertiary)',background:'transparent',
+              color:'var(--color-text-danger)',cursor:'pointer',fontFamily:'inherit',
+            }}>
+              Clear all
+            </button>
+          </div>
+          <p style={{fontSize:12,color:'var(--color-text-tertiary)',marginBottom:'16px',lineHeight:1.5}}>
+            Flag topics you need to study more. Copy them as a prompt to generate new learning modules.
+          </p>
+          {gaps.length === 0 ? (
+            <p style={{textAlign:'center',color:'var(--color-text-tertiary)',padding:'2rem 0',fontSize:14}}>No gaps flagged yet. Use the &quot;Need to learn this&quot; button during modules.</p>
+          ) : (
+            Object.entries(
+              gaps.reduce((acc, g) => { (acc[g.sectionId] = acc[g.sectionId] || []).push(g); return acc; }, {})
+            ).map(([sectionId, items]) => (
+              <div key={sectionId} style={{marginBottom:'16px'}}>
+                <div style={{fontSize:11,fontWeight:500,textTransform:'uppercase',letterSpacing:'0.05em',color:'var(--color-text-tertiary)',marginBottom:'6px'}}>
+                  {sectionId} &mdash; {getSectionTitle(sectionId)}
+                </div>
+                {items.map(g => (
+                  <div key={g.id} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 10px',borderRadius:'var(--border-radius-md)',background:'var(--color-background-secondary)',marginBottom:4,border:'0.5px solid var(--color-border-tertiary)'}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <MathText as="div" style={{fontSize:13,lineHeight:1.5,color:'var(--color-text-primary)',overflow:'hidden',textOverflow:'ellipsis'}}>{g.label}</MathText>
+                      <div style={{fontSize:11,color:'var(--color-text-tertiary)',marginTop:2}}>
+                        <span style={{fontSize:10,fontWeight:600,padding:'1px 5px',borderRadius:3,
+                          background:({easy:'#1D9E7518',medium:'#BA751718',hard:'#D85A3018'})[g.difficulty],
+                          color:({easy:'#1D9E75',medium:'#BA7517',hard:'#D85A30'})[g.difficulty],
+                          textTransform:'uppercase',letterSpacing:'0.04em',marginRight:6
+                        }}>{g.difficulty}</span>
+                        {g.moduleTitle}
+                      </div>
+                    </div>
+                    <button onClick={() => handleRemoveGap(g.id)} style={{background:'transparent',border:'none',color:'var(--color-text-tertiary)',cursor:'pointer',fontSize:16,padding:'0 2px',fontFamily:'inherit',flexShrink:0}}>&times;</button>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     )}
     <div style={{maxWidth:'800px',margin:'0 auto',padding:'1.5rem 0'}}>
       <div style={{marginBottom:'2rem'}}>
@@ -839,6 +946,15 @@ export default function App() {
             }}>{l}</button>
           ))}
         </div>
+        {gaps.length > 0 && (
+          <button onClick={() => setShowGaps(true)} style={{
+            fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
+            border:'1px solid #BA751744',background:'#BA751708',
+            color:'#BA7517',cursor:'pointer',fontFamily:'inherit',
+          }}>
+            Learning Gaps ({gaps.length})
+          </button>
+        )}
         <button onClick={resetAll} style={{fontSize:'12px',color:'var(--color-text-danger)',background:'transparent',border:'none',cursor:'pointer',padding:'4px 8px',fontFamily:'inherit'}}>
           Reset
         </button>

@@ -16,6 +16,30 @@ export function getModuleProgress() {
   return loadProgress();
 }
 
+// Gap tracking — "need to learn this" items
+const GAPS_KEY = 'llm-curriculum-gaps-v1';
+
+function loadGaps() {
+  try { return JSON.parse(localStorage.getItem(GAPS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveGapsData(gaps) {
+  try { localStorage.setItem(GAPS_KEY, JSON.stringify(gaps)); } catch {}
+}
+
+export function getGaps() { return loadGaps(); }
+
+export function removeGap(id) {
+  const gaps = loadGaps().filter(g => g.id !== id);
+  saveGapsData(gaps);
+  return gaps;
+}
+
+export function clearAllGaps() {
+  saveGapsData([]);
+}
+
 const DIFF_COLORS = { easy: '#1D9E75', medium: '#BA7517', hard: '#D85A30' };
 const DIFF_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
@@ -37,6 +61,31 @@ export default function ModuleView({ module, tierColor, onClose }) {
 
   const current = step < totalSteps ? module.steps[step] : null;
   const isComplete = step >= totalSteps;
+
+  const [flaggedSteps, setFlaggedSteps] = useState(() => {
+    return new Set(loadGaps().filter(g => g.moduleId === module.id).map(g => g.id));
+  });
+
+  const isFlagged = current ? flaggedSteps.has(`${module.id}-${step}`) : false;
+
+  const handleFlag = useCallback(() => {
+    if (!current) return;
+    const id = `${module.id}-${step}`;
+    const gaps = loadGaps();
+    if (flaggedSteps.has(id)) {
+      saveGapsData(gaps.filter(g => g.id !== id));
+      setFlaggedSteps(prev => { const next = new Set(prev); next.delete(id); return next; });
+    } else {
+      const label = current.title || (current.question ? current.question.substring(0, 150) : `Step ${step + 1}`);
+      gaps.push({
+        id, sectionId: module.sectionId, moduleId: module.id,
+        moduleTitle: module.title, difficulty: module.difficulty,
+        stepIndex: step, label, timestamp: Date.now(),
+      });
+      saveGapsData(gaps);
+      setFlaggedSteps(prev => new Set(prev).add(id));
+    }
+  }, [module, step, current, flaggedSteps]);
 
   useEffect(() => {
     const p = loadProgress();
@@ -147,7 +196,10 @@ export default function ModuleView({ module, tierColor, onClose }) {
                 {para}
               </MathText>
             ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+            <button onClick={handleFlag} style={{ ...S.flagBtn, color: isFlagged ? '#BA7517' : 'var(--color-text-tertiary)', borderColor: isFlagged ? '#BA751744' : 'var(--color-border-tertiary)' }}>
+              {isFlagged ? '\u2605 Flagged for review' : '\u2606 Need to learn this'}
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
               {step > 0 ? <button onClick={handleBack} style={S.linkBtn}>&larr; Previous</button> : <span />}
               <button onClick={handleContinue} style={{ ...S.btn, background: accentColor }}>Continue &rarr;</button>
             </div>
@@ -206,7 +258,10 @@ export default function ModuleView({ module, tierColor, onClose }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+            <button onClick={handleFlag} style={{ ...S.flagBtn, color: isFlagged ? '#BA7517' : 'var(--color-text-tertiary)', borderColor: isFlagged ? '#BA751744' : 'var(--color-border-tertiary)' }}>
+              {isFlagged ? '\u2605 Flagged for review' : '\u2606 Need to learn this'}
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
               {step > 0 ? <button onClick={handleBack} style={S.linkBtn}>&larr; Previous</button> : <span />}
               {!checked ? (
                 <button onClick={handleCheck} disabled={selected === null} style={{
@@ -245,5 +300,11 @@ const S = {
   linkBtn: {
     background: 'transparent', border: 'none', color: 'var(--color-text-tertiary)',
     cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
+  },
+  flagBtn: {
+    background: 'transparent', border: '1px solid var(--color-border-tertiary)',
+    cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+    padding: '5px 12px', borderRadius: 'var(--border-radius-md)',
+    marginTop: 20, transition: 'all 0.15s',
   },
 };
