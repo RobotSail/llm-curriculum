@@ -35,12 +35,14 @@ const CURRICULUM = [
           "Variational inference (ELBO, mean-field) underpins VAEs, latent variable models, and the theoretical framework behind DPO\u2019s derivation. It\u2019s the bridge between Bayesian reasoning and tractable training."
         ],
         subtopics: [
-          "Exponential family distributions and sufficient statistics",
-          "KL divergence \u2014 forward vs. reverse, mode-seeking vs. mode-covering",
-          "f-divergences: chi-squared, Hellinger, R\u00E9nyi, Jensen-Shannon",
-          "Mutual information, entropy, cross-entropy",
-          "Concentration inequalities",
-          "Bayesian and variational inference fundamentals"
+          "Probability foundations: Bayes' theorem, conditional probability, common distributions",
+          "Entropy, cross-entropy, mutual information, and perplexity",
+          "Exponential family distributions, sufficient statistics, and MLE",
+          "KL divergence \u2014 forward vs. reverse, f-divergences, Jensen-Shannon, R\u00E9nyi",
+          "Bayesian inference, variational methods, ELBO, and amortized inference",
+          "Sampling methods: importance sampling, MCMC, rejection sampling, Gumbel-max",
+          "Concentration inequalities: Hoeffding, Chernoff, sub-Gaussian bounds",
+          "Information theory in practice: LLM loss, temperature, RLHF, bits-per-byte"
         ]
       },
       {
