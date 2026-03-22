@@ -883,7 +883,7 @@ export default function App() {
   return (
     <>
     {showWarmup && (
-      <WarmupView onClose={() => setShowWarmup(false)} />
+      <WarmupView onClose={() => setShowWarmup(false)} getSectionTitle={getSectionTitle} />
     )}
     {activeModule && (
       <ModuleView

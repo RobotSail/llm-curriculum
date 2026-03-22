@@ -92,7 +92,7 @@ function buildWarmup() {
 
 const DIFF_COLORS = { easy: '#1D9E75', medium: '#BA7517', hard: '#D85A30' };
 
-export default function WarmupView({ onClose }) {
+export default function WarmupView({ onClose, getSectionTitle }) {
   const questions = useMemo(() => buildWarmup(), []);
   const total = questions.length;
 
@@ -187,13 +187,18 @@ export default function WarmupView({ onClose }) {
 
       {/* Content */}
       <div style={S.inner} key={step}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: dc + '18', color: dc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {current.difficulty}
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-            {current.sectionId} &middot; {current.moduleTitle}
-          </span>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: dc + '18', color: dc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {current.difficulty}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+              {current.moduleTitle}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', opacity: 0.7 }}>
+            {current.sectionId} &mdash; {getSectionTitle ? getSectionTitle(current.sectionId) : current.sectionId}
+          </div>
         </div>
 
         <MathText style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
