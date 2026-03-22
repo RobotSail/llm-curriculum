@@ -1129,40 +1129,66 @@ export default function App() {
                           </div>
                           {MODULES[sec.id] && (
                             <div style={{marginTop:'16px'}}>
-                              <div style={{fontSize:'11px',fontWeight:500,textTransform:'uppercase',letterSpacing:'0.05em',color:tier.color,marginBottom:'8px'}}>
-                                Interactive Modules
+                              <div style={{fontSize:'11px',fontWeight:500,textTransform:'uppercase',letterSpacing:'0.05em',color:tier.color,marginBottom:'10px'}}>
+                                Learning Path
                               </div>
-                              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-                                {[...MODULES[sec.id]].sort((a,b) => (a.moduleType === 'test' ? 1 : 0) - (b.moduleType === 'test' ? 1 : 0)).map(mod => {
+                              <div style={{position:'relative'}}>
+                                {MODULES[sec.id].map((mod, idx) => {
                                   const prog = getModuleProgress()[mod.id];
+                                  const isDone = prog?.completed;
                                   const dc = {easy:'#1D9E75',medium:'#BA7517',hard:'#D85A30'}[mod.difficulty];
-                                  const tc = mod.moduleType === 'test' ? '#D4537E' : '#378ADD';
+                                  const isTest = mod.moduleType === 'test';
+                                  const isLast = idx === MODULES[sec.id].length - 1;
                                   return (
-                                    <button key={mod.id} onClick={(e) => {e.stopPropagation(); setActiveModule({module:mod,tierColor:tier.color});}}
-                                      style={{
-                                        display:'flex',alignItems:'center',gap:'8px',
-                                        padding:'8px 14px',borderRadius:'var(--border-radius-md)',
-                                        background:'var(--color-background-primary)',
-                                        border:'0.5px solid var(--color-border-tertiary)',
-                                        cursor:'pointer',fontFamily:'inherit',textAlign:'left',
-                                        color:'var(--color-text-primary)',
-                                      }}>
-                                      <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
-                                        background:tc+'18',color:tc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
-                                        {mod.moduleType === 'test' ? 'Test' : 'Learn'}
-                                      </span>
-                                      <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
-                                        background:dc+'18',color:dc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
-                                        {mod.difficulty}
-                                      </span>
-                                      <span style={{fontSize:'13px',flex:1}}>
-                                        {mod.title}
-                                        {mod.optional && <span style={{fontSize:'9px',fontWeight:600,padding:'1px 5px',borderRadius:3,background:'var(--color-border-tertiary)',color:'var(--color-text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginLeft:6,verticalAlign:'middle'}}>Optional</span>}
-                                      </span>
-                                      <span style={{fontSize:'11px',color: prog?.completed ? '#1D9E75' : 'var(--color-text-tertiary)',flexShrink:0}}>
-                                        {prog?.completed ? '\u2713 Done' : `~${mod.estimatedMinutes}m`}
-                                      </span>
-                                    </button>
+                                    <div key={mod.id} style={{display:'flex',gap:'12px',position:'relative',cursor:'pointer'}}
+                                      onClick={(e) => {e.stopPropagation(); setActiveModule({module:mod,tierColor:tier.color});}}>
+                                      {/* Step indicator + connecting line */}
+                                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',flexShrink:0,width:'24px'}}>
+                                        <div style={{
+                                          width:24,height:24,borderRadius:'50%',
+                                          background: isDone ? tier.color : 'transparent',
+                                          border: isDone ? 'none' : `2px solid ${tier.color}44`,
+                                          color: isDone ? 'white' : tier.color,
+                                          display:'flex',alignItems:'center',justifyContent:'center',
+                                          fontSize:isDone ? 12 : 11,fontWeight:600,flexShrink:0,
+                                        }}>
+                                          {isDone ? '\u2713' : idx + 1}
+                                        </div>
+                                        {!isLast && (
+                                          <div style={{width:'2px',flex:1,minHeight:'8px',background: tier.color + '22'}}/>
+                                        )}
+                                      </div>
+                                      {/* Module card */}
+                                      <div style={{
+                                        flex:1,display:'flex',alignItems:'center',gap:'8px',
+                                        padding:'6px 12px',borderRadius:'var(--border-radius-md)',
+                                        marginBottom: isLast ? 0 : '2px',
+                                        transition:'background 0.1s',
+                                      }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-secondary)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
+                                          background: isTest ? '#D4537E18' : '#378ADD18',
+                                          color: isTest ? '#D4537E' : '#378ADD',
+                                          textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
+                                          {isTest ? 'Test' : 'Learn'}
+                                        </span>
+                                        <span style={{fontSize:'13px',flex:1,
+                                          color: isDone ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)',
+                                          textDecoration: isDone ? 'line-through' : 'none',
+                                        }}>
+                                          {mod.title}
+                                          {mod.optional && <span style={{fontSize:'9px',fontWeight:600,padding:'1px 5px',borderRadius:3,background:'var(--color-border-tertiary)',color:'var(--color-text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginLeft:6,verticalAlign:'middle'}}>Optional</span>}
+                                        </span>
+                                        <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
+                                          background:dc+'18',color:dc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
+                                          {mod.difficulty}
+                                        </span>
+                                        <span style={{fontSize:'11px',color: isDone ? '#1D9E75' : 'var(--color-text-tertiary)',flexShrink:0,minWidth:'40px',textAlign:'right'}}>
+                                          {isDone ? '\u2713 Done' : `${mod.estimatedMinutes}m`}
+                                        </span>
+                                      </div>
+                                    </div>
                                   );
                                 })}
                               </div>

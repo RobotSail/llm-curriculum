@@ -32,16 +32,27 @@ export const MODULES = {
   "0.3": [optimizationAssessment],
   "0.4": [systemsAssessment],
   "0.2": [
+    // 1. Foundations — gauge starting level
     probabilityFoundationsAssessment,
+    // 2. Entropy & cross-entropy — the core of LLM training
+    entropyEasy,
     entropyAssessment,
-    ...markOptional(exponentialFamilyAssessment),
+    // 3. Divergences — KL, JS, f-divergences
+    easyModule,
     divergencesAssessment,
+    // 4. Intermediate — IS variance, GANs, MI
+    entropyMedium,
+    mediumModule,
+    // 5. Bayesian & sampling methods
     bayesianAssessment,
     samplingAssessment,
-    ...markOptional(concentrationAssessment),
+    // 6. Advanced — variational bounds, label smoothing, calibration
+    entropyHard,
+    hardModule,
     appliedInfoTheoryAssessment,
-    easyModule, mediumModule, hardModule,
-    entropyEasy, entropyMedium, entropyHard,
+    // 7. Optional deep theory
+    ...markOptional(exponentialFamilyAssessment),
+    ...markOptional(concentrationAssessment),
   ],
 
   // Tier 1 — Foundational core
