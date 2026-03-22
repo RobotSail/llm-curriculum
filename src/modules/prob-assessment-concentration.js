@@ -8,7 +8,7 @@ export const concentrationAssessment = {
   title: "Assessment: Concentration Inequalities & Tail Bounds",
   difficulty: "hard",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

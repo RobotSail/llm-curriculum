@@ -10,7 +10,7 @@ export const scalingLawsAssessment = {
   title: "Assessment: Scaling Laws",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -144,7 +144,7 @@ export const architectureAssessment = {
   title: "Assessment: Architecture Innovations",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -278,7 +278,7 @@ export const dataCentricAssessment = {
   title: "Assessment: Data-Centric Pretraining",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -412,7 +412,7 @@ export const trainingDynamicsAssessment = {
   title: "Assessment: Training Stability & Dynamics",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -546,7 +546,7 @@ export const novelObjectivesAssessment = {
   title: "Assessment: Novel Pretraining Objectives",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

@@ -8,7 +8,7 @@ export const appliedInfoTheoryAssessment = {
   title: "Assessment: Information Theory in LLM Practice",
   difficulty: "hard",
   estimatedMinutes: 14,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

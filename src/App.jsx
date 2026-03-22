@@ -1133,9 +1133,10 @@ export default function App() {
                                 Interactive Modules
                               </div>
                               <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-                                {MODULES[sec.id].map(mod => {
+                                {[...MODULES[sec.id]].sort((a,b) => (a.moduleType === 'test' ? 1 : 0) - (b.moduleType === 'test' ? 1 : 0)).map(mod => {
                                   const prog = getModuleProgress()[mod.id];
                                   const dc = {easy:'#1D9E75',medium:'#BA7517',hard:'#D85A30'}[mod.difficulty];
+                                  const tc = mod.moduleType === 'test' ? '#D4537E' : '#378ADD';
                                   return (
                                     <button key={mod.id} onClick={(e) => {e.stopPropagation(); setActiveModule({module:mod,tierColor:tier.color});}}
                                       style={{
@@ -1146,6 +1147,10 @@ export default function App() {
                                         cursor:'pointer',fontFamily:'inherit',textAlign:'left',
                                         color:'var(--color-text-primary)',
                                       }}>
+                                      <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
+                                        background:tc+'18',color:tc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
+                                        {mod.moduleType === 'test' ? 'Test' : 'Learn'}
+                                      </span>
                                       <span style={{fontSize:'10px',fontWeight:600,padding:'2px 6px',borderRadius:'4px',
                                         background:dc+'18',color:dc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
                                         {mod.difficulty}

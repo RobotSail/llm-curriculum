@@ -8,6 +8,7 @@ export const easyModule = {
   sectionId: "0.1",
   title: "Core Concepts: Shapes, Eigenvalues & SVD",
   difficulty: "easy",
+  moduleType: "learning",
   estimatedMinutes: 15,
   steps: [
     {
@@ -107,6 +108,7 @@ export const mediumModule = {
   sectionId: "0.1",
   title: "Matrix Calculus & Low-Rank Structure",
   difficulty: "medium",
+  moduleType: "learning",
   estimatedMinutes: 20,
   steps: [
     {
@@ -194,6 +196,7 @@ export const hardModule = {
   sectionId: "0.1",
   title: "Spectral Theory, Random Matrices & Advanced Einsum",
   difficulty: "hard",
+  moduleType: "learning",
   estimatedMinutes: 25,
   steps: [
     {

@@ -179,6 +179,9 @@ export default function ModuleView({ module, tierColor, onClose }) {
         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: DIFF_COLORS[module.difficulty] + '18', color: DIFF_COLORS[module.difficulty], textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {DIFF_LABELS[module.difficulty]}
         </span>
+        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: module.moduleType === 'test' ? '#D4537E18' : '#378ADD18', color: module.moduleType === 'test' ? '#D4537E' : '#378ADD', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {module.moduleType === 'test' ? 'Test' : 'Learn'}
+        </span>
       </div>
 
       {/* Content */}

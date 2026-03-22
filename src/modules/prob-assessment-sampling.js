@@ -8,7 +8,7 @@ export const samplingAssessment = {
   title: "Assessment: Sampling Methods & Monte Carlo",
   difficulty: "medium",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

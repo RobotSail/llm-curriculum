@@ -10,7 +10,7 @@ export const transformerAssessment = {
   title: "Assessment: Transformer Architecture",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -145,7 +145,7 @@ export const tokenizationAssessment = {
   title: "Assessment: Tokenization",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -280,7 +280,7 @@ export const pretrainingAssessment = {
   title: "Assessment: Pretraining Objectives & Dynamics",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

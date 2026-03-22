@@ -9,6 +9,7 @@ export const entropyEasy = {
   sectionId: "0.2",
   title: "Entropy & Cross-Entropy in Language Models",
   difficulty: "easy",
+  moduleType: "learning",
   estimatedMinutes: 15,
   steps: [
     {
@@ -121,6 +122,7 @@ export const entropyMedium = {
   sectionId: "0.2",
   title: "Mutual Information & What Representations Learn",
   difficulty: "medium",
+  moduleType: "learning",
   estimatedMinutes: 20,
   steps: [
     {
@@ -233,6 +235,7 @@ export const entropyHard = {
   sectionId: "0.2",
   title: "Label Smoothing, Calibration & the Entropy-Accuracy Tradeoff",
   difficulty: "hard",
+  moduleType: "learning",
   estimatedMinutes: 25,
   steps: [
     {

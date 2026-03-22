@@ -8,7 +8,7 @@ export const entropyAssessment = {
   title: "Assessment: Entropy, Cross-Entropy & Mutual Information",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

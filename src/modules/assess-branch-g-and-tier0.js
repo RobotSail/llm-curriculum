@@ -13,7 +13,7 @@ export const peftAssessment = {
   title: "Assessment: Parameter-Efficient Fine-Tuning",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -147,7 +147,7 @@ export const memoryEfficientAssessment = {
   title: "Assessment: Memory-Efficient Training",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -281,7 +281,7 @@ export const hardwareAwareAssessment = {
   title: "Assessment: Hardware-Aware Machine Learning",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -415,7 +415,7 @@ export const optimizationAssessment = {
   title: "Assessment: Optimization Theory",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -549,7 +549,7 @@ export const systemsAssessment = {
   title: "Assessment: Systems & Hardware for ML",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

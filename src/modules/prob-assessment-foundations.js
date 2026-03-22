@@ -8,7 +8,7 @@ export const probabilityFoundationsAssessment = {
   title: "Assessment: Probability Foundations",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

@@ -7,6 +7,7 @@ export const easyModule = {
   sectionId: "0.2",
   title: "The f-Divergence Family",
   difficulty: "easy",
+  moduleType: "learning",
   estimatedMinutes: 15,
   steps: [
     {
@@ -107,6 +108,7 @@ export const mediumModule = {
   sectionId: "0.2",
   title: "Chi-Squared, Importance Sampling & GANs",
   difficulty: "medium",
+  moduleType: "learning",
   estimatedMinutes: 20,
   steps: [
     {
@@ -219,6 +221,7 @@ export const hardModule = {
   sectionId: "0.2",
   title: "Variational Bounds & the GAN Connection",
   difficulty: "hard",
+  moduleType: "learning",
   estimatedMinutes: 25,
   steps: [
     {

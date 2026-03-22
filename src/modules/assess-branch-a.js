@@ -11,7 +11,7 @@ export const sftAssessment = {
   title: "Assessment: Supervised Fine-Tuning",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -145,7 +145,7 @@ export const rewardModelingAssessment = {
   title: "Assessment: Reward Modeling",
   difficulty: "medium",
   estimatedMinutes: 14,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -279,7 +279,7 @@ export const rlhfAssessment = {
   title: "Assessment: RLHF & Policy Optimization",
   difficulty: "hard",
   estimatedMinutes: 16,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -413,7 +413,7 @@ export const directAlignmentAssessment = {
   title: "Assessment: Direct Alignment Methods",
   difficulty: "hard",
   estimatedMinutes: 16,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -547,7 +547,7 @@ export const frontierAlignmentAssessment = {
   title: "Assessment: Frontier Alignment",
   difficulty: "hard",
   estimatedMinutes: 16,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

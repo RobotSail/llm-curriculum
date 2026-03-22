@@ -11,7 +11,7 @@ export const vlmAssessment = {
   title: "Assessment: Vision-Language Models",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -145,7 +145,7 @@ export const imageGenAssessment = {
   title: "Assessment: Image Generation",
   difficulty: "medium",
   estimatedMinutes: 14,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -279,7 +279,7 @@ export const audioAssessment = {
   title: "Assessment: Audio & Speech",
   difficulty: "medium",
   estimatedMinutes: 14,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -413,7 +413,7 @@ export const videoAssessment = {
   title: "Assessment: Video & Beyond",
   difficulty: "hard",
   estimatedMinutes: 15,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

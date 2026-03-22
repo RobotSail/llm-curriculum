@@ -12,7 +12,7 @@ export const quantizationAssessment = {
   title: "Assessment: Quantization",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -146,7 +146,7 @@ export const decodingAssessment = {
   title: "Assessment: Efficient Decoding",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -280,7 +280,7 @@ export const servingAssessment = {
   title: "Assessment: Serving Infrastructure",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -414,7 +414,7 @@ export const compressionAssessment = {
   title: "Assessment: Compression & Distillation",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -548,7 +548,7 @@ export const cotAssessment = {
   title: "Assessment: Chain-of-Thought & Reasoning",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -682,7 +682,7 @@ export const testTimeComputeAssessment = {
   title: "Assessment: Test-Time Compute",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -816,7 +816,7 @@ export const toolUseAssessment = {
   title: "Assessment: Tool Use & Function Calling",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -950,7 +950,7 @@ export const agenticAssessment = {
   title: "Assessment: Agentic Systems",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

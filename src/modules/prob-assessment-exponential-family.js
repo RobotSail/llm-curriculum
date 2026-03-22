@@ -8,7 +8,7 @@ export const exponentialFamilyAssessment = {
   title: "Assessment: Exponential Families & MLE",
   difficulty: "medium",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

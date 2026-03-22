@@ -12,7 +12,7 @@ export const probingAssessment = {
   title: "Assessment: Probing & Behavioral Analysis",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -146,7 +146,7 @@ export const mechInterpAssessment = {
   title: "Assessment: Mechanistic Interpretability",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -280,7 +280,7 @@ export const trainingInterpAssessment = {
   title: "Assessment: Training Dynamics Interpretability",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -414,7 +414,7 @@ export const formalTheoryAssessment = {
   title: "Assessment: Formal Theory of Transformers",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",

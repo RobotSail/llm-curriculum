@@ -8,7 +8,7 @@ export const bayesianAssessment = {
   title: "Assessment: Bayesian Inference & Variational Methods",
   difficulty: "hard",
   estimatedMinutes: 14,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

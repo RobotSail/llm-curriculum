@@ -8,7 +8,7 @@ export const divergencesAssessment = {
   title: "Assessment: KL Divergence & Divergence Measures",
   difficulty: "medium",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "info",

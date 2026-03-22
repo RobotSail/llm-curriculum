@@ -12,7 +12,7 @@ export const dataAssessment = {
   title: "Assessment: Data",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -148,7 +148,7 @@ export const evaluationAssessment = {
   title: "Assessment: Evaluation",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
@@ -284,7 +284,7 @@ export const distributedTrainingAssessment = {
   title: "Assessment: Distributed Training Infrastructure",
   difficulty: "easy",
   estimatedMinutes: 12,
-  assessmentOnly: true,
+  moduleType: "test",
   steps: [
     {
       type: "mc",
