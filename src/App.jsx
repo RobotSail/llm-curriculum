@@ -1150,7 +1150,10 @@ export default function App() {
                                         background:dc+'18',color:dc,textTransform:'uppercase',letterSpacing:'0.04em',flexShrink:0}}>
                                         {mod.difficulty}
                                       </span>
-                                      <span style={{fontSize:'13px',flex:1}}>{mod.title}</span>
+                                      <span style={{fontSize:'13px',flex:1}}>
+                                        {mod.title}
+                                        {mod.optional && <span style={{fontSize:'9px',fontWeight:600,padding:'1px 5px',borderRadius:3,background:'var(--color-border-tertiary)',color:'var(--color-text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginLeft:6,verticalAlign:'middle'}}>Optional</span>}
+                                      </span>
                                       <span style={{fontSize:'11px',color: prog?.completed ? '#1D9E75' : 'var(--color-text-tertiary)',flexShrink:0}}>
                                         {prog?.completed ? '\u2713 Done' : `~${mod.estimatedMinutes}m`}
                                       </span>

@@ -5,11 +5,13 @@ import { getModuleProgress } from './ModuleView';
 
 const WARMUP_SIZE = 10;
 
-// Collect all MC questions from all modules with metadata
-function collectAllQuestions() {
+// Collect MC questions. Optional modules are excluded unless the user has explored them.
+function collectAllQuestions(exploredModuleIds) {
   const questions = [];
   for (const [sectionId, mods] of Object.entries(MODULES)) {
     for (const mod of mods) {
+      // Skip optional modules the user hasn't started
+      if (mod.optional && !exploredModuleIds.has(mod.id)) continue;
       mod.steps.forEach((step, idx) => {
         if (step.type === 'mc') {
           questions.push({
@@ -40,7 +42,6 @@ function shuffle(arr, seed) {
 }
 
 function buildWarmup() {
-  const allQ = collectAllQuestions();
   const progress = getModuleProgress();
 
   // Find modules the user has interacted with
@@ -50,7 +51,10 @@ function buildWarmup() {
       .map(([id]) => id)
   );
 
-  // Split into explored vs unexplored
+  // Collect questions, filtering out unexplored optional modules
+  const allQ = collectAllQuestions(exploredModuleIds);
+
+  // Split into explored vs unexplored (among non-optional + explored-optional)
   const explored = allQ.filter(q => exploredModuleIds.has(q.moduleId));
   const unexplored = allQ.filter(q => !exploredModuleIds.has(q.moduleId));
 

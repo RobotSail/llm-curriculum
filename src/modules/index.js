@@ -18,6 +18,13 @@ import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } f
 import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
 
+// Modules with optional: true are deep-theory / tangential content.
+// They appear in the UI with an "Optional" badge and are excluded
+// from daily warmup unless the user has started exploring them.
+function markOptional(...mods) {
+  return mods.map(m => ({ ...m, optional: true }));
+}
+
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
@@ -27,11 +34,11 @@ export const MODULES = {
   "0.2": [
     probabilityFoundationsAssessment,
     entropyAssessment,
-    exponentialFamilyAssessment,
+    ...markOptional(exponentialFamilyAssessment),
     divergencesAssessment,
     bayesianAssessment,
     samplingAssessment,
-    concentrationAssessment,
+    ...markOptional(concentrationAssessment),
     appliedInfoTheoryAssessment,
     easyModule, mediumModule, hardModule,
     entropyEasy, entropyMedium, entropyHard,
