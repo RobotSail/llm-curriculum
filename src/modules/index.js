@@ -14,6 +14,7 @@ import { dataAssessment, evaluationAssessment, distributedTrainingAssessment } f
 import { sftAssessment, rewardModelingAssessment, rlhfAssessment, directAlignmentAssessment, frontierAlignmentAssessment } from './assess-branch-a';
 import { scalingLawsAssessment, architectureAssessment, dataCentricAssessment, trainingDynamicsAssessment, novelObjectivesAssessment } from './assess-branch-b';
 import { quantizationAssessment, decodingAssessment, servingAssessment, compressionAssessment, cotAssessment, testTimeComputeAssessment, toolUseAssessment, agenticAssessment } from './assess-branch-cd';
+import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
 
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
@@ -65,4 +66,10 @@ export const MODULES = {
   "D.2": [testTimeComputeAssessment],
   "D.3": [toolUseAssessment],
   "D.4": [agenticAssessment],
+
+  // Branch E — Multimodality
+  "E.1": [vlmAssessment],
+  "E.2": [imageGenAssessment],
+  "E.3": [audioAssessment],
+  "E.4": [videoAssessment],
 };
