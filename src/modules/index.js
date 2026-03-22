@@ -15,11 +15,15 @@ import { sftAssessment, rewardModelingAssessment, rlhfAssessment, directAlignmen
 import { scalingLawsAssessment, architectureAssessment, dataCentricAssessment, trainingDynamicsAssessment, novelObjectivesAssessment } from './assess-branch-b';
 import { quantizationAssessment, decodingAssessment, servingAssessment, compressionAssessment, cotAssessment, testTimeComputeAssessment, toolUseAssessment, agenticAssessment } from './assess-branch-cd';
 import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
+import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
+import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
 
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
   "0.1": [linAlgEasy, linAlgMedium, linAlgHard],
+  "0.3": [optimizationAssessment],
+  "0.4": [systemsAssessment],
   "0.2": [
     probabilityFoundationsAssessment,
     entropyAssessment,
@@ -72,4 +76,15 @@ export const MODULES = {
   "E.2": [imageGenAssessment],
   "E.3": [audioAssessment],
   "E.4": [videoAssessment],
+
+  // Branch F — Interpretability & mechanistic understanding
+  "F.1": [probingAssessment],
+  "F.2": [mechInterpAssessment],
+  "F.3": [trainingInterpAssessment],
+  "F.4": [formalTheoryAssessment],
+
+  // Branch G — Efficient training & parameter-efficient methods
+  "G.1": [peftAssessment],
+  "G.2": [memoryEfficientAssessment],
+  "G.3": [hardwareAwareAssessment],
 };
