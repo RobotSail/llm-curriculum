@@ -1,7 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import ModuleView, { getModuleProgress, getGaps, removeGap, clearAllGaps } from './components/ModuleView';
+import WarmupView from './components/WarmupView';
 import MathText from './components/MathText';
 import { MODULES } from './modules';
+
+const LAST_VISIT_KEY = 'llm-curriculum-last-visit';
 
 const CURRICULUM = [
   {
@@ -723,6 +726,18 @@ export default function App() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [activeModule, setActiveModule] = useState(null);
+  const [showWarmup, setShowWarmup] = useState(false);
+  const [showWarmupPrompt, setShowWarmupPrompt] = useState(() => {
+    try {
+      const last = localStorage.getItem(LAST_VISIT_KEY);
+      const today = new Date().toDateString();
+      if (last !== today) {
+        localStorage.setItem(LAST_VISIT_KEY, today);
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  });
   const [showGaps, setShowGaps] = useState(false);
   const [gapsVersion, setGapsVersion] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -867,6 +882,9 @@ export default function App() {
 
   return (
     <>
+    {showWarmup && (
+      <WarmupView onClose={() => setShowWarmup(false)} />
+    )}
     {activeModule && (
       <ModuleView
         module={activeModule.module}
@@ -946,6 +964,25 @@ export default function App() {
         </div>
       </div>
 
+      {showWarmupPrompt && (
+        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 16px',marginBottom:'16px',borderRadius:'var(--border-radius-lg)',background:'#378ADD10',border:'1px solid #378ADD33'}}>
+          <span style={{fontSize:20,flexShrink:0}}>&#9728;&#65039;</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:500,color:'var(--color-text-primary)',marginBottom:2}}>Daily Warmup</div>
+            <div style={{fontSize:12,color:'var(--color-text-secondary)'}}>10 questions across your curriculum to start the day.</div>
+          </div>
+          <button onClick={() => { setShowWarmupPrompt(false); setShowWarmup(true); }} style={{
+            padding:'6px 16px',borderRadius:'var(--border-radius-md)',border:'none',
+            background:'#378ADD',color:'white',fontSize:13,fontWeight:500,
+            cursor:'pointer',fontFamily:'inherit',flexShrink:0,
+          }}>Start</button>
+          <button onClick={() => setShowWarmupPrompt(false)} style={{
+            background:'transparent',border:'none',color:'var(--color-text-tertiary)',
+            cursor:'pointer',fontSize:16,fontFamily:'inherit',padding:'0 4px',flexShrink:0,
+          }}>&times;</button>
+        </div>
+      )}
+
       <div style={{display:'flex',gap:'8px',marginBottom:'1.5rem',flexWrap:'wrap',alignItems:'center'}}>
         <input
           type="text"
@@ -965,6 +1002,13 @@ export default function App() {
             }}>{l}</button>
           ))}
         </div>
+        <button onClick={() => setShowWarmup(true)} style={{
+          fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
+          border:'1px solid #378ADD44',background:'#378ADD08',
+          color:'#378ADD',cursor:'pointer',fontFamily:'inherit',
+        }}>
+          Warmup
+        </button>
         {gaps.length > 0 && (
           <button onClick={() => setShowGaps(true)} style={{
             fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
