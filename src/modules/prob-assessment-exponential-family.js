@@ -18,25 +18,15 @@ export const exponentialFamilyAssessment = {
     {
       type: "mc",
       question: "An exponential family distribution has the form $p(x \\mid \\theta) = h(x) \\exp(\\eta(\\theta)^\\top T(x) - A(\\theta))$. What role does $A(\\theta)$ (the log-partition function) play?",
-      options: [
-        "It defines the prior distribution over $\\theta$",
-        "It is a normalization constant ensuring the distribution sums/integrates to 1",
-        "It computes the mode of the distribution",
-        "It measures the divergence between the model and the true distribution"
-      ],
-      correct: 1,
+      options: ["It defines the prior distribution over $\\theta$", "It computes the mode of the distribution", "It is a normalization constant ensuring the distribution sums/integrates to 1", "It measures the divergence between the model and the true distribution"],
+      correct: 2,
       explanation: "$A(\\theta) = \\log \\int h(x) \\exp(\\eta(\\theta)^\\top T(x))\\, dx$ is the log-partition function. It ensures normalization. Crucially, its derivatives give the moments: $\\nabla_\\eta A = \\mathbb{E}[T(x)]$ and $\\nabla^2_\\eta A = \\text{Cov}[T(x)]$. This means the log-partition function encodes everything about the distribution's moments."
     },
     {
       type: "mc",
       question: "The softmax output layer of an LLM defines a **categorical distribution** over tokens. In exponential family form, the natural parameters $\\eta_i$ correspond to:",
-      options: [
-        "The token embeddings",
-        "The logits (pre-softmax scores)",
-        "The softmax probabilities themselves",
-        "The attention weights"
-      ],
-      correct: 1,
+      options: ["The token embeddings", "The attention weights", "The softmax probabilities themselves", "The logits (pre-softmax scores)"],
+      correct: 3,
       explanation: "The categorical distribution in exponential family form is $P(w = i) = \\exp(\\eta_i - A(\\eta))$ where $A(\\eta) = \\log \\sum_j \\exp(\\eta_j)$ (the log-sum-exp). The logits **are** the natural parameters. This is why working in logit space (rather than probability space) is natural for optimization — gradients in the natural parameterization have nice properties."
     },
     {
@@ -78,37 +68,22 @@ export const exponentialFamilyAssessment = {
     {
       type: "mc",
       question: "The **Fisher information matrix** $\\mathcal{I}(\\theta) = \\mathbb{E}\\left[\\nabla \\log p(x \\mid \\theta) \\nabla \\log p(x \\mid \\theta)^\\top\\right]$ plays what role in MLE?",
-      options: [
-        "It determines the learning rate for SGD",
-        "It gives the asymptotic covariance of the MLE: $\\hat{\\theta}_{\\text{MLE}} \\sim \\mathcal{N}(\\theta, \\mathcal{I}(\\theta)^{-1}/n)$ as $n \\to \\infty$",
-        "It measures the distance between the model and the data",
-        "It equals the Hessian of the log-prior"
-      ],
-      correct: 1,
+      options: ["It gives the asymptotic covariance of the MLE: $\\hat{\\theta}_{\\text{MLE}} \\sim \\mathcal{N}(\\theta, \\mathcal{I}(\\theta)^{-1}/n)$ as $n \\to \\infty$", "It determines the learning rate for SGD", "It measures the distance between the model and the data", "It equals the Hessian of the log-prior"],
+      correct: 0,
       explanation: "The Cramér-Rao bound says no unbiased estimator can have variance lower than $\\mathcal{I}(\\theta)^{-1}/n$, and the MLE achieves this bound asymptotically. The Fisher matrix also defines the **natural gradient** $\\mathcal{I}^{-1} \\nabla \\ell$ — a direction that accounts for the geometry of the parameter space. This connects to Adam (which approximates diagonal Fisher) and to natural gradient methods in RL."
     },
     {
       type: "mc",
       question: "In practice, we train LLMs by minimizing cross-entropy on finite data. MLE is known to **overfit** without regularization. From a Bayesian perspective, L2 regularization ($\\lambda \\|\\theta\\|^2$) corresponds to:",
-      options: [
-        "A uniform prior over $\\theta$",
-        "A Gaussian prior $\\theta \\sim \\mathcal{N}(0, \\frac{1}{2\\lambda} I)$ — making the loss a MAP estimate",
-        "A Laplace prior over $\\theta$",
-        "Minimizing the Fisher information"
-      ],
-      correct: 1,
+      options: ["A uniform prior over $\\theta$", "A Laplace prior over $\\theta$", "A Gaussian prior $\\theta \\sim \\mathcal{N}(0, \\frac{1}{2\\lambda} I)$ — making the loss a MAP estimate", "Minimizing the Fisher information"],
+      correct: 2,
       explanation: "Adding $\\lambda \\|\\theta\\|^2$ to the NLL gives $-\\log p(x \\mid \\theta) + \\lambda \\|\\theta\\|^2 = -\\log p(x \\mid \\theta) - \\log p(\\theta) + \\text{const}$ where $p(\\theta) \\propto \\exp(-\\lambda \\|\\theta\\|^2)$ is a Gaussian. This makes the solution a **MAP** (maximum a posteriori) estimate rather than pure MLE. L1 regularization corresponds to a Laplace prior and promotes sparsity."
     },
     {
       type: "mc",
       question: "When computing the MLE for a mixture model $p(x) = \\sum_k \\pi_k p_k(x \\mid \\theta_k)$, the log-likelihood has a log-sum that makes direct optimization hard. What standard algorithm addresses this?",
-      options: [
-        "Gradient descent on the log-likelihood directly",
-        "The EM (Expectation-Maximization) algorithm, which alternates between computing posterior cluster assignments (E-step) and updating parameters (M-step)",
-        "Gibbs sampling from the posterior",
-        "Grid search over all parameter values"
-      ],
-      correct: 1,
+      options: ["Gradient descent on the log-likelihood directly", "Grid search over all parameter values", "Gibbs sampling from the posterior", "The EM (Expectation-Maximization) algorithm, which alternates between computing posterior cluster assignments (E-step) and updating parameters (M-step)"],
+      correct: 3,
       explanation: "EM handles the intractable log-sum by introducing latent variables $z$ (cluster assignments). The E-step computes $q(z) = P(z \\mid x, \\theta^{\\text{old}})$, and the M-step maximizes $\\mathbb{E}_q[\\log p(x, z \\mid \\theta)]$. Each iteration is guaranteed to increase the log-likelihood. EM is a special case of variational inference where the E-step is exact."
     }
   ]

@@ -18,13 +18,8 @@ export const concentrationAssessment = {
     {
       type: "mc",
       question: "**Markov's inequality** states that for a non-negative random variable $X$ and $a > 0$: $P(X \\geq a) \\leq \\frac{\\mathbb{E}[X]}{a}$. This bound is:",
-      options: [
-        "Tight for all distributions",
-        "Very loose in general (it only uses the mean), but important because it requires minimal assumptions — just non-negativity",
-        "Only valid for Gaussian distributions",
-        "Tighter than Chebyshev's inequality"
-      ],
-      correct: 1,
+      options: ["Very loose in general (it only uses the mean), but important because it requires minimal assumptions — just non-negativity", "Tight for all distributions", "Only valid for Gaussian distributions", "Tighter than Chebyshev's inequality"],
+      correct: 0,
       explanation: "Markov's inequality is the weakest but most general bound — it only requires $X \\geq 0$ and finite mean. It's rarely used directly because it's very loose, but it's the foundation from which all stronger bounds are derived (Chebyshev applies Markov to $(X - \\mu)^2$, Chernoff applies Markov to $e^{tX}$). Its value is conceptual: it shows that heavy-tailed behavior is constrained by the mean."
     },
     {
@@ -54,49 +49,29 @@ export const concentrationAssessment = {
     {
       type: "mc",
       question: "A random variable $X$ is **sub-Gaussian** with parameter $\\sigma$ if $\\mathbb{E}[e^{t(X - \\mu)}] \\leq e^{\\sigma^2 t^2 / 2}$ for all $t$. Why is the sub-Gaussian property important in deep learning?",
-      options: [
-        "All neural network weights are sub-Gaussian",
-        "It implies exponential tail concentration $P(|X - \\mu| \\geq t) \\leq 2e^{-t^2/(2\\sigma^2)}$, which applies to bounded random variables, Gaussian variables, and sums thereof — covering most quantities we care about in training and evaluation",
-        "It guarantees convergence of SGD",
-        "It means the distribution is exactly Gaussian"
-      ],
-      correct: 1,
+      options: ["All neural network weights are sub-Gaussian", "It guarantees convergence of SGD", "It implies exponential tail concentration $P(|X - \\mu| \\geq t) \\leq 2e^{-t^2/(2\\sigma^2)}$, which applies to bounded random variables, Gaussian variables, and sums thereof — covering most quantities we care about in training and evaluation", "It means the distribution is exactly Gaussian"],
+      correct: 2,
       explanation: "Sub-Gaussianity is a tail condition: the tails decay at least as fast as a Gaussian with variance $\\sigma^2$. Bounded variables ($[a,b]$) are sub-Gaussian with $\\sigma = (b-a)/2$, and sums of sub-Gaussians are sub-Gaussian. This covers sample means, bounded losses, and many gradient estimators. The tail bound gives sharp concentration — the foundation for PAC-Bayes bounds, uniform convergence, and confidence intervals."
     },
     {
       type: "mc",
       question: "In SGD, the gradient estimate $g = \\nabla L(x_i; \\theta)$ for a random mini-batch is an unbiased estimator of $\\nabla L(\\theta)$. The **variance** of this estimate relates to concentration via:",
-      options: [
-        "Higher variance means faster convergence due to exploration",
-        "Gradient variance $\\text{Var}(g)$ scales as $\\sigma^2_g / B$ for batch size $B$ — doubling batch size halves the variance but also halves the number of parameter updates per epoch",
-        "Variance is irrelevant because SGD converges regardless",
-        "Variance only matters for the final few iterations"
-      ],
-      correct: 1,
+      options: ["Higher variance means faster convergence due to exploration", "Variance only matters for the final few iterations", "Variance is irrelevant because SGD converges regardless", "Gradient variance $\\text{Var}(g)$ scales as $\\sigma^2_g / B$ for batch size $B$ — doubling batch size halves the variance but also halves the number of parameter updates per epoch"],
+      correct: 3,
       explanation: "The mini-batch gradient is a sample mean, so $\\text{Var}(\\bar{g}_B) = \\sigma^2_g / B$. This means larger batches give more concentrated (less noisy) gradient estimates. But the total computation is $B \\times \\text{updates}$, and doubling $B$ halves updates per epoch. The \"critical batch size\" is where further increases in $B$ no longer improve wall-clock convergence — below this, gradient noise is too high; above it, you're wasting compute on variance reduction that doesn't help."
     },
     {
       type: "mc",
       question: "**McDiarmid's inequality** generalizes Hoeffding to functions of independent variables: if changing any one input $x_i$ changes $f(x_1, \\ldots, x_n)$ by at most $c_i$, then $P(f - \\mathbb{E}[f] \\geq t) \\leq \\exp\\left(-\\frac{2t^2}{\\sum_i c_i^2}\\right)$. This is useful in ML for bounding:",
-      options: [
-        "The training loss only",
-        "The **generalization gap** — since train/test metrics are functions of i.i.d. data points, and changing one datapoint has bounded effect (bounded differences), McDiarmid gives exponential concentration of empirical risk around its expectation",
-        "The norm of the weight matrix",
-        "The number of epochs needed"
-      ],
-      correct: 1,
+      options: ["The **generalization gap** — since train/test metrics are functions of i.i.d. data points, and changing one datapoint has bounded effect (bounded differences), McDiarmid gives exponential concentration of empirical risk around its expectation", "The training loss only", "The norm of the weight matrix", "The number of epochs needed"],
+      correct: 0,
       explanation: "The empirical risk $\\hat{R} = \\frac{1}{n} \\sum_i L(f(x_i), y_i)$ is a function of $n$ i.i.d. data points. Changing one point changes $\\hat{R}$ by at most $c_i = M/n$ (if the loss is bounded by $M$). McDiarmid gives $P(|\\hat{R} - R| \\geq t) \\leq 2e^{-2nt^2/M^2}$. This is a key ingredient in VC theory and PAC learning bounds."
     },
     {
       type: "mc",
       question: "The **Chernoff bound** technique optimizes over the parameter in the moment generating function: $P(X \\geq a) \\leq \\min_{t > 0} e^{-ta} \\mathbb{E}[e^{tX}]$. This gives the **tightest exponential bound** because:",
-      options: [
-        "It uses all moments of the distribution simultaneously (through the MGF), not just the mean or variance — the optimization over $t$ selects the tightest exponential rate for each specific tail probability",
-        "It only requires the mean",
-        "It works for any distribution including heavy-tailed ones",
-        "It is always tighter than the exact probability"
-      ],
-      correct: 0,
+      options: ["It only requires the mean", "It uses all moments of the distribution simultaneously (through the MGF), not just the mean or variance — the optimization over $t$ selects the tightest exponential rate for each specific tail probability", "It works for any distribution including heavy-tailed ones", "It is always tighter than the exact probability"],
+      correct: 1,
       explanation: "The Chernoff method applies Markov's inequality to $e^{tX}$ for any $t > 0$, then optimizes over $t$. Since $\\mathbb{E}[e^{tX}]$ encodes all moments (via Taylor expansion: $\\sum_k t^k \\mathbb{E}[X^k]/k!$), the optimization over $t$ extracts the best exponential bound the moment information can provide. For sub-Gaussian and sub-exponential variables, this gives sharp rates. It fails for truly heavy-tailed distributions where the MGF doesn't exist."
     },
     {

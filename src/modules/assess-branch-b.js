@@ -15,37 +15,22 @@ export const scalingLawsAssessment = {
     {
       type: "mc",
       question: "The original Kaplan et al. (2020) scaling laws suggested that language model loss scales as a power law in model size $N$, dataset size $D$, and compute $C$. A key (later-revised) recommendation was:",
-      options: [
-        "Train all models for exactly one epoch regardless of size",
-        "Scale model size faster than dataset size — larger models are more sample-efficient, so allocate most additional compute to parameters",
-        "Keep model size fixed and only increase data",
-        "Use a fixed learning rate across all scales"
-      ],
-      correct: 1,
+      options: ["Train all models for exactly one epoch regardless of size", "Use a fixed learning rate across all scales", "Keep model size fixed and only increase data", "Scale model size faster than dataset size — larger models are more sample-efficient, so allocate most additional compute to parameters"],
+      correct: 3,
       explanation: "Kaplan et al. found that loss decreases more steeply with model size than with data. Their recommendation was to scale $N$ faster than $D$ when compute grows — roughly $N \\propto C^{0.73}$ and $D \\propto C^{0.27}$. The Chinchilla paper later overturned this by showing the exponents were closer to equal."
     },
     {
       type: "mc",
       question: "The Chinchilla (Hoffmann et al., 2022) scaling law fundamentally revised Kaplan's recommendations. The compute-optimal prescription is approximately:",
-      options: [
-        "1 token per parameter — keep models large and data small",
-        "20 tokens per parameter — scale model size and data equally with compute",
-        "200 tokens per parameter — use vastly more data than parameters",
-        "The ratio does not matter as long as total FLOPs are fixed"
-      ],
-      correct: 1,
+      options: ["1 token per parameter — keep models large and data small", "200 tokens per parameter — use vastly more data than parameters", "20 tokens per parameter — scale model size and data equally with compute", "The ratio does not matter as long as total FLOPs are fixed"],
+      correct: 2,
       explanation: "Chinchilla showed the compute-optimal ratio is roughly 20 tokens per parameter. A 10B parameter model should train on ~200B tokens. This means Kaplan-era models like the original GPT-3 (175B parameters, 300B tokens, ~1.7 tokens/param) were significantly undertrained relative to their size."
     },
     {
       type: "mc",
       question: "Why did the Kaplan and Chinchilla scaling laws arrive at different compute-optimal allocations between model size $N$ and data $D$?",
-      options: [
-        "They used different model architectures (RNNs vs Transformers)",
-        "Kaplan did not tune the learning rate schedule for smaller token budgets, biasing results toward larger models appearing more efficient",
-        "Chinchilla used a larger vocabulary, making each token more informative",
-        "The two studies measured different loss functions"
-      ],
-      correct: 1,
+      options: ["Kaplan did not tune the learning rate schedule for smaller token budgets, biasing results toward larger models appearing more efficient", "They used different model architectures (RNNs vs Transformers)", "Chinchilla used a larger vocabulary, making each token more informative", "The two studies measured different loss functions"],
+      correct: 0,
       explanation: "A critical methodological issue: Kaplan used a fixed learning rate schedule (cosine decay over a long horizon) even for short runs with less data. This meant small-data runs were undertrained — not because they had too little data, but because their LR schedule was suboptimal. When Chinchilla properly tuned the schedule for each configuration, data turned out to be as valuable as model size."
     },
     {
@@ -63,37 +48,22 @@ export const scalingLawsAssessment = {
     {
       type: "mc",
       question: "Inference-aware scaling laws (e.g., Sardana & Frankle, 2024) modify the Chinchilla-optimal strategy by accounting for deployment costs. Their key recommendation is:",
-      options: [
-        "Use the largest possible model to minimize total training cost",
-        "Train a smaller-than-Chinchilla-optimal model on significantly more data, because inference cost scales with model size, not training data",
-        "Distill large models into small ones after Chinchilla-optimal training",
-        "Use quantization to make the Chinchilla-optimal model cheaper at inference"
-      ],
-      correct: 1,
+      options: ["Use the largest possible model to minimize total training cost", "Use quantization to make the Chinchilla-optimal model cheaper at inference", "Distill large models into small ones after Chinchilla-optimal training", "Train a smaller-than-Chinchilla-optimal model on significantly more data, because inference cost scales with model size, not training data"],
+      correct: 3,
       explanation: "When you account for inference cost (which depends on model size but not training data), the optimal strategy shifts: train a smaller model on more data than Chinchilla prescribes. A model that is \"overtrained\" relative to Chinchilla is slightly worse in loss but much cheaper to serve. This is why Llama models train on far more tokens per parameter than Chinchilla suggests."
     },
     {
       type: "mc",
       question: "Power-law scaling of loss $L(C) = aC^{-\\alpha} + L_\\infty$ implies which of the following about the returns from increasing compute?",
-      options: [
-        "Each doubling of compute yields a constant absolute improvement in loss",
-        "Each doubling of compute yields diminishing absolute improvements — you get a fixed multiplicative reduction in reducible loss $L - L_\\infty$",
-        "There is a critical compute threshold beyond which loss drops suddenly",
-        "Returns are increasing — larger models improve faster per FLOP"
-      ],
-      correct: 1,
+      options: ["Each doubling of compute yields a constant absolute improvement in loss", "There is a critical compute threshold beyond which loss drops suddenly", "Each doubling of compute yields diminishing absolute improvements — you get a fixed multiplicative reduction in reducible loss $L - L_\\infty$", "Returns are increasing — larger models improve faster per FLOP"],
+      correct: 2,
       explanation: "A power law $L - L_\\infty \\propto C^{-\\alpha}$ means doubling compute multiplies the reducible loss by $2^{-\\alpha}$ — a constant fractional reduction. In absolute terms, each doubling gives less improvement because $L - L_\\infty$ is shrinking. There are no sudden thresholds or increasing returns; the curve is smooth and concave on a log-log plot."
     },
     {
       type: "mc",
       question: "Scaling laws predict pretraining loss, but practitioners care about downstream task performance. Research on predicting downstream capabilities from loss has found:",
-      options: [
-        "Downstream task accuracy is a simple linear function of loss",
-        "There is no relationship between pretraining loss and downstream tasks",
-        "Average downstream accuracy often improves smoothly with loss, but individual tasks can show sharp \"emergent\" transitions when measured with nonlinear metrics like exact-match accuracy",
-        "Downstream performance follows the same power law exponent as training loss"
-      ],
-      correct: 2,
+      options: ["Average downstream accuracy often improves smoothly with loss, but individual tasks can show sharp \"emergent\" transitions when measured with nonlinear metrics like exact-match accuracy", "There is no relationship between pretraining loss and downstream tasks", "Downstream task accuracy is a simple linear function of loss", "Downstream performance follows the same power law exponent as training loss"],
+      correct: 0,
       explanation: "The relationship between loss and downstream performance is nuanced. Schaeffer et al. (2023) showed that \"emergence\" often arises from the choice of metric: exact-match accuracy is a nonlinear, threshold-like function of per-token probabilities. When you switch to smoother metrics (like Brier score or token-level probability), performance improves continuously. But some tasks genuinely require a threshold level of capability."
     },
     {
@@ -111,25 +81,15 @@ export const scalingLawsAssessment = {
     {
       type: "mc",
       question: "The irreducible loss $L_\\infty$ in scaling laws $L = aC^{-\\alpha} + L_\\infty$ corresponds to:",
-      options: [
-        "The loss achieved by the largest model ever trained",
-        "The entropy of the data distribution — the theoretical minimum loss achievable by any model, reflecting inherent noise and ambiguity in the data",
-        "The loss of a randomly initialized model",
-        "Zero, since a sufficiently large model can memorize any dataset"
-      ],
-      correct: 1,
+      options: ["The loss achieved by the largest model ever trained", "Zero, since a sufficiently large model can memorize any dataset", "The loss of a randomly initialized model", "The entropy of the data distribution — the theoretical minimum loss achievable by any model, reflecting inherent noise and ambiguity in the data"],
+      correct: 3,
       explanation: "The irreducible loss represents the Bayes-optimal loss: the entropy $H(P)$ of the true data distribution. No model can beat this because the data itself contains inherent randomness (e.g., multiple valid next tokens in natural language). Estimating $L_\\infty$ is important for understanding how much room for improvement remains, but it's difficult to measure precisely in practice."
     },
     {
       type: "mc",
       question: "When using $\\mu$P to transfer hyperparameters from a small proxy model to a large target model, which of the following must change with model width $d$?",
-      options: [
-        "The learning rate — it must decrease as $1/d$",
-        "The initialization scale of weight matrices — input and output layers use different scaling than hidden layers, with specific $1/\\sqrt{d}$ and $1/d$ prescriptions",
-        "The batch size — it must scale linearly with $d$",
-        "Nothing changes — that is the entire point of $\\mu$P"
-      ],
-      correct: 1,
+      options: ["The learning rate — it must decrease as $1/d$", "The batch size — it must scale linearly with $d$", "The initialization scale of weight matrices — input and output layers use different scaling than hidden layers, with specific $1/\\sqrt{d}$ and $1/d$ prescriptions", "Nothing changes — that is the entire point of $\\mu$P"],
+      correct: 2,
       explanation: "In $\\mu$P, the initialization scales and per-layer learning rate multipliers are set so that activations, gradients, and updates remain $\\Theta(1)$ as width varies. Different layer types (input embeddings, hidden layers, output layer) require different scaling rules. The point is not that nothing changes — it is that the *optimal learning rate* stays the same, while the parameterization itself adapts via prescribed initialization and multiplier rules."
     }
   ]
@@ -149,13 +109,8 @@ export const architectureAssessment = {
     {
       type: "mc",
       question: "In a Mixture-of-Experts (MoE) Transformer, the gating network selects a subset of expert FFN layers for each token. The primary computational advantage is:",
-      options: [
-        "The attention layers become cheaper because experts handle most computation",
-        "Total parameters increase but FLOPs per token stay constant — only $k$ of $E$ experts activate per token, decoupling parameter count from compute cost",
-        "Experts share weights, reducing memory requirements",
-        "The vocabulary size can be reduced because experts specialize in different token types"
-      ],
-      correct: 1,
+      options: ["Total parameters increase but FLOPs per token stay constant — only $k$ of $E$ experts activate per token, decoupling parameter count from compute cost", "The attention layers become cheaper because experts handle most computation", "Experts share weights, reducing memory requirements", "The vocabulary size can be reduced because experts specialize in different token types"],
+      correct: 0,
       explanation: "MoE decouples model capacity (total parameters) from per-token compute. A model with $E$ experts but top-$k$ routing uses $k/E$ of the FFN FLOPs per token. For example, Mixtral 8x7B has ~47B total parameters but uses only ~13B per token (top-2 of 8 experts). The attention layers are unchanged."
     },
     {
@@ -173,37 +128,22 @@ export const architectureAssessment = {
     {
       type: "mc",
       question: "Standard self-attention computes $\\text{Softmax}(QK^\\top / \\sqrt{d})V$, which is $O(n^2 d)$ in sequence length $n$. Linear attention replaces this with $\\phi(Q)(\\phi(K)^\\top V)$, achieving $O(nd^2)$. Why does linear attention underperform standard attention on retrieval-intensive tasks?",
-      options: [
-        "Linear attention cannot represent positional information",
-        "The kernel feature map $\\phi$ compresses the key-query interaction into a fixed-size matrix $\\phi(K)^\\top V \\in \\mathbb{R}^{d \\times d}$, which cannot store and retrieve arbitrary token-level associations from a long context",
-        "Linear attention uses fewer parameters than standard attention",
-        "Linear attention cannot be parallelized during training"
-      ],
-      correct: 1,
+      options: ["Linear attention cannot represent positional information", "Linear attention cannot be parallelized during training", "Linear attention uses fewer parameters than standard attention", "The kernel feature map $\\phi$ compresses the key-query interaction into a fixed-size matrix $\\phi(K)^\\top V \\in \\mathbb{R}^{d \\times d}$, which cannot store and retrieve arbitrary token-level associations from a long context"],
+      correct: 3,
       explanation: "By associating right-to-left, linear attention maintains a $d \\times d$ state matrix that accumulates key-value associations. This is a fixed-size bottleneck regardless of sequence length — it cannot perfectly store $n$ distinct key-value pairs when $n > d$. Standard attention computes each query against all keys explicitly, enabling precise retrieval. This is why hybrid architectures pair linear attention (for efficiency) with some standard attention layers (for retrieval)."
     },
     {
       type: "mc",
       question: "Mamba and S4 are examples of state-space models (SSMs) for sequence modeling. Their key structural property, compared to Transformers, is:",
-      options: [
-        "They use convolutions instead of any recurrence, making them purely feedforward",
-        "They model sequences through a latent continuous-time dynamical system $\\dot{h}(t) = Ah(t) + Bx(t)$, discretized for efficiency, enabling linear-time sequence processing with a fixed-size hidden state",
-        "They replace attention with graph neural networks over token dependency trees",
-        "They use external memory modules to store long-range dependencies"
-      ],
-      correct: 1,
+      options: ["They use convolutions instead of any recurrence, making them purely feedforward", "They replace attention with graph neural networks over token dependency trees", "They model sequences through a latent continuous-time dynamical system $\\dot{h}(t) = Ah(t) + Bx(t)$, discretized for efficiency, enabling linear-time sequence processing with a fixed-size hidden state", "They use external memory modules to store long-range dependencies"],
+      correct: 2,
       explanation: "SSMs are grounded in continuous-time state-space equations: $\\dot{h} = Ah + Bx$, $y = Ch + Dx$. After discretization, these become linear recurrences that can be computed as convolutions during training (parallelizable) or step-by-step during inference (efficient autoregressive generation). Mamba adds input-dependent (selective) gating to the $A$, $B$, $C$ matrices, which is crucial for content-based reasoning."
     },
     {
       type: "mc",
       question: "What distinguishes Mamba's \"selective\" state-space mechanism from the original S4 model?",
-      options: [
-        "Mamba uses a larger state dimension",
-        "Mamba makes the SSM parameters ($B$, $C$, and $\\Delta$) input-dependent, allowing the model to selectively filter or retain information based on content rather than using fixed dynamics",
-        "Mamba replaces the HiPPO initialization with random initialization",
-        "Mamba adds self-attention layers between SSM layers"
-      ],
-      correct: 1,
+      options: ["Mamba makes the SSM parameters ($B$, $C$, and $\\Delta$) input-dependent, allowing the model to selectively filter or retain information based on content rather than using fixed dynamics", "Mamba uses a larger state dimension", "Mamba replaces the HiPPO initialization with random initialization", "Mamba adds self-attention layers between SSM layers"],
+      correct: 0,
       explanation: "S4's $A$, $B$, $C$ matrices are fixed (input-independent) — the same dynamics apply to every input. Mamba makes $B$, $C$, and the discretization step $\\Delta$ functions of the input, enabling content-aware filtering. This selectivity is analogous to gating in LSTMs and is essential for tasks that require ignoring irrelevant tokens. The cost is losing the convolution-mode parallelism of S4, which Mamba compensates with a hardware-aware scan algorithm."
     },
     {
@@ -221,37 +161,22 @@ export const architectureAssessment = {
     {
       type: "mc",
       question: "The load-balancing auxiliary loss used in MoE training typically takes the form $\\mathcal{L}_{\\text{aux}} = \\alpha \\cdot E \\cdot \\sum_{i=1}^{E} f_i \\cdot p_i$, where $f_i$ is the fraction of tokens routed to expert $i$ and $p_i$ is the average router probability for expert $i$. Why is this formulation used instead of directly penalizing the variance of $f_i$?",
-      options: [
-        "Variance penalization would be too expensive to compute",
-        "The $f_i \\cdot p_i$ product is differentiable with respect to the router's logits (through $p_i$), whereas $f_i$ alone involves a non-differentiable argmax/top-k selection",
-        "Variance penalization would force all experts to be identical",
-        "The $f_i \\cdot p_i$ formulation also regularizes the expert weights"
-      ],
-      correct: 1,
+      options: ["Variance penalization would be too expensive to compute", "The $f_i \\cdot p_i$ formulation also regularizes the expert weights", "Variance penalization would force all experts to be identical", "The $f_i \\cdot p_i$ product is differentiable with respect to the router's logits (through $p_i$), whereas $f_i$ alone involves a non-differentiable argmax/top-k selection"],
+      correct: 3,
       explanation: "The token-to-expert assignment $f_i$ involves discrete top-$k$ selection, which is not differentiable. But the router probability $p_i$ (the softmax output before the discrete decision) is differentiable. By multiplying $f_i \\cdot p_i$, the gradient flows through $p_i$ to update the router, encouraging it to spread probability mass more evenly. Minimizing $\\sum f_i p_i$ is minimized when both fractions and probabilities are uniform ($1/E$ each)."
     },
     {
       type: "mc",
       question: "Hybrid architectures that combine attention with linear recurrences (e.g., Jamba, Griffin) typically interleave the two layer types. The design rationale is:",
-      options: [
-        "Attention layers are used only in the first few layers for position encoding",
-        "Attention provides precise in-context retrieval for tasks that need it, while recurrent layers provide efficient long-range context compression — the hybrid gets both capabilities at lower total cost than pure attention",
-        "Recurrent layers are only needed during inference for caching",
-        "The combination enables the model to process images and text simultaneously"
-      ],
-      correct: 1,
+      options: ["Attention layers are used only in the first few layers for position encoding", "Recurrent layers are only needed during inference for caching", "Attention provides precise in-context retrieval for tasks that need it, while recurrent layers provide efficient long-range context compression — the hybrid gets both capabilities at lower total cost than pure attention", "The combination enables the model to process images and text simultaneously"],
+      correct: 2,
       explanation: "Pure recurrent models (Mamba, RWKV) struggle with tasks requiring precise recall from long contexts (e.g., \"what was the 3rd item in the list?\") because their fixed-size state compresses information. Pure attention is $O(n^2)$. Hybrids use a few attention layers (often every 4th or 8th layer) to handle retrieval while the recurrent layers efficiently process the majority of the context at $O(n)$ cost."
     },
     {
       type: "mc",
       question: "Early exit strategies in Transformer inference allow the model to produce an output token from an intermediate layer rather than processing through all $L$ layers. A key practical challenge is:",
-      options: [
-        "Early layers do not have enough parameters to make predictions",
-        "The hidden representations at early layers live in a different space than what the final output head expects, requiring either separate output heads per layer or representation alignment techniques that add training complexity",
-        "Early exit requires a different tokenizer for each exit point",
-        "Gradient computation is impossible with early exit during training"
-      ],
-      correct: 1,
+      options: ["The hidden representations at early layers live in a different space than what the final output head expects, requiring either separate output heads per layer or representation alignment techniques that add training complexity", "Early layers do not have enough parameters to make predictions", "Early exit requires a different tokenizer for each exit point", "Gradient computation is impossible with early exit during training"],
+      correct: 0,
       explanation: "The output projection (unembedding) is trained against the final layer's representations. Intermediate representations may not yet encode the information needed for prediction, or may encode it in a different subspace. Solutions include: training separate lightweight classifiers at each potential exit layer, using shared output heads with representation alignment losses, or \"overthinking\" classifiers that decide when additional layers would not change the prediction."
     },
     {
@@ -283,37 +208,22 @@ export const dataCentricAssessment = {
     {
       type: "mc",
       question: "Influence functions estimate how a model's prediction would change if a specific training example were removed (or upweighted). The classic formula involves $\\mathcal{I}(z, z_{\\text{test}}) = -\\nabla_\\theta \\ell(z_{\\text{test}})^\\top H_\\theta^{-1} \\nabla_\\theta \\ell(z)$. Why do influence functions not scale to modern LLMs?",
-      options: [
-        "The loss function of LLMs is not twice-differentiable",
-        "Computing or approximating the inverse Hessian $H_\\theta^{-1}$ is intractable for billions of parameters, and the quadratic approximation breaks down in the non-convex, overparameterized regime where LLMs operate",
-        "Influence functions require the model to be trained to convergence, which LLMs never achieve",
-        "The gradient $\\nabla_\\theta \\ell(z)$ is always zero at the optimum"
-      ],
-      correct: 1,
+      options: ["The loss function of LLMs is not twice-differentiable", "The gradient $\\nabla_\\theta \\ell(z)$ is always zero at the optimum", "Influence functions require the model to be trained to convergence, which LLMs never achieve", "Computing or approximating the inverse Hessian $H_\\theta^{-1}$ is intractable for billions of parameters, and the quadratic approximation breaks down in the non-convex, overparameterized regime where LLMs operate"],
+      correct: 3,
       explanation: "The Hessian $H_\\theta$ is an $N \\times N$ matrix where $N$ is the parameter count — storing it is impossible for LLMs (e.g., $70\\text{B}^2$ entries). Even Hessian-vector product approximations (like LiSSA) are noisy and expensive. Furthermore, influence functions assume a convex loss landscape near the optimum, which does not hold for deep networks. Recent work (TRAK, datamodels) uses random projection-based approximations that trade fidelity for scalability."
     },
     {
       type: "mc",
       question: "Data attribution methods like TRAK (Tracing with Randomly-projected After Kernel) address the scalability limitations of influence functions by:",
-      options: [
-        "Using only the first-order gradient without any Hessian information",
-        "Projecting per-example gradients into a low-dimensional random subspace, then computing attribution scores via a linear model in that projected space — trading exact inverse-Hessian computation for tractable random projections",
-        "Training a separate neural network to predict influence scores",
-        "Computing influence only for the last layer of the model"
-      ],
-      correct: 1,
+      options: ["Using only the first-order gradient without any Hessian information", "Training a separate neural network to predict influence scores", "Projecting per-example gradients into a low-dimensional random subspace, then computing attribution scores via a linear model in that projected space — trading exact inverse-Hessian computation for tractable random projections", "Computing influence only for the last layer of the model"],
+      correct: 2,
       explanation: "TRAK projects the high-dimensional gradient vectors $\\nabla_\\theta \\ell(z) \\in \\mathbb{R}^N$ down to $\\mathbb{R}^k$ (with $k \\ll N$) using random matrices. In this compressed space, it fits a linear model that predicts test loss from training example features. This is motivated by the neural tangent kernel (NTK) perspective: near convergence, the model behaves approximately linearly in the projected gradient space. TRAK is orders of magnitude cheaper than exact influence functions."
     },
     {
       type: "mc",
       question: "DSIR (Data Selection with Importance Resampling) selects pretraining data that resembles a target distribution. The core mechanism is:",
-      options: [
-        "Training a classifier to label data as \"good\" or \"bad\" and keeping only positives",
-        "Computing importance weights $w(x) = p_{\\text{target}}(x) / p_{\\text{source}}(x)$ using n-gram language model ratios, then resampling the source corpus according to these weights",
-        "Clustering the data and selecting clusters closest to the target centroid",
-        "Using perplexity under a target-domain LM as the sole selection criterion"
-      ],
-      correct: 1,
+      options: ["Computing importance weights $w(x) = p_{\\text{target}}(x) / p_{\\text{source}}(x)$ using n-gram language model ratios, then resampling the source corpus according to these weights", "Training a classifier to label data as \"good\" or \"bad\" and keeping only positives", "Clustering the data and selecting clusters closest to the target centroid", "Using perplexity under a target-domain LM as the sole selection criterion"],
+      correct: 0,
       explanation: "DSIR fits lightweight n-gram models to both the target domain and the source corpus, then computes importance weights as the density ratio. Data points that are more likely under the target distribution (relative to the source) get upweighted. Resampling according to these weights yields a subset whose distribution approximates the target. This is much cheaper than training a neural classifier, and importance resampling has well-understood statistical properties."
     },
     {
@@ -331,37 +241,22 @@ export const dataCentricAssessment = {
     {
       type: "mc",
       question: "Catastrophic forgetting in continual pretraining occurs when a model fine-tuned on domain-specific data loses its general capabilities. Which of the following is NOT a standard mitigation strategy?",
-      options: [
-        "Mixing domain-specific data with a fraction of the original pretraining distribution during continued training",
-        "Using elastic weight consolidation (EWC) or similar regularization that penalizes changes to parameters important for previous tasks",
-        "Training on the new domain for exactly one epoch to prevent overfitting",
-        "Replaying a small buffer of original pretraining data alongside the new data"
-      ],
-      correct: 2,
+      options: ["Mixing domain-specific data with a fraction of the original pretraining distribution during continued training", "Using elastic weight consolidation (EWC) or similar regularization that penalizes changes to parameters important for previous tasks", "Replaying a small buffer of original pretraining data alongside the new data", "Training on the new domain for exactly one epoch to prevent overfitting"],
+      correct: 3,
       explanation: "Training for exactly one epoch is not a principled forgetting mitigation — forgetting depends on the degree of distribution shift, not epochs. The other three are well-established approaches: data mixing (most common in practice), EWC-style regularization (penalizes parameter drift weighted by Fisher information), and replay buffers (store and interleave old examples). In practice, simple data mixing (e.g., 90% domain + 10% general) is the most widely used because it is effective and easy to implement."
     },
     {
       type: "mc",
       question: "Learning rate rewarming is a technique used when continuing pretraining on a new data distribution. The practice involves:",
-      options: [
-        "Resetting the learning rate to its initial maximum and repeating the full warmup + decay schedule",
-        "Briefly increasing the learning rate back to a moderate value before decaying again, which helps the model escape the loss basin of the original training distribution and adapt to the new data",
-        "Using a constant learning rate throughout continual pretraining",
-        "Reducing the learning rate to near zero to prevent catastrophic forgetting"
-      ],
-      correct: 1,
+      options: ["Resetting the learning rate to its initial maximum and repeating the full warmup + decay schedule", "Using a constant learning rate throughout continual pretraining", "Briefly increasing the learning rate back to a moderate value before decaying again, which helps the model escape the loss basin of the original training distribution and adapt to the new data", "Reducing the learning rate to near zero to prevent catastrophic forgetting"],
+      correct: 2,
       explanation: "After pretraining, the LR has decayed to a very small value. If you continue training at this low LR on new data, the model adapts very slowly. Rewarming briefly raises the LR (typically not to the original maximum, but to a meaningful fraction) and then decays again. This lets the model move away from its current minimum to better accommodate the new distribution. The Gupta et al. (2023) work on continual pretraining found rewarming essential for efficient adaptation."
     },
     {
       type: "mc",
       question: "When building a domain-specific LLM (e.g., for biomedicine), you can either (A) pretrain from scratch on domain data, or (B) continue pretraining a general-purpose LLM on domain data. Which statement is most accurate?",
-      options: [
-        "From-scratch pretraining always produces superior domain models because the tokenizer is domain-optimized",
-        "Continued pretraining is almost always more compute-efficient: general LLMs have already learned syntax, reasoning, and world knowledge that transfers to the domain, so domain adaptation requires far fewer tokens than learning everything from scratch",
-        "The two approaches yield identical results given the same total compute",
-        "Continued pretraining cannot work because the tokenizer does not have domain-specific tokens"
-      ],
-      correct: 1,
+      options: ["Continued pretraining is almost always more compute-efficient: general LLMs have already learned syntax, reasoning, and world knowledge that transfers to the domain, so domain adaptation requires far fewer tokens than learning everything from scratch", "From-scratch pretraining always produces superior domain models because the tokenizer is domain-optimized", "The two approaches yield identical results given the same total compute", "Continued pretraining cannot work because the tokenizer does not have domain-specific tokens"],
+      correct: 0,
       explanation: "Continued pretraining leverages transfer learning: a 7B model pretrained on 2T tokens has learned language structure, reasoning patterns, and broad knowledge. Adapting it to biomedicine with 50-100B domain tokens is far cheaper than training a biomedical model from scratch on hundreds of billions of tokens. The tokenizer concern is real but secondary — subword tokenizers handle unseen terms by decomposition, and domain terms can be added. Models like BioMedLM, PMC-LLaMA, and SciLLM all use continued pretraining."
     },
     {
@@ -379,13 +274,8 @@ export const dataCentricAssessment = {
     {
       type: "mc",
       question: "In the context of data quality filtering for pretraining, a perplexity-based filter uses a reference language model to score each document. What is a known failure mode of naive perplexity filtering?",
-      options: [
-        "It cannot process documents longer than the reference model's context window",
-        "It systematically biases the pretraining data toward the style and domain of the reference model's training data — e.g., a Wikipedia-trained reference model will favor Wikipedia-like text and discard informal but informative content",
-        "It removes all non-English text regardless of quality",
-        "It is too slow to apply to web-scale corpora"
-      ],
-      correct: 1,
+      options: ["It cannot process documents longer than the reference model's context window", "It is too slow to apply to web-scale corpora", "It removes all non-English text regardless of quality", "It systematically biases the pretraining data toward the style and domain of the reference model's training data — e.g., a Wikipedia-trained reference model will favor Wikipedia-like text and discard informal but informative content"],
+      correct: 3,
       explanation: "A reference LM assigns low perplexity to text similar to its own training distribution. A Wikipedia-trained filter will favor encyclopedic prose and penalize code, dialogue, informal writing, and domain-specific jargon — all of which may be high-quality and valuable for a general-purpose LLM. The C4 dataset used a Wikipedia perplexity filter, which is now recognized as having been too aggressive. Modern pipelines use classifier-based quality scoring with more diverse positive examples."
     },
     {
@@ -417,13 +307,8 @@ export const trainingDynamicsAssessment = {
     {
       type: "mc",
       question: "The \"edge of stability\" phenomenon (Cohen et al., 2021) in gradient descent training describes a regime where:",
-      options: [
-        "Training loss oscillates wildly but validation loss remains stable",
-        "The sharpness (largest eigenvalue of the Hessian) rises until it reaches $\\approx 2/\\eta$ (where $\\eta$ is the learning rate), then oscillates around this threshold while loss continues to decrease non-monotonically",
-        "The model parameters reach a critical point where any perturbation causes divergence",
-        "Batch normalization causes gradient norms to hover at a fixed value"
-      ],
-      correct: 1,
+      options: ["The sharpness (largest eigenvalue of the Hessian) rises until it reaches $\\approx 2/\\eta$ (where $\\eta$ is the learning rate), then oscillates around this threshold while loss continues to decrease non-monotonically", "Training loss oscillates wildly but validation loss remains stable", "The model parameters reach a critical point where any perturbation causes divergence", "Batch normalization causes gradient norms to hover at a fixed value"],
+      correct: 0,
       explanation: "Classical optimization theory predicts divergence when sharpness exceeds $2/\\eta$. Instead, Cohen et al. observed that full-batch GD on neural networks enters a regime where sharpness self-stabilizes at $\\approx 2/\\eta$: when it exceeds this threshold, the loss temporarily increases (the optimizer takes steps that are \"too large\"), which modifies the landscape to reduce sharpness back below the threshold. This is not predicted by convex optimization theory and suggests GD implicitly regularizes toward flatter minima."
     },
     {
@@ -453,37 +338,22 @@ export const trainingDynamicsAssessment = {
     {
       type: "mc",
       question: "The formation of induction heads during training exhibits a phase transition. What does this mean concretely?",
-      options: [
-        "Induction heads form instantly at initialization",
-        "There is a sudden, discrete jump in in-context learning ability at a specific point during training, with the loss on repeated-pattern tasks dropping sharply over a narrow window of training steps rather than improving gradually",
-        "The model alternates between having and not having induction heads as training progresses",
-        "Induction heads form only if the model has more than 12 layers"
-      ],
-      correct: 1,
+      options: ["Induction heads form instantly at initialization", "Induction heads form only if the model has more than 12 layers", "The model alternates between having and not having induction heads as training progresses", "There is a sudden, discrete jump in in-context learning ability at a specific point during training, with the loss on repeated-pattern tasks dropping sharply over a narrow window of training steps rather than improving gradually"],
+      correct: 3,
       explanation: "Olsson et al. observed that in-context learning ability (measured by how much loss decreases from the first to the second occurrence of a pattern) remains near zero for many training steps, then rapidly improves over a narrow window. This coincides with the formation of the induction head circuit. This is a genuine phase transition — a qualitative change in capability emerging suddenly from continuous optimization. It's one of the clearest examples of emergent capability in a controlled setting."
     },
     {
       type: "mc",
       question: "Loss landscape mode connectivity refers to the finding that:",
-      options: [
-        "All local minima have the same loss value",
-        "Different trained models (from different initializations) can often be connected by simple low-loss paths (e.g., linear or piecewise-linear) in weight space, suggesting they lie in the same broad basin or on the same loss-level set",
-        "The loss landscape is convex near any local minimum",
-        "Gradient descent always converges to the global minimum"
-      ],
-      correct: 1,
+      options: ["All local minima have the same loss value", "The loss landscape is convex near any local minimum", "Different trained models (from different initializations) can often be connected by simple low-loss paths (e.g., linear or piecewise-linear) in weight space, suggesting they lie in the same broad basin or on the same loss-level set", "Gradient descent always converges to the global minimum"],
+      correct: 2,
       explanation: "Mode connectivity (Garipov et al., 2018; Draxler et al., 2018) showed that independently trained models often lie in connected low-loss regions. While the straight line between two models in weight space may cross a loss barrier, a slightly curved path (found by optimization) often connects them with negligible loss increase. This suggests the loss landscape of overparameterized networks has a simpler structure than previously thought — most good minima are connected."
     },
     {
       type: "mc",
       question: "Mode connectivity has direct implications for model merging. When we average the weights of two fine-tuned models (linear interpolation $\\theta_{\\text{merged}} = \\alpha \\theta_1 + (1 - \\alpha) \\theta_2$), the merged model performs well only when:",
-      options: [
-        "Both models have the same number of parameters",
-        "The two models share a common pretrained initialization — this ensures they lie in the same basin of the loss landscape, making the linear interpolation path stay in a low-loss region",
-        "Both models were trained on identical data",
-        "The models use different optimizers to ensure diversity"
-      ],
-      correct: 1,
+      options: ["The two models share a common pretrained initialization — this ensures they lie in the same basin of the loss landscape, making the linear interpolation path stay in a low-loss region", "Both models have the same number of parameters", "Both models were trained on identical data", "The models use different optimizers to ensure diversity"],
+      correct: 0,
       explanation: "Models fine-tuned from the same pretrained checkpoint tend to remain in the same loss basin (the pretrained model acts as an \"anchor\"). Linear interpolation between them stays in the low-loss region. Models trained from different random initializations typically do NOT mode-connect linearly — there are loss barriers between their basins. This is why weight averaging works well for merging LoRA adapters or task-specific fine-tunes of the same base model, but fails for independently pretrained models."
     },
     {
@@ -501,37 +371,22 @@ export const trainingDynamicsAssessment = {
     {
       type: "mc",
       question: "In the context of $\\mu$P, what happens to the gradient dynamics of a standard (non-$\\mu$P) Transformer as you increase width $d$ while keeping learning rate fixed?",
-      options: [
-        "Gradients vanish because each weight contributes less to the output",
-        "The model enters the kernel (lazy) regime: weight updates become infinitesimally small relative to the random initialization, so internal representations stop learning meaningful features",
-        "Training speed doubles with each doubling of width",
-        "The model becomes more robust to learning rate choices"
-      ],
-      correct: 1,
+      options: ["Gradients vanish because each weight contributes less to the output", "The model becomes more robust to learning rate choices", "Training speed doubles with each doubling of width", "The model enters the kernel (lazy) regime: weight updates become infinitesimally small relative to the random initialization, so internal representations stop learning meaningful features"],
+      correct: 3,
       explanation: "Under standard parameterization (SP), if you keep the learning rate fixed and increase width, each weight's update contributes less to the output (because activations are averaged over more dimensions). In the infinite-width limit, this gives the Neural Tangent Kernel regime where the network is effectively linear around initialization. $\\mu$P rescales learning rates and initialization so that the contribution of each weight update to the output remains $\\Theta(1)$, preserving feature learning dynamics regardless of width."
     },
     {
       type: "mc",
       question: "The phenomenon of \"grokking\" in neural network training refers to:",
-      options: [
-        "The model failing to learn despite sufficient capacity",
-        "A delayed generalization pattern where the model first memorizes training data (achieving zero training loss with high test loss), then — much later in training — suddenly generalizes (test loss drops sharply), despite no change in training loss",
-        "Rapid learning in the first few steps followed by a plateau",
-        "The model learning multiple tasks simultaneously without interference"
-      ],
-      correct: 1,
+      options: ["The model failing to learn despite sufficient capacity", "Rapid learning in the first few steps followed by a plateau", "A delayed generalization pattern where the model first memorizes training data (achieving zero training loss with high test loss), then — much later in training — suddenly generalizes (test loss drops sharply), despite no change in training loss", "The model learning multiple tasks simultaneously without interference"],
+      correct: 2,
       explanation: "Grokking (Power et al., 2022) is a striking phenomenon where generalization occurs long after memorization. On modular arithmetic tasks, models achieve perfect training accuracy quickly, but test accuracy remains at chance for many more steps before suddenly jumping to near-perfect. This suggests the model transitions from a memorization solution to an algorithmic (generalizing) solution. Weight decay and regularization accelerate grokking, supporting the interpretation that regularization pressure eventually pushes the model toward the simpler, generalizing solution."
     },
     {
       type: "mc",
       question: "When training a large Transformer, practitioners often observe that the effective learning rate must be adjusted for different parts of the model. Which statement about per-layer learning rate dynamics is correct?",
-      options: [
-        "All layers should use exactly the same learning rate for optimal training",
-        "In standard training, earlier layers tend to have smaller gradients (and thus effectively lower learning rates under Adam), while attention logits and embedding layers require special handling (e.g., lower LR or normalization) to prevent instability",
-        "Later layers should always use a smaller learning rate because they are closer to the loss",
-        "Per-layer learning rates are only needed for models with more than 100B parameters"
-      ],
-      correct: 1,
+      options: ["In standard training, earlier layers tend to have smaller gradients (and thus effectively lower learning rates under Adam), while attention logits and embedding layers require special handling (e.g., lower LR or normalization) to prevent instability", "All layers should use exactly the same learning rate for optimal training", "Later layers should always use a smaller learning rate because they are closer to the loss", "Per-layer learning rates are only needed for models with more than 100B parameters"],
+      correct: 0,
       explanation: "The gradient magnitudes vary systematically across a Transformer: embedding layers and attention logits tend to grow disproportionately, contributing to instability. Adam's adaptive rates help but don't fully resolve this. Techniques like QK-LayerNorm (normalizing queries and keys), embedding scaling, and logit capping address specific problematic components. $\\mu$P provides a principled framework by prescribing per-layer multipliers that maintain consistent update scales. In practice, many large-scale training runs use lower learning rates for embeddings."
     }
   ]
@@ -563,37 +418,22 @@ export const novelObjectivesAssessment = {
     {
       type: "mc",
       question: "A key practical advantage of MLM over autoregressive LM during pretraining is:",
-      options: [
-        "MLM can use a smaller vocabulary",
-        "MLM processes all tokens bidirectionally — each masked position attends to both left and right context — which produces richer contextualized representations for downstream tasks that require understanding (e.g., classification, NER), and it achieves this with $T$ prediction tasks per sequence rather than requiring left-to-right factorization",
-        "MLM is faster at inference because it generates all tokens in parallel",
-        "MLM requires less training data because it uses each token more efficiently"
-      ],
-      correct: 1,
+      options: ["MLM can use a smaller vocabulary", "MLM requires less training data because it uses each token more efficiently", "MLM is faster at inference because it generates all tokens in parallel", "MLM processes all tokens bidirectionally — each masked position attends to both left and right context — which produces richer contextualized representations for downstream tasks that require understanding (e.g., classification, NER), and it achieves this with $T$ prediction tasks per sequence rather than requiring left-to-right factorization"],
+      correct: 3,
       explanation: "MLM's bidirectional context is its main strength for representation learning. When predicting a masked token, the model can use information from both sides, producing representations that capture the full context. Autoregressive models only see left context at each position. However, MLM only trains on the ~15% of tokens that are masked (the rest don't contribute to the loss), while autoregressive models get a gradient signal from every token. This makes autoregressive pretraining more compute-efficient per token."
     },
     {
       type: "mc",
       question: "UL2 (Unifying Language Learning Paradigms) proposes training a single model with multiple denoising objectives. Its core insight is:",
-      options: [
-        "Different downstream tasks benefit from different pretraining objectives (short spans for understanding, long spans for generation), so mixing multiple denoising tasks with mode-switching tokens creates a model that handles both regimes",
-        "A single denoising objective is always optimal if tuned properly",
-        "UL2 eliminates the need for fine-tuning by training on all possible task formats",
-        "UL2 uses reinforcement learning instead of maximum likelihood"
-      ],
-      correct: 0,
+      options: ["UL2 eliminates the need for fine-tuning by training on all possible task formats", "A single denoising objective is always optimal if tuned properly", "Different downstream tasks benefit from different pretraining objectives (short spans for understanding, long spans for generation), so mixing multiple denoising tasks with mode-switching tokens creates a model that handles both regimes", "UL2 uses reinforcement learning instead of maximum likelihood"],
+      correct: 2,
       explanation: "UL2 defines three denoising modes: R-denoiser (short spans, like BERT), S-denoiser (sequential/prefix LM), and X-denoiser (extreme/long spans). A special sentinel token tells the model which mode is active. The key insight is that no single denoising objective dominates across all downstream tasks — short-span denoising helps classification and NLU, while long-span and prefix modes help generation. By mixing modes, UL2 produces a single model competitive on both understanding and generation benchmarks."
     },
     {
       type: "mc",
       question: "Diffusion models have been highly successful for continuous data (images, audio). Why is applying diffusion to discrete text fundamentally harder?",
-      options: [
-        "Text sequences are too short for the diffusion process to work",
-        "Discrete data cannot be interpolated smoothly — there is no natural continuous noise process for tokens. Adding Gaussian noise to token embeddings destroys the discrete structure, and discrete corruption processes (e.g., random token replacement) lack the mathematical properties (e.g., known reverse process) that make continuous diffusion tractable",
-        "The vocabulary size is too large for the denoising network",
-        "Diffusion requires 2D spatial structure that text does not have"
-      ],
-      correct: 1,
+      options: ["Discrete data cannot be interpolated smoothly — there is no natural continuous noise process for tokens. Adding Gaussian noise to token embeddings destroys the discrete structure, and discrete corruption processes (e.g., random token replacement) lack the mathematical properties (e.g., known reverse process) that make continuous diffusion tractable", "Text sequences are too short for the diffusion process to work", "The vocabulary size is too large for the denoising network", "Diffusion requires 2D spatial structure that text does not have"],
+      correct: 0,
       explanation: "Continuous diffusion relies on gradually adding Gaussian noise and learning to reverse this process. For discrete tokens, there is no natural analog: you cannot \"slightly noise\" a token. Approaches include: (1) embedding tokens in continuous space and applying continuous diffusion (D3PM, Diffusion-LM), (2) using discrete corruption (token masking/replacement) as forward process (multinomial diffusion), or (3) score-matching on the simplex (MDLM). Each has trade-offs: continuous embeddings disconnect from the discrete structure; discrete corruption requires custom transition matrices."
     },
     {
@@ -611,37 +451,22 @@ export const novelObjectivesAssessment = {
     {
       type: "mc",
       question: "Energy-based models (EBMs) for text define an unnormalized density $p_\\theta(x) \\propto \\exp(-E_\\theta(x))$ over sequences. The central computational challenge of EBMs is:",
-      options: [
-        "The energy function $E_\\theta(x)$ is difficult to parameterize for text",
-        "Computing the normalizing constant $Z_\\theta = \\sum_x \\exp(-E_\\theta(x))$ requires summing over all possible sequences (exponential in length and vocabulary), making exact likelihood evaluation and gradient computation intractable",
-        "EBMs cannot assign different probabilities to different sequences",
-        "The energy function must be non-negative, which limits expressiveness"
-      ],
-      correct: 1,
+      options: ["The energy function $E_\\theta(x)$ is difficult to parameterize for text", "The energy function must be non-negative, which limits expressiveness", "EBMs cannot assign different probabilities to different sequences", "Computing the normalizing constant $Z_\\theta = \\sum_x \\exp(-E_\\theta(x))$ requires summing over all possible sequences (exponential in length and vocabulary), making exact likelihood evaluation and gradient computation intractable"],
+      correct: 3,
       explanation: "The partition function $Z_\\theta$ sums over all possible token sequences — $|V|^T$ terms for vocabulary $V$ and length $T$. This is astronomically intractable. Training EBMs requires approximations: contrastive divergence (MCMC sampling for negative examples), noise contrastive estimation (NCE), or score matching. For text specifically, MCMC sampling is difficult because the discrete space makes gradient-based sampling (Langevin dynamics) inapplicable. These challenges are why EBMs remain niche for text despite their theoretical elegance."
     },
     {
       type: "mc",
       question: "The prefix language modeling objective (used in T5 and UL2) treats part of the input as a bidirectional prefix and the rest as an autoregressive target. Compared to pure causal LM, this means:",
-      options: [
-        "The model has fewer parameters because the prefix encoder shares weights with the decoder",
-        "Tokens in the prefix attend to each other bidirectionally (full self-attention), while target tokens attend causally — this unifies the benefits of bidirectional encoding for the input context with autoregressive generation for the output",
-        "The prefix must always be exactly half the sequence length",
-        "Prefix LM cannot perform zero-shot generation"
-      ],
-      correct: 1,
+      options: ["The model has fewer parameters because the prefix encoder shares weights with the decoder", "The prefix must always be exactly half the sequence length", "Tokens in the prefix attend to each other bidirectionally (full self-attention), while target tokens attend causally — this unifies the benefits of bidirectional encoding for the input context with autoregressive generation for the output", "Prefix LM cannot perform zero-shot generation"],
+      correct: 2,
       explanation: "Prefix LM uses a single Transformer with a hybrid attention mask: prefix tokens see each other fully (bidirectional), target tokens see all prefix tokens plus previous target tokens (causal). This is strictly more expressive than causal LM for the prefix portion (which benefits from bidirectional context) while maintaining valid autoregressive generation for the target. It is a natural fit for conditional generation tasks (question$\\rightarrow$answer, document$\\rightarrow$summary) where the input benefits from bidirectional encoding."
     },
     {
       type: "mc",
       question: "Noise contrastive estimation (NCE) has been proposed as an alternative to maximum likelihood for training language models. NCE trains the model to distinguish real data from noise samples. Why has NCE not replaced cross-entropy for large-scale LM pretraining?",
-      options: [
-        "NCE produces a discriminator, not a generator, so it cannot be used for text generation",
-        "NCE requires the noise distribution to be close to the data distribution for efficient learning, but designing such a noise distribution for natural language is itself a hard problem — and NCE's statistical efficiency degrades with vocabulary size, requiring many noise samples per data point",
-        "NCE cannot be combined with Transformer architectures",
-        "NCE requires labeled data"
-      ],
-      correct: 1,
+      options: ["NCE requires the noise distribution to be close to the data distribution for efficient learning, but designing such a noise distribution for natural language is itself a hard problem — and NCE's statistical efficiency degrades with vocabulary size, requiring many noise samples per data point", "NCE produces a discriminator, not a generator, so it cannot be used for text generation", "NCE cannot be combined with Transformer architectures", "NCE requires labeled data"],
+      correct: 0,
       explanation: "NCE converts density estimation into binary classification: real vs. noise. The quality of the noise distribution matters enormously — if noise is too different from data, the classification is trivial and uninformative; if too similar, training is slow. For LLMs with vocabulary sizes of 30K-100K, NCE needs $k$ noise samples per real token (where $k$ should ideally grow with $|V|$), making it less efficient than the softmax cross-entropy loss which processes the entire vocabulary in one shot via the log-sum-exp. Modern hardware makes full-vocabulary softmax feasible."
     },
     {
@@ -659,13 +484,8 @@ export const novelObjectivesAssessment = {
     {
       type: "mc",
       question: "The \"exposure bias\" problem in autoregressive language models refers to the discrepancy between training and inference. Specifically:",
-      options: [
-        "The model is exposed to too much data during training",
-        "During training the model conditions on ground-truth previous tokens (teacher forcing), but during inference it conditions on its own predictions — errors compound because the model never learns to recover from its own mistakes",
-        "The model is biased toward frequent tokens in the training data",
-        "Longer sequences receive more gradient updates, biasing the model toward verbose outputs"
-      ],
-      correct: 1,
+      options: ["The model is exposed to too much data during training", "Longer sequences receive more gradient updates, biasing the model toward verbose outputs", "The model is biased toward frequent tokens in the training data", "During training the model conditions on ground-truth previous tokens (teacher forcing), but during inference it conditions on its own predictions — errors compound because the model never learns to recover from its own mistakes"],
+      correct: 3,
       explanation: "Teacher forcing provides ground-truth context during training: $P(x_t \\mid x_1^*, \\dots, x_{t-1}^*)$. At inference, the model generates $P(x_t \\mid \\hat{x}_1, \\dots, \\hat{x}_{t-1})$ where $\\hat{x}$ are its own (potentially erroneous) predictions. The distribution of contexts at inference differs from training, causing errors to accumulate. Scheduled sampling (mixing ground-truth and model predictions during training) partially addresses this, and it is one motivation for non-autoregressive and diffusion-based alternatives. In practice, exposure bias is less damaging for very large LLMs because their per-token error rate is low."
     }
   ]

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import MathText from './MathText';
 import { MODULES } from '../modules';
 import { getModuleProgress } from './ModuleView';
+import { shuffleMcStep, createRng } from '../utils/shuffle';
 
 const WARMUP_SIZE = 10;
 
@@ -87,7 +88,14 @@ function buildWarmup() {
   const diffOrder = { easy: 0, medium: 1, hard: 2 };
   selected.sort((a, b) => (diffOrder[a.difficulty] ?? 1) - (diffOrder[b.difficulty] ?? 1));
 
-  return selected.slice(0, WARMUP_SIZE);
+  // Shuffle option order for each question so correct answers aren't always in the same position
+  const optionRng = createRng(seed + 77777);
+  const withShuffledOptions = selected.slice(0, WARMUP_SIZE).map(q => {
+    const stepSeed = Math.floor(optionRng() * 2147483646) + 1;
+    return shuffleMcStep(q, stepSeed);
+  });
+
+  return withShuffledOptions;
 }
 
 const DIFF_COLORS = { easy: '#1D9E75', medium: '#BA7517', hard: '#D85A30' };

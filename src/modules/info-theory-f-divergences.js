@@ -18,13 +18,8 @@ export const easyModule = {
     {
       type: "mc",
       question: "Which of the following is a known limitation of KL divergence that motivates looking for alternatives?",
-      options: [
-        "It requires both distributions to be discrete",
-        "It is asymmetric: $\\text{KL}(P \\| Q) \\neq \\text{KL}(Q \\| P)$",
-        "It is always bounded between 0 and 1",
-        "It cannot handle continuous distributions"
-      ],
-      correct: 1,
+      options: ["It requires both distributions to be discrete", "It cannot handle continuous distributions", "It is always bounded between 0 and 1", "It is asymmetric: $\\text{KL}(P \\| Q) \\neq \\text{KL}(Q \\| P)$"],
+      correct: 3,
       explanation: "KL divergence is **asymmetric** — swapping the arguments gives a fundamentally different quantity. This asymmetry has deep practical consequences: $\\text{KL}(P \\| Q)$ and $\\text{KL}(Q \\| P)$ penalize different types of mismatch, leading to different model behaviors."
     },
     {
@@ -35,13 +30,8 @@ export const easyModule = {
     {
       type: "mc",
       question: "A target distribution $P$ is bimodal with two well-separated peaks. You fit $Q$ by minimizing **forward KL** $\\text{KL}(P \\| Q)$. What behavior do you expect?",
-      options: [
-        "$Q$ locks onto one peak and ignores the other",
-        "$Q$ spreads to cover both peaks, possibly placing mass between them",
-        "$Q$ assigns uniform probability everywhere",
-        "$Q$ exactly matches $P$"
-      ],
-      correct: 1,
+      options: ["$Q$ spreads to cover both peaks, possibly placing mass between them", "$Q$ locks onto one peak and ignores the other", "$Q$ assigns uniform probability everywhere", "$Q$ exactly matches $P$"],
+      correct: 0,
       explanation: "Forward KL is **mode-covering**: $Q$ must assign probability wherever $P$ has mass (otherwise $\\log P/Q \\to \\infty$). For a bimodal $P$, $Q$ will cover both modes — but if $Q$ is a unimodal family (e.g., a single Gaussian), it may place significant mass in the valley between the peaks. This is the classic failure mode of variational inference with forward KL."
     },
     {
@@ -86,13 +76,8 @@ export const easyModule = {
     {
       type: "mc",
       question: "During language model training with cross-entropy loss (= forward KL minimization), the training data $P$ has support on certain token sequences. If $Q$ (your model) assigns near-zero probability to a sequence that $P$ covers, what happens?",
-      options: [
-        "The KL divergence stays bounded and training proceeds smoothly",
-        "The gradient signal for that sequence vanishes",
-        "The loss for that sequence becomes very large, creating a strong gradient signal",
-        "The model ignores that sequence and focuses on higher-probability ones"
-      ],
-      correct: 2,
+      options: ["The KL divergence stays bounded and training proceeds smoothly", "The gradient signal for that sequence vanishes", "The model ignores that sequence and focuses on higher-probability ones", "The loss for that sequence becomes very large, creating a strong gradient signal"],
+      correct: 3,
       explanation: "Since $\\text{KL}(P \\| Q) = \\sum P(x) \\log(P(x)/Q(x))$, when $Q(x) \\to 0$ for some $x$ where $P(x) > 0$, the term $\\log(P/Q) \\to \\infty$. This creates a large loss and strong gradient, forcing the model to assign *some* probability to every sequence in the training data. This is forward KL's mode-covering property at work — it's also why language models sometimes hallucinate: they've been forced to cover the full support of $P$, including rare patterns."
     },
     {
@@ -119,13 +104,8 @@ export const mediumModule = {
     {
       type: "mc",
       question: "The chi-squared divergence is $\\chi^2(P \\| Q) = \\mathbb{E}_Q[(P/Q)^2] - 1$. Recall that $\\text{Var}[X] = \\mathbb{E}[X^2] - (\\mathbb{E}[X])^2$. What is $\\mathbb{E}_Q[P(x)/Q(x)]$?",
-      options: [
-        "$0$",
-        "$1$",
-        "It depends on $P$ and $Q$",
-        "$\\text{KL}(P \\| Q)$"
-      ],
-      correct: 1,
+      options: ["$1$", "$0$", "It depends on $P$ and $Q$", "$\\text{KL}(P \\| Q)$"],
+      correct: 0,
       explanation: "$\\mathbb{E}_Q[P/Q] = \\sum_x Q(x) \\cdot \\frac{P(x)}{Q(x)} = \\sum_x P(x) = 1$. The importance weight $P/Q$ always has expectation 1 under $Q$. This is the fundamental property that makes importance sampling work — and it means $\\chi^2(P \\| Q) = \\mathbb{E}_Q[(P/Q)^2] - 1 = \\text{Var}_Q[P/Q]$."
     },
     {
@@ -170,13 +150,8 @@ export const mediumModule = {
     {
       type: "mc",
       question: "If $P$ and $Q$ have completely disjoint support (no overlap at all), what is $\\text{JS}(P \\| Q)$?",
-      options: [
-        "$0$",
-        "$\\log 2$",
-        "$\\infty$",
-        "Undefined"
-      ],
-      correct: 1,
+      options: ["$0$", "$\\infty$", "$\\log 2$", "Undefined"],
+      correct: 2,
       explanation: "When $P$ and $Q$ don't overlap: $M = (P+Q)/2$ has support everywhere either does. Then $\\text{KL}(P \\| M) = \\sum P \\log \\frac{P}{P/2} = \\sum P \\log 2 = \\log 2$, and similarly $\\text{KL}(Q \\| M) = \\log 2$. So $\\text{JS} = \\frac{1}{2}\\log 2 + \\frac{1}{2}\\log 2 = \\log 2$. JS saturates at its maximum — it tells you the distributions are maximally different, but **the gradient of this constant is zero**. This is the vanishing gradient problem that motivated Wasserstein GANs."
     },
     {
@@ -187,13 +162,8 @@ export const mediumModule = {
     {
       type: "mc",
       question: "Early in GAN training, the generator produces low-quality samples far from the data distribution. The discriminator easily distinguishes real from fake (near-perfect classification). What happens to the JS divergence gradient?",
-      options: [
-        "The gradient is very large, providing a strong learning signal",
-        "The gradient is moderate and training proceeds normally",
-        "The gradient nearly vanishes because JS saturates at $\\log 2$",
-        "The gradient oscillates unpredictably"
-      ],
-      correct: 2,
+      options: ["The gradient is very large, providing a strong learning signal", "The gradient is moderate and training proceeds normally", "The gradient oscillates unpredictably", "The gradient nearly vanishes because JS saturates at $\\log 2$"],
+      correct: 3,
       explanation: "When the discriminator is near-perfect, $P$ and $Q_G$ are effectively non-overlapping. JS saturates at its maximum $\\log 2$, and $\\nabla_G \\text{JS} \\approx 0$. The generator receives almost no gradient signal. This is the **GAN training instability** that led to alternatives: Wasserstein GAN uses Earth Mover's distance (not an f-divergence) which provides gradients even for non-overlapping distributions."
     },
     {
@@ -204,13 +174,8 @@ export const mediumModule = {
     {
       type: "mc",
       question: "A representation $Z = f(X)$ is a deterministic function of input $X$. If $I(X; Z) = 0$, what can you conclude about $Z$?",
-      options: [
-        "$Z$ perfectly encodes all information in $X$",
-        "$Z$ is independent of $X$ — it carries no information about the input",
-        "$Z$ encodes only task-relevant information",
-        "Nothing — MI can be zero even for useful representations"
-      ],
-      correct: 1,
+      options: ["$Z$ is independent of $X$ — it carries no information about the input", "$Z$ perfectly encodes all information in $X$", "$Z$ encodes only task-relevant information", "Nothing — MI can be zero even for useful representations"],
+      correct: 0,
       explanation: "$I(X; Z) = 0$ means $P(X, Z) = P(X)P(Z)$, i.e., $X$ and $Z$ are independent. The representation carries **no information** about the input — it's useless. High MI means $Z$ is informative about $X$; low MI means $Z$ has discarded information. The information bottleneck asks: what's the minimum MI $I(X; Z)$ you can get away with while still predicting the target $Y$ well?"
     }
   ]
@@ -249,13 +214,8 @@ export const hardModule = {
     {
       type: "mc",
       question: "In the variational bound $D_f(P \\| Q) \\geq \\sup_T\\{\\mathbb{E}_P[T] - \\mathbb{E}_Q[f^*(T)]\\}$, the function $T$ is optimized to tighten the bound. In a GAN, what plays the role of $T$?",
-      options: [
-        "The generator network",
-        "The discriminator network",
-        "The loss function",
-        "The latent noise vector"
-      ],
-      correct: 1,
+      options: ["The generator network", "The loss function", "The discriminator network", "The latent noise vector"],
+      correct: 2,
       explanation: "The **discriminator** maximizes the variational bound — it's the function $T$ that distinguishes real from generated data. The generator then minimizes the resulting (approximate) f-divergence. This is the adversarial game: the discriminator tightens the lower bound on the divergence, and the generator minimizes it."
     },
     {
@@ -266,13 +226,8 @@ export const hardModule = {
     {
       type: "mc",
       question: "Least-Squares GAN (LSGAN) replaces the log-loss with squared error: $\\min_G \\max_D\\; \\mathbb{E}_P[(D(x)-1)^2] + \\mathbb{E}_{Q_G}[D(x)^2]$. Based on the f-GAN framework, which f-divergence does LSGAN approximately minimize?",
-      options: [
-        "KL divergence",
-        "Jensen-Shannon divergence",
-        "Pearson chi-squared divergence",
-        "Total variation distance"
-      ],
-      correct: 2,
+      options: ["KL divergence", "Jensen-Shannon divergence", "Total variation distance", "Pearson chi-squared divergence"],
+      correct: 3,
       explanation: "LSGAN's squared-error objective corresponds to the **Pearson chi-squared divergence** ($f(t) = (t-1)^2$). The conjugate of $(t-1)^2$ is $f^*(u) = u + u^2/4$, which gives a quadratic (least-squares) discriminator loss. This was shown by Mao et al. (2017) and provides a theoretical justification for why LSGAN training is often more stable than the original — chi-squared has nicer gradient properties near saturation."
     },
     {
@@ -300,13 +255,8 @@ export const hardModule = {
     {
       type: "mc",
       question: "In both the information bottleneck and RLHF, $\\beta$ controls a trade-off. In the IB, increasing $\\beta$ makes the model retain more task-relevant information. In RLHF, increasing $\\beta$ makes the policy:",
-      options: [
-        "Chase higher rewards more aggressively, diverging further from $\\pi_{\\text{ref}}$",
-        "Stay closer to $\\pi_{\\text{ref}}$, sacrificing potential reward",
-        "Have no effect — $\\beta$ only matters in the IB setting",
-        "Increase the entropy of the policy distribution"
-      ],
-      correct: 1,
+      options: ["Stay closer to $\\pi_{\\text{ref}}$, sacrificing potential reward", "Chase higher rewards more aggressively, diverging further from $\\pi_{\\text{ref}}$", "Have no effect — $\\beta$ only matters in the IB setting", "Increase the entropy of the policy distribution"],
+      correct: 0,
       explanation: "In the RLHF objective $\\max \\mathbb{E}[R] - \\beta \\cdot \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$, a larger $\\beta$ increases the penalty for deviating from $\\pi_{\\text{ref}}$. The policy stays closer to the reference model and sacrifices potential reward for safety/coherence. This is exactly analogous to the IB: higher $\\beta$ → stronger constraint → more conservative behavior. The Pareto frontier traced by varying $\\beta$ is called the **rate-distortion curve** in information theory."
     }
   ]

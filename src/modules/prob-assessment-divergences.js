@@ -30,37 +30,22 @@ export const divergencesAssessment = {
     {
       type: "mc",
       question: "In RLHF, the objective is $\\max_\\pi \\mathbb{E}_{\\pi}[r(x)] - \\beta \\, \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$. The KL term $\\text{KL}(\\pi \\| \\pi_{\\text{ref}})$ is **forward KL** from $\\pi$ to $\\pi_{\\text{ref}}$. What behavior does this penalty enforce?",
-      options: [
-        "It forces $\\pi$ to match a single mode of $\\pi_{\\text{ref}}$",
-        "Wherever $\\pi$ places probability mass, $\\pi_{\\text{ref}}$ must also have mass — preventing $\\pi$ from generating text that $\\pi_{\\text{ref}}$ considers highly unlikely",
-        "It ensures $\\pi_{\\text{ref}}$ covers all modes of $\\pi$",
-        "It minimizes the entropy of $\\pi$"
-      ],
-      correct: 1,
+      options: ["Wherever $\\pi$ places probability mass, $\\pi_{\\text{ref}}$ must also have mass — preventing $\\pi$ from generating text that $\\pi_{\\text{ref}}$ considers highly unlikely", "It forces $\\pi$ to match a single mode of $\\pi_{\\text{ref}}$", "It ensures $\\pi_{\\text{ref}}$ covers all modes of $\\pi$", "It minimizes the entropy of $\\pi$"],
+      correct: 0,
       explanation: "$\\text{KL}(\\pi \\| \\pi_{\\text{ref}}) = \\mathbb{E}_\\pi[\\log \\pi / \\pi_{\\text{ref}}]$ — the expectation is under $\\pi$. If $\\pi(x) > 0$ but $\\pi_{\\text{ref}}(x) \\approx 0$, the ratio explodes. So $\\pi$ is penalized for putting mass where the reference doesn't. This prevents \"reward hacking\" — generating text that scores high reward but is completely unlike natural text."
     },
     {
       type: "mc",
       question: "The **Jensen-Shannon divergence** $\\text{JS}(P \\| Q) = \\frac{1}{2}\\text{KL}(P \\| M) + \\frac{1}{2}\\text{KL}(Q \\| M)$ where $M = \\frac{1}{2}(P + Q)$ has which advantages over KL?",
-      options: [
-        "It is always larger than KL divergence",
-        "It is symmetric, bounded ($0 \\leq \\text{JS} \\leq \\log 2$), and well-defined even when supports don't fully overlap",
-        "It is easier to compute than KL",
-        "It converges faster during training"
-      ],
-      correct: 1,
+      options: ["It is always larger than KL divergence", "It is easier to compute than KL", "It is symmetric, bounded ($0 \\leq \\text{JS} \\leq \\log 2$), and well-defined even when supports don't fully overlap", "It converges faster during training"],
+      correct: 2,
       explanation: "JS divergence is symmetric ($\\text{JS}(P\\|Q) = \\text{JS}(Q\\|P)$), bounded by $\\log 2$, and always finite even when $P$ and $Q$ have disjoint support (because $M$ covers both). Its square root is a true metric. The original GAN objective minimizes JS divergence, but the bounded/finite property actually causes problems (vanishing gradients when $P$ and $Q$ are far apart)."
     },
     {
       type: "mc",
       question: "**Reverse KL** $\\text{KL}(Q \\| P)$ is called \"mode-seeking\" because when fitting $Q$ to a multimodal $P$:",
-      options: [
-        "$Q$ covers all modes of $P$ uniformly",
-        "$Q$ tends to concentrate on a single mode of $P$, fitting it precisely while ignoring others",
-        "$Q$ places mass only between modes",
-        "$Q$ becomes uniform regardless of $P$"
-      ],
-      correct: 1,
+      options: ["$Q$ covers all modes of $P$ uniformly", "$Q$ becomes uniform regardless of $P$", "$Q$ places mass only between modes", "$Q$ tends to concentrate on a single mode of $P$, fitting it precisely while ignoring others"],
+      correct: 3,
       explanation: "In reverse KL, the expectation is under $Q$: $\\mathbb{E}_Q[\\log Q/P]$. If $Q$ places mass where $P(x) \\approx 0$, $\\log(Q/P) \\to \\infty$, so $Q$ avoids regions where $P$ is small. But $Q$ pays no penalty for *ignoring* modes of $P$ (since it doesn't sample there). So $Q$ \"seeks\" a single mode and fits it tightly. This is the behavior of variational inference with reverse KL."
     },
     {
@@ -78,49 +63,29 @@ export const divergencesAssessment = {
     {
       type: "mc",
       question: "The **total variation distance** $\\text{TV}(P, Q) = \\frac{1}{2} \\sum_x |P(x) - Q(x)|$ relates to KL divergence through **Pinsker's inequality**:",
-      options: [
-        "$\\text{TV}(P, Q) \\leq \\text{KL}(P \\| Q)$",
-        "$\\text{TV}(P, Q) \\leq \\sqrt{\\frac{1}{2} \\text{KL}(P \\| Q)}$",
-        "$\\text{KL}(P \\| Q) \\leq \\text{TV}(P, Q)$",
-        "$\\text{TV}(P, Q) = \\text{KL}(P \\| Q)$ always"
-      ],
-      correct: 1,
+      options: ["$\\text{TV}(P, Q) \\leq \\sqrt{\\frac{1}{2} \\text{KL}(P \\| Q)}$", "$\\text{TV}(P, Q) \\leq \\text{KL}(P \\| Q)$", "$\\text{KL}(P \\| Q) \\leq \\text{TV}(P, Q)$", "$\\text{TV}(P, Q) = \\text{KL}(P \\| Q)$ always"],
+      correct: 0,
       explanation: "Pinsker's inequality: $\\text{TV}(P, Q) \\leq \\sqrt{\\frac{1}{2} \\text{KL}(P \\| Q)}$. This means small KL implies small TV, but not vice versa — TV can be small while KL is large (when the ratio $P/Q$ is extreme in regions with small mass). This inequality is fundamental in PAC-Bayes bounds and differential privacy proofs."
     },
     {
       type: "mc",
       question: "When two distributions $P$ and $Q$ have **disjoint supports** (no overlap), what happens to KL divergence, JS divergence, and total variation?",
-      options: [
-        "All three are zero",
-        "KL is undefined ($\\infty$), JS = $\\log 2$ (finite), TV = 1 (maximum)",
-        "All three are infinite",
-        "KL is finite, JS is infinite, TV = 0"
-      ],
-      correct: 1,
+      options: ["All three are zero", "All three are infinite", "KL is undefined ($\\infty$), JS = $\\log 2$ (finite), TV = 1 (maximum)", "KL is finite, JS is infinite, TV = 0"],
+      correct: 2,
       explanation: "With disjoint supports: KL is $+\\infty$ (dividing by zero in the log-ratio), JS is $\\log 2$ (its maximum, finite value), and TV is 1 (its maximum). This is why JS is preferred in some contexts — it gracefully handles non-overlapping distributions. However, this bounded behavior means JS gradients vanish when distributions are far apart, which was the original GAN training problem solved by Wasserstein distance."
     },
     {
       type: "mc",
       question: "The **f-divergence** framework defines $D_f(P \\| Q) = \\mathbb{E}_Q[f(P(x)/Q(x))]$ for convex $f$ with $f(1) = 0$. The **variational representation** $D_f(P \\| Q) = \\sup_T \\{\\mathbb{E}_P[T(x)] - \\mathbb{E}_Q[f^*(T(x))]\\}$ (where $f^*$ is the Fenchel conjugate) is important because:",
-      options: [
-        "It allows exact computation of any f-divergence",
-        "It converts divergence estimation into an optimization problem that a neural network (discriminator/critic) can solve — this is the foundation of f-GANs",
-        "It proves all f-divergences are equal",
-        "It eliminates the need for density ratio estimation"
-      ],
-      correct: 1,
+      options: ["It allows exact computation of any f-divergence", "It eliminates the need for density ratio estimation", "It proves all f-divergences are equal", "It converts divergence estimation into an optimization problem that a neural network (discriminator/critic) can solve — this is the foundation of f-GANs"],
+      correct: 3,
       explanation: "The variational representation turns f-divergence computation into a supremum over functions $T$ — which a neural network can approximate. The original GAN uses this for JS divergence (where $T$ is the discriminator), and f-GANs generalize this to arbitrary f-divergences. This is a powerful trick: you never need to know the density ratio explicitly; instead, you train a network to estimate it."
     },
     {
       type: "mc",
       question: "In DPO (Direct Preference Optimization), the loss involves $\\log \\frac{\\pi_\\theta(y_w \\mid x)}{\\pi_{\\text{ref}}(y_w \\mid x)} - \\log \\frac{\\pi_\\theta(y_l \\mid x)}{\\pi_{\\text{ref}}(y_l \\mid x)}$ where $y_w$ is preferred over $y_l$. The log-ratios $\\log \\frac{\\pi_\\theta}{\\pi_{\\text{ref}}}$ are called **implicit rewards**. This formulation implicitly uses which divergence concept?",
-      options: [
-        "The density ratio $\\pi_\\theta / \\pi_{\\text{ref}}$ that appears in KL divergence — DPO reparameterizes the RLHF objective's KL-constrained optimization into a supervised loss using the closed-form solution involving log-ratios",
-        "Jensen-Shannon divergence between preferred and dispreferred completions",
-        "Total variation distance between old and new policies",
-        "Wasserstein distance in token space"
-      ],
-      correct: 0,
+      options: ["Jensen-Shannon divergence between preferred and dispreferred completions", "The density ratio $\\pi_\\theta / \\pi_{\\text{ref}}$ that appears in KL divergence — DPO reparameterizes the RLHF objective's KL-constrained optimization into a supervised loss using the closed-form solution involving log-ratios", "Total variation distance between old and new policies", "Wasserstein distance in token space"],
+      correct: 1,
       explanation: "DPO derives from the RLHF objective $\\max_\\pi \\mathbb{E}[r(x)] - \\beta \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$, whose closed-form solution is $\\pi^*(y \\mid x) \\propto \\pi_{\\text{ref}}(y \\mid x) \\exp(r(y,x)/\\beta)$. Rearranging gives $r(y,x) = \\beta \\log \\frac{\\pi^*(y \\mid x)}{\\pi_{\\text{ref}}(y \\mid x)} + \\text{const}$. DPO substitutes this into the Bradley-Terry preference model, yielding a supervised loss that implicitly optimizes the KL-constrained objective."
     }
   ]
