@@ -198,10 +198,10 @@ export const hardModule = {
       type: "mc",
       question: "Compute the Fenchel conjugate of $f(t) = t \\log t$ (the KL generator). Set $\\frac{d}{dt}[ut - t\\log t] = 0$ to find the optimal $t^*$, then substitute back.",
       options: [
-        "$f^*(u) = u$",
-        "$f^*(u) = e^{u-1}$",
-        "$f^*(u) = u^2 / 2$",
-        "$f^*(u) = \\log(1 + e^u)$"
+        "$f^*(u) = u$ (linear in $u$)",
+        "$f^*(u) = e^{u-1}$ (exponential)",
+        "$f^*(u) = u^2 / 2$ (quadratic)",
+        "$f^*(u) = \\log(1 + e^u)$ (softplus)"
       ],
       correct: 1,
       explanation: "Setting $\\frac{d}{dt}[ut - t\\log t] = u - \\log t - 1 = 0$ gives $t^* = e^{u-1}$. Substituting: $f^*(u) = u \\cdot e^{u-1} - e^{u-1} \\cdot (u-1) = e^{u-1}(u - u + 1) = e^{u-1}$. So the conjugate of $t \\log t$ is $e^{u-1}$."

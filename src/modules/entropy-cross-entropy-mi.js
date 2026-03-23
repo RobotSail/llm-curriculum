@@ -261,10 +261,10 @@ export const entropyHard = {
       type: "mc",
       question: "With label smoothing $\\alpha = 0.1$ and vocabulary size $K = 50000$, what is the approximate optimal logit gap between the correct and incorrect classes?",
       options: [
-        "$\\log(0.1 \\times 50000) \\approx 8.5$",
-        "$\\log(0.9 \\times 50000 / 0.1) = \\log(450000) \\approx 13.0$",
-        "$\\log(50000) \\approx 10.8$",
-        "$\\log(0.9 / 0.1) = \\log(9) \\approx 2.2$"
+        "$\\log(\\alpha \\cdot K) = \\log(0.1 \\times 50000) \\approx 8.5$",
+        "$\\log((1-\\alpha) \\cdot K / \\alpha) = \\log(0.9 \\times 50000 / 0.1) = \\log(450000) \\approx 13.0$",
+        "$\\log(K) = \\log(50000) \\approx 10.8$",
+        "$\\log((1-\\alpha)/\\alpha) = \\log(0.9 / 0.1) = \\log(9) \\approx 2.2$"
       ],
       correct: 1,
       explanation: "The optimal gap is $\\log\\frac{(1-\\alpha)K}{\\alpha} = \\log\\frac{0.9 \\times 50000}{0.1} = \\log(450000) \\approx 13.0$ (using natural log). Without label smoothing, this gap would be $+\\infty$. With $\\alpha = 0.1$, it is a large but finite number. The logits stabilize rather than growing without bound, leading to better-conditioned gradients in the final layers."

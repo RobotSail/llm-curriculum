@@ -438,10 +438,10 @@ export const frontierAlignmentAssessment = {
       type: "mc",
       question: "Red-teaming in the context of LLM safety involves systematically trying to elicit harmful or undesired outputs. The most effective red-teaming approaches combine:",
       options: [
-        "Only automated tools with no human involvement",
+        "Only automated tools (e.g., gradient-based adversarial search, fuzzing) with no human involvement — humans introduce bias that narrows the space of discovered vulnerabilities",
         "Human creativity for discovering novel attack vectors with automated methods (e.g., adversarial prompt optimization like GCG, model-based red-teaming) for scaling coverage — humans find qualitatively new failures while automation explores variations",
-        "Only manual testing by a small team",
-        "Random input generation without any structure"
+        "Only manual testing by a small team of domain experts, since automated methods generate superficial attacks that rarely uncover meaningful safety-relevant failure modes",
+        "Random input generation without any guided structure, relying on statistical coverage of the input space to eventually trigger failures through brute-force exploration"
       ],
       correct: 1,
       explanation: "Effective red-teaming requires both modalities: (1) **Human red-teamers** discover novel failure modes that require creativity, cultural knowledge, and adversarial reasoning (e.g., role-playing attacks, multi-turn manipulation). (2) **Automated methods** like GCG (gradient-based adversarial suffix optimization), model-based red-teaming (using another LLM to generate attacks), and fuzzing scale to thousands of attack variations. The most comprehensive programs (e.g., Anthropic's, Meta's) layer both: humans identify attack categories, automation fills in the coverage matrix."
@@ -471,10 +471,10 @@ export const frontierAlignmentAssessment = {
       type: "mc",
       question: "Consider a model trained with RLHF where the reward model was trained on human preferences. The model now encounters a novel domain (e.g., advanced scientific reasoning) where the reward model was never evaluated. According to Goodhart's taxonomy, which form of Goodhart's law is most relevant?",
       options: [
-        "Regressional Goodhart — the reward model's noise is exploited",
+        "Regressional Goodhart — the reward model's statistical noise is exploited by the policy, which finds inputs that trigger high-variance reward predictions rather than genuinely high quality",
         "Causal Goodhart — the reward model captures correlations that are not causal, so optimizing the proxy in a new domain breaks the correlation structure that held in the training distribution",
-        "Extremal Goodhart — does not apply to language models",
-        "All forms of Goodhart's law are equally relevant regardless of context"
+        "Extremal Goodhart — the policy operates in a region of the output space far from the training distribution, where the reward model's predictions become unreliable extrapolations",
+        "All forms of Goodhart's law are equally relevant in any domain shift scenario, since each variant contributes proportionally to the total divergence between proxy and true reward"
       ],
       correct: 1,
       explanation: "Causal Goodhart applies when the proxy (learned reward) correlates with the true objective through confounders or non-causal pathways. In the training domain, \"well-structured reasoning\" may correlate with \"correct answers\" because annotators rewarded both. In a novel scientific domain, the RM may still reward well-structured-*looking* reasoning even when the conclusions are wrong — the causal pathway (domain expertise) is absent. This is distinct from regressional Goodhart (exploiting noise) and extremal Goodhart (out-of-distribution behavior at optimization extremes), though all three can co-occur in practice."

@@ -133,10 +133,10 @@ export const evaluationAssessment = {
       type: "mc",
       question: "**MMLU** (Massive Multitask Language Understanding) evaluates a model across 57 academic subjects. What does strong MMLU performance primarily indicate?",
       options: [
-        "The model can write fluent prose",
+        "The model can write fluent, coherent prose across a wide range of topics and registers, demonstrating strong generative language ability rather than factual recall or structured reasoning",
         "The model has broad factual knowledge and can perform multiple-choice reasoning across diverse academic domains — it tests breadth of world knowledge absorbed during pre-training more than deep reasoning ability",
-        "The model has been fine-tuned on those 57 subjects",
-        "The model has a large context window"
+        "The model has been explicitly fine-tuned on those 57 subjects with supervised examples, and the high score reflects domain-specific optimization rather than general pre-training knowledge",
+        "The model has a large context window that allows it to process lengthy academic passages, which is the primary bottleneck for answering knowledge-intensive multiple-choice questions"
       ],
       correct: 1,
       explanation: "MMLU tests breadth of knowledge across STEM, humanities, social sciences, and professional domains using 4-choice MC questions. High performance requires the model to have absorbed factual knowledge during pre-training and to apply basic reasoning. However, the MC format means it tests recognition over generation, and many questions can be answered with surface-level pattern matching rather than deep understanding. It is a useful but incomplete signal — complementary to benchmarks like GSM8K (math reasoning) or HumanEval (code generation)."
@@ -166,10 +166,10 @@ export const evaluationAssessment = {
       type: "mc",
       question: "When using an **LLM-as-judge** to evaluate other models' outputs, three well-documented biases are verbosity bias, position bias, and self-preference bias. **Verbosity bias** means:",
       options: [
-        "The judge penalizes short responses",
+        "The judge penalizes short responses by assigning lower quality scores regardless of content, because its training data associated brevity with low-effort answers",
         "The judge systematically prefers longer, more detailed responses even when the additional content is redundant or irrelevant — length serves as a proxy for quality in the judge's learned heuristics",
-        "The judge produces verbose explanations of its ratings",
-        "The judge can only evaluate verbose prompts"
+        "The judge produces verbose explanations of its own ratings, inflating the token cost of evaluation without improving the accuracy or reliability of the quality assessments",
+        "The judge can only meaningfully evaluate responses above a minimum token length, because shorter outputs lack sufficient signal for the judge model to form a quality judgment"
       ],
       correct: 1,
       explanation: "LLM judges trained on human preference data inherit the bias that longer responses tend to be rated higher by human annotators (since length correlates with effort and completeness). This creates a systematic bias where a 500-word mediocre response may be preferred over a 100-word excellent one. Mitigation strategies include: controlling for length in the evaluation prompt, swapping response positions to average out position bias, using multiple judges, and explicitly instructing the judge to evaluate conciseness. Position bias (preferring the first or second response) and self-preference (GPT-4 favoring GPT-4-style outputs) are orthogonal but equally problematic."
@@ -215,10 +215,10 @@ export const distributedTrainingAssessment = {
       type: "mc",
       question: "In **Distributed Data Parallel (DDP)** training, each GPU holds a full copy of the model. After the backward pass, gradients are synchronized across GPUs using:",
       options: [
-        "A parameter server that collects and redistributes all gradients",
+        "A parameter server architecture that collects gradients from every GPU, computes the global average on a dedicated node, and then redistributes the averaged result back to each GPU",
         "An **all-reduce** operation that efficiently computes the sum (or average) of gradients across all GPUs so every replica ends up with identical gradients — typically implemented as a ring all-reduce to minimize communication overhead",
-        "Each GPU sends its gradients to GPU 0, which broadcasts the averaged result",
-        "Gradients are not synchronized — each GPU trains independently"
+        "Each GPU sends its full gradient tensor to GPU 0, which performs the averaging computation and then broadcasts the result back to all other GPUs in a hub-and-spoke pattern",
+        "Gradients are not synchronized at all — each GPU trains on its own data shard independently, and the parameter divergence is reconciled only at periodic checkpoint intervals"
       ],
       correct: 1,
       explanation: "DDP uses all-reduce (typically ring all-reduce or tree all-reduce via NCCL) to synchronize gradients. In ring all-reduce, each GPU sends a chunk of its gradient to its neighbor, and after $2(N-1)$ steps (N = number of GPUs), all GPUs have the complete averaged gradient. The communication volume per GPU is $2 \\cdot (N-1)/N \\cdot |\\text{params}|$, which approaches $2|\\text{params}|$ as $N$ grows — nearly independent of GPU count. This is far more efficient than the naive reduce-broadcast approach via a parameter server, which creates a bottleneck at the central node."
