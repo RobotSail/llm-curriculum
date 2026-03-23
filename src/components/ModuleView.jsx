@@ -17,6 +17,54 @@ export function getModuleProgress() {
   return loadProgress();
 }
 
+// Mistake tracking — auto-recorded wrong answers
+const MISTAKES_KEY = 'llm-curriculum-mistakes-v1';
+
+function loadMistakes() {
+  try { return JSON.parse(localStorage.getItem(MISTAKES_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveMistakesData(data) {
+  try { localStorage.setItem(MISTAKES_KEY, JSON.stringify(data)); } catch {}
+}
+
+function qHash(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+export function getMistakes() { return loadMistakes(); }
+
+export function getMistakeCount() { return Object.keys(loadMistakes()).length; }
+
+export function recordMistake({ sectionId, moduleId, moduleTitle, difficulty, question }) {
+  const key = `${moduleId}:${qHash(question)}`;
+  const mistakes = loadMistakes();
+  if (mistakes[key]) {
+    mistakes[key].count++;
+    mistakes[key].timestamp = Date.now();
+  } else {
+    mistakes[key] = { sectionId, moduleId, moduleTitle, difficulty, question, count: 1, timestamp: Date.now() };
+  }
+  saveMistakesData(mistakes);
+}
+
+export function removeMistake(key) {
+  const mistakes = loadMistakes();
+  delete mistakes[key];
+  saveMistakesData(mistakes);
+}
+
+export function removeMistakeByQuestion(moduleId, question) {
+  removeMistake(`${moduleId}:${qHash(question)}`);
+}
+
+export function clearAllMistakes() {
+  saveMistakesData({});
+}
+
 // Gap tracking — "need to learn this" items
 const GAPS_KEY = 'llm-curriculum-gaps-v1';
 
@@ -107,7 +155,18 @@ export default function ModuleView({ module, tierColor, onClose }) {
     if (selected === null) return;
     setChecked(true);
     setAnswers(prev => ({ ...prev, [step]: selected }));
-  }, [selected, step]);
+    if (current && current.type === 'mc') {
+      if (selected !== current.correct) {
+        recordMistake({
+          sectionId: module.sectionId, moduleId: module.id,
+          moduleTitle: module.title, difficulty: module.difficulty,
+          question: current.question,
+        });
+      } else {
+        removeMistakeByQuestion(module.id, current.question);
+      }
+    }
+  }, [selected, step, current, module]);
 
   const handleContinue = useCallback(() => {
     setSelected(null);

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
-import ModuleView, { getModuleProgress, getGaps, removeGap, clearAllGaps } from './components/ModuleView';
+import ModuleView, { getModuleProgress, getGaps, removeGap, clearAllGaps, getMistakeCount } from './components/ModuleView';
 import WarmupView from './components/WarmupView';
+import ReviewView from './components/ReviewView';
 import MathText from './components/MathText';
 import { MODULES } from './modules';
 
@@ -739,10 +740,13 @@ export default function App() {
     } catch { return false; }
   });
   const [showGaps, setShowGaps] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [gapsVersion, setGapsVersion] = useState(0);
+  const [mistakesVersion, setMistakesVersion] = useState(0);
   const [copied, setCopied] = useState(false);
 
   const gaps = useMemo(() => getGaps(), [showGaps, gapsVersion]);
+  const mistakeCount = useMemo(() => getMistakeCount(), [showReview, mistakesVersion]);
 
   const getSectionTitle = useCallback((sectionId) => {
     for (const tier of CURRICULUM) {
@@ -883,13 +887,16 @@ export default function App() {
   return (
     <>
     {showWarmup && (
-      <WarmupView onClose={() => setShowWarmup(false)} getSectionTitle={getSectionTitle} />
+      <WarmupView onClose={() => { setShowWarmup(false); setMistakesVersion(v => v + 1); }} getSectionTitle={getSectionTitle} />
+    )}
+    {showReview && (
+      <ReviewView onClose={() => { setShowReview(false); setMistakesVersion(v => v + 1); }} getSectionTitle={getSectionTitle} />
     )}
     {activeModule && (
       <ModuleView
         module={activeModule.module}
         tierColor={activeModule.tierColor}
-        onClose={() => { setActiveModule(null); setGapsVersion(v => v + 1); }}
+        onClose={() => { setActiveModule(null); setGapsVersion(v => v + 1); setMistakesVersion(v => v + 1); }}
       />
     )}
     {showGaps && (
@@ -1009,6 +1016,15 @@ export default function App() {
         }}>
           Warmup
         </button>
+        {mistakeCount > 0 && (
+          <button onClick={() => setShowReview(true)} style={{
+            fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
+            border:'1px solid #D85A3044',background:'#D85A3008',
+            color:'#D85A30',cursor:'pointer',fontFamily:'inherit',
+          }}>
+            Review ({mistakeCount})
+          </button>
+        )}
         {gaps.length > 0 && (
           <button onClick={() => setShowGaps(true)} style={{
             fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',

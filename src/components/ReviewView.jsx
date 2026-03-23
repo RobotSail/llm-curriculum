@@ -1,113 +1,56 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import MathText from './MathText';
+import { getMistakes, removeMistake, recordMistake } from './ModuleView';
 import { MODULES } from '../modules';
-import { getModuleProgress, recordMistake, removeMistakeByQuestion } from './ModuleView';
 import { shuffleMcStep, createRng } from '../utils/shuffle';
 
-const WARMUP_SIZE = 10;
+const REVIEW_SIZE = 15;
+const ACCENT = '#BA7517';
 
-// Collect MC questions. Optional modules are excluded unless the user has explored them.
-function collectAllQuestions(exploredModuleIds) {
+function buildReviewQuestions() {
+  const mistakes = getMistakes();
   const questions = [];
-  for (const [sectionId, mods] of Object.entries(MODULES)) {
-    for (const mod of mods) {
-      // Skip optional modules the user hasn't started
-      if (mod.optional && !exploredModuleIds.has(mod.id)) continue;
-      mod.steps.forEach((step, idx) => {
-        if (step.type === 'mc') {
-          questions.push({
-            ...step,
-            sectionId,
-            moduleId: mod.id,
-            moduleTitle: mod.title,
-            difficulty: mod.difficulty,
-            stepIndex: idx,
-          });
-        }
-      });
-    }
-  }
-  return questions;
-}
 
-// Seeded shuffle (Fisher-Yates) for daily consistency
-function shuffle(arr, seed) {
-  const a = [...arr];
-  let s = seed;
-  const rand = () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+  for (const [key, mistake] of Object.entries(mistakes)) {
+    const mods = MODULES[mistake.sectionId];
+    if (!mods) continue;
+    const mod = mods.find(m => m.id === mistake.moduleId);
+    if (!mod) continue;
+    const step = mod.steps.find(s => s.type === 'mc' && s.question === mistake.question);
+    if (!step) continue;
 
-function buildWarmup() {
-  const progress = getModuleProgress();
-
-  // Find modules the user has interacted with
-  const exploredModuleIds = new Set(
-    Object.entries(progress)
-      .filter(([, p]) => p.currentStep > 0 || p.completed)
-      .map(([id]) => id)
-  );
-
-  // Collect questions, filtering out unexplored optional modules
-  const allQ = collectAllQuestions(exploredModuleIds);
-
-  // Split into explored vs unexplored (among non-optional + explored-optional)
-  const explored = allQ.filter(q => exploredModuleIds.has(q.moduleId));
-  const unexplored = allQ.filter(q => !exploredModuleIds.has(q.moduleId));
-
-  // Use today's date as seed for daily consistency
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-
-  const shuffledExplored = shuffle(explored, seed);
-  const shuffledUnexplored = shuffle(unexplored, seed + 1);
-
-  // Aim for ~60% explored topics, ~40% new topics (if available)
-  const exploredCount = Math.min(Math.ceil(WARMUP_SIZE * 0.6), shuffledExplored.length);
-  const unexploredCount = Math.min(WARMUP_SIZE - exploredCount, shuffledUnexplored.length);
-  const remaining = WARMUP_SIZE - exploredCount - unexploredCount;
-
-  let selected = [
-    ...shuffledExplored.slice(0, exploredCount),
-    ...shuffledUnexplored.slice(0, unexploredCount),
-  ];
-
-  // Fill remainder from whichever pool has more
-  if (remaining > 0) {
-    const extra = shuffledExplored.length > exploredCount
-      ? shuffledExplored.slice(exploredCount, exploredCount + remaining)
-      : shuffledUnexplored.slice(unexploredCount, unexploredCount + remaining);
-    selected = [...selected, ...extra];
+    questions.push({
+      ...step,
+      sectionId: mistake.sectionId,
+      moduleId: mistake.moduleId,
+      moduleTitle: mistake.moduleTitle,
+      difficulty: mistake.difficulty,
+      mistakeKey: key,
+      mistakeCount: mistake.count,
+    });
   }
 
-  // Sort by difficulty for easy→hard warmup progression
-  const diffOrder = { easy: 0, medium: 1, hard: 2 };
-  selected.sort((a, b) => (diffOrder[a.difficulty] ?? 1) - (diffOrder[b.difficulty] ?? 1));
+  // Most-missed first
+  questions.sort((a, b) => b.mistakeCount - a.mistakeCount);
+  const selected = questions.slice(0, REVIEW_SIZE);
 
-  // Shuffle option order for each question so correct answers aren't always in the same position
-  const optionRng = createRng(seed + 77777);
-  const withShuffledOptions = selected.slice(0, WARMUP_SIZE).map(q => {
-    const stepSeed = Math.floor(optionRng() * 2147483646) + 1;
-    return shuffleMcStep(q, stepSeed);
+  // Shuffle options
+  const rng = createRng(Date.now());
+  return selected.map(q => {
+    const stepSeed = Math.floor(rng() * 2147483646) + 1;
+    const shuffled = shuffleMcStep(q, stepSeed);
+    return { ...shuffled, mistakeKey: q.mistakeKey, mistakeCount: q.mistakeCount };
   });
-
-  return withShuffledOptions;
 }
 
-const DIFF_COLORS = { easy: '#1D9E75', medium: '#BA7517', hard: '#D85A30' };
-
-export default function WarmupView({ onClose, getSectionTitle }) {
-  const questions = useMemo(() => buildWarmup(), []);
+export default function ReviewView({ onClose, getSectionTitle }) {
+  const questions = useMemo(() => buildReviewQuestions(), []);
   const total = questions.length;
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(null);
   const [checked, setChecked] = useState(false);
-  const [score, setScore] = useState(0);
+  const [resolved, setResolved] = useState(0);
 
   const current = step < total ? questions[step] : null;
   const isComplete = step >= total;
@@ -116,8 +59,8 @@ export default function WarmupView({ onClose, getSectionTitle }) {
     if (selected === null) return;
     setChecked(true);
     if (selected === current.correct) {
-      setScore(s => s + 1);
-      removeMistakeByQuestion(current.moduleId, current.question);
+      setResolved(r => r + 1);
+      removeMistake(current.mistakeKey);
     } else {
       recordMistake({
         sectionId: current.sectionId, moduleId: current.moduleId,
@@ -152,8 +95,14 @@ export default function WarmupView({ onClose, getSectionTitle }) {
       <div style={S.container}>
         <div style={S.inner}>
           <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>No questions available yet. Complete some modules first!</p>
-            <button onClick={onClose} style={{ ...S.btn, background: '#378ADD' }}>Back to Curriculum</button>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1D9E75', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28, fontWeight: 700 }}>
+              {'\u2713'}
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 6 }}>No Mistakes to Review</h2>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24, fontSize: 15 }}>
+              You haven't missed any questions yet, or all past mistakes have been resolved.
+            </p>
+            <button onClick={onClose} style={{ ...S.btn, background: ACCENT }}>Back to Curriculum</button>
           </div>
         </div>
       </div>
@@ -161,21 +110,28 @@ export default function WarmupView({ onClose, getSectionTitle }) {
   }
 
   if (isComplete) {
-    const pct = Math.round((score / total) * 100);
-    const emoji = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good effort' : 'Keep practicing';
+    const remaining = Object.keys(getMistakes()).length;
+    const pct = Math.round((resolved / total) * 100);
     return (
       <div style={S.container}>
         <div style={S.inner}>
           <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: pct >= 80 ? '#1D9E75' : pct >= 60 ? '#BA7517' : '#D85A30', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 24, fontWeight: 700 }}>
-              {score}/{total}
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: pct >= 80 ? '#1D9E75' : pct >= 50 ? ACCENT : '#D85A30', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 24, fontWeight: 700 }}>
+              {resolved}/{total}
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 6 }}>Warmup Complete</h2>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 4, fontSize: 15 }}>{emoji} &mdash; {pct}% correct</p>
-            <p style={{ color: 'var(--color-text-tertiary)', marginBottom: 32, fontSize: 13 }}>
-              {pct >= 80 ? 'Strong recall across topics.' : pct >= 60 ? 'Some areas could use review.' : 'Consider revisiting flagged topics.'}
+            <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 6 }}>Review Complete</h2>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 4, fontSize: 15 }}>
+              {resolved === total ? 'All mistakes resolved!' : `${resolved} resolved, ${total - resolved} still need work.`}
             </p>
-            <button onClick={onClose} style={{ ...S.btn, background: '#378ADD' }}>
+            {remaining > 0 && (
+              <p style={{ color: 'var(--color-text-tertiary)', marginBottom: 4, fontSize: 13 }}>
+                {remaining} total mistake{remaining !== 1 ? 's' : ''} remaining across all topics.
+              </p>
+            )}
+            <p style={{ color: 'var(--color-text-tertiary)', marginBottom: 32, fontSize: 13 }}>
+              {pct >= 80 ? 'Great improvement \u2014 keep reinforcing these concepts.' : pct >= 50 ? 'Making progress \u2014 consider reviewing the related modules.' : 'These areas need more study \u2014 revisit the learning modules.'}
+            </p>
+            <button onClick={onClose} style={{ ...S.btn, background: ACCENT }}>
               Back to Curriculum
             </button>
           </div>
@@ -184,25 +140,23 @@ export default function WarmupView({ onClose, getSectionTitle }) {
     );
   }
 
-  const dc = DIFF_COLORS[current.difficulty] || '#378ADD';
+  const dc = { easy: '#1D9E75', medium: '#BA7517', hard: '#D85A30' }[current.difficulty] || ACCENT;
 
   return (
     <div style={S.container}>
-      {/* Header */}
       <div style={S.header}>
-        <button onClick={onClose} style={S.linkBtn}>&larr; Skip</button>
+        <button onClick={onClose} style={S.linkBtn}>&larr; Back</button>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, height: 4, background: 'var(--color-border-tertiary)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${((step + 1) / total) * 100}%`, background: '#378ADD', borderRadius: 2, transition: 'width 0.3s' }} />
+            <div style={{ height: '100%', width: `${((step + 1) / total) * 100}%`, background: ACCENT, borderRadius: 2, transition: 'width 0.3s' }} />
           </div>
           <span style={{ fontSize: 13, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>{step + 1}/{total}</span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: '#378ADD18', color: '#378ADD', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Warmup
+        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: ACCENT + '18', color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Review
         </span>
       </div>
 
-      {/* Content */}
       <div style={S.inner} key={step}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -212,6 +166,11 @@ export default function WarmupView({ onClose, getSectionTitle }) {
             <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
               {current.moduleTitle}
             </span>
+            {current.mistakeCount > 1 && (
+              <span style={{ fontSize: 10, color: '#D85A30', fontWeight: 500 }}>
+                missed {current.mistakeCount}x
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', opacity: 0.7 }}>
             {current.sectionId} &mdash; {getSectionTitle ? getSectionTitle(current.sectionId) : current.sectionId}
@@ -232,7 +191,7 @@ export default function WarmupView({ onClose, getSectionTitle }) {
               if (isCorrect) { bg = '#1D9E7514'; border = '1.5px solid #1D9E75'; }
               else if (isSel) { bg = '#D85A3014'; border = '1.5px solid #D85A30'; }
             } else if (isSel) {
-              border = '1.5px solid #378ADD';
+              border = `1.5px solid ${ACCENT}`;
             }
             return (
               <div key={i} onClick={() => !checked && setSelected(i)} style={{
@@ -242,10 +201,10 @@ export default function WarmupView({ onClose, getSectionTitle }) {
               }}>
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-                  border: `2px solid ${isSel ? (checked ? (isCorrect ? '#1D9E75' : '#D85A30') : '#378ADD') : 'var(--color-border-secondary)'}`,
+                  border: `2px solid ${isSel ? (checked ? (isCorrect ? '#1D9E75' : '#D85A30') : ACCENT) : 'var(--color-border-secondary)'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {isSel && <div style={{ width: 10, height: 10, borderRadius: '50%', background: checked ? (isCorrect ? '#1D9E75' : '#D85A30') : '#378ADD' }} />}
+                  {isSel && <div style={{ width: 10, height: 10, borderRadius: '50%', background: checked ? (isCorrect ? '#1D9E75' : '#D85A30') : ACCENT }} />}
                 </div>
                 <MathText as="span" style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--color-text-primary)' }}>{opt}</MathText>
               </div>
@@ -260,7 +219,7 @@ export default function WarmupView({ onClose, getSectionTitle }) {
             borderLeft: `3px solid ${selected === current.correct ? '#1D9E75' : '#D85A30'}`,
           }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: selected === current.correct ? '#1D9E75' : '#D85A30' }}>
-              {selected === current.correct ? 'Correct!' : 'Not quite.'}
+              {selected === current.correct ? 'Correct! Mistake resolved.' : 'Not quite \u2014 this one stays in your review list.'}
             </div>
             <MathText style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-text-secondary)' }}>
               {current.explanation}
@@ -271,11 +230,11 @@ export default function WarmupView({ onClose, getSectionTitle }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
           {!checked ? (
             <button onClick={handleCheck} disabled={selected === null} style={{
-              ...S.btn, background: selected !== null ? '#378ADD' : 'var(--color-border-tertiary)',
+              ...S.btn, background: selected !== null ? ACCENT : 'var(--color-border-tertiary)',
               cursor: selected !== null ? 'pointer' : 'not-allowed', opacity: selected !== null ? 1 : 0.6,
             }}>Check</button>
           ) : (
-            <button onClick={handleContinue} style={{ ...S.btn, background: '#378ADD' }}>
+            <button onClick={handleContinue} style={{ ...S.btn, background: ACCENT }}>
               {step + 1 < total ? 'Next \u2192' : 'Finish'}
             </button>
           )}
