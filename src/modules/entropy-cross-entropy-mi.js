@@ -89,7 +89,7 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "A language model achieves a cross-entropy loss of 3.0 nats per token on a held-out set. What is the model's perplexity?",
-      options: ["$3.0$", "$2^3 = 8$", "$e^3 \\approx 20.1$", "$\\ln(3) \\approx 1.1$"],
+      options: ["$3.0$ — the perplexity equals the raw loss value directly", "$2^3 = 8$ — exponentiate with base 2 since perplexity always uses bits", "$e^3 \\approx 20.1$ — exponentiate with base $e$ since the loss is in nats", "$\\ln(3) \\approx 1.1$ — take the natural log to convert nats to perplexity"],
       correct: 2,
       explanation: "When cross-entropy is measured in nats (using $\\ln$), perplexity is $e^{\\text{loss}}$, so $e^{3.0} \\approx 20.1$. If the loss were in bits (using $\\log_2$), perplexity would be $2^{\\text{loss}}$. The choice of log base determines the exponentiation base. In most deep learning frameworks, the loss is in nats (natural log), so $e$ is the correct base."
     },
@@ -101,7 +101,7 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "A uniform model over a 50,000-token vocabulary assigns $P(w) = 1/50000$ for every token regardless of context. What is its perplexity?",
-      options: ["$\\log_2(50000) \\approx 15.6$", "$\\sqrt{50000} \\approx 224$", "$50000$", "$50000^2 = 2.5 \\times 10^9$"],
+      options: ["$\\log_2(50000) \\approx 15.6$ — perplexity is the cross-entropy in bits", "$\\sqrt{50000} \\approx 224$ — perplexity is the geometric mean of the vocabulary size", "$50000$ — perplexity equals the vocabulary size for a uniform distribution", "$50000^2 = 2.5 \\times 10^9$ — perplexity squares the vocabulary for uniform models"],
       correct: 2,
       explanation: "Cross-entropy of a uniform model is $-\\sum_w P(w) \\log(1/50000) = \\log(50000)$. So $\\text{PPL} = e^{\\log 50000} = 50000$. The uniform model's perplexity equals the vocabulary size — it is equivalent to rolling a 50,000-sided die. This is the worst possible perplexity for this vocabulary, confirming the interpretation of perplexity as \"effective vocabulary size.\""
     },
