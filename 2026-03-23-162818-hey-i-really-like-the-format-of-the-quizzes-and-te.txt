@@ -1,0 +1,1186 @@
+           Claude Code v2.1.81
+ ▐▛███▜▌   claude-opus-4-6[1m][1m] · Claude Max
+▝▜█████▛▘  ~/Programming/learning/llm-curriculum
+  ▘▘ ▝▝    [✻] [✻] [✻] · Share Claude Code and earn $10 of extra usage · /passes
+
+  ↑ Opus now defaults to 1M context · 5x more room, same pricing
+
+❯ Hey I really like the format of the quizzes and tests right now but my main   
+issue is they are heavily deterministic. Most questions are easily gamed        
+because options will often ‘look’ like answers => most likely to be real, and   
+they usually appear either in B or C. A good example of this is the current     
+quiz about self-information and cross entropy. Also, the questions are usually  
+the same for all quizzes, it’s not like there is a larger per-topic collection  
+of questions that force deeper understanding, so the content is superficial.    
+Also questions are typically located in the same spot making it easy to         
+memorize the sequence of buttons to press rather than learn the actual content  
+to get through.                                                                 
+                                                                                
+Can you please fix this?                                                        
+
+⏺ Looking at this, there are a few concrete issues to address:
+
+  1. Questions always appear in the same order - need to randomize question
+  order
+  2. Correct answers cluster at positions 1-2 (B/C) - need to audit and
+  redistribute
+  3. Options aren't shuffled - need to randomize option order per question
+  4. Shallow question pools - need more questions per topic so quizzes vary
+
+  Let me start by exploring the codebase to understand the current state.
+
+⏺ 2 Explore agents finished (ctrl+o to expand)
+   ├─ Explore quiz rendering and module structure · 0 tool uses
+   │  ⎿  Done
+   └─ Audit correct answer distributions · 0 tool uses
+      ⎿  Done
+
+⏺ Good analysis. The problems are clear:
+  - 89%+ of correct answers at position 1 across modules
+  - No runtime shuffling of questions or options
+  - Static question pools - same content every time
+
+  Let me tackle this systematically.
+
+  Read 2 files (ctrl+o to expand)
+
+⏺ Now let me read all the module files to fix answer positions.
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+⏺ Explore(Read all module files for editing)
+  ⎿  Done (21 tool uses · 78.3k tokens · 32s)
+  (ctrl+o to expand)
+
+⏺ Now I have a full picture. Let me start implementing. The approach:
+
+  1. Runtime shuffling (most impactful) - shuffle both question order and option
+   order per attempt
+  2. Redistribute correct answers in all module files
+  3. Expand entropy question pool
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Bash(mkdir -p /home/user/llm-curriculum/src/utils)
+  ⎿  Done
+
+⏺ Write(/home/user/llm-curriculum/src/utils/shuffle.js)
+  ⎿  Wrote 99 lines to
+     ../../../../../home/user/llm-curriculum/src/utils/shuffle.js
+     /**
+      * Seeded shuffle utilities for randomizing quiz questions and 
+     options.
+      * Ensures each attempt presents questions and options in a different 
+     order,
+      * preventing pattern-matching and memorization of button sequences.
+      */
+
+     // Linear congruential PRNG (same as used in WarmupView)
+     export function createRng(seed) {
+       let s = Math.abs(seed) % 2147483647 || 1;
+       return () => {
+     … +89 lines (ctrl+o to expand)
+
+⏺ Got it - that aligns with what I'm building. The data files stay as the source
+   of truth (questions, options, correct answer), and the UI layer handles all
+  randomization at runtime. The correct index in data just identifies which
+  option is right in the authored order - the UI shuffles everything on each
+  attempt. No need to hardcode positions.
+
+  Let me continue with the UI integration.
+
+⏺ Now let me integrate shuffling into ModuleView. The key changes:
+  - Import shuffle utilities
+  - Use useMemo to create shuffled steps on mount
+  - Reset seed on Retry
+  - Keep progress tracking working correctly
+
+⏺ Update(/home/user/llm-curriculum/src/components/ModuleView.jsx)
+  ⎿  Added 2 lines, removed 1 line
+      1 -import { useState, useCallback, useEffect } from 'react';       
+      1 +import { useState, useCallback, useEffect, useMemo              
+        +} from 'react';                                                 
+      2  import MathText from './MathText';                              
+      3 +import { shuffleModuleSteps, getAttemptSeed, resetAttemptSeed } 
+        + from '../utils/shuffle';                                       
+      4                                                                  
+      5  const MODULE_PROGRESS_KEY = 'llm-curriculum-modules-v1';        
+      6                                                                  
+
+⏺ Now add the shuffled steps computation and update the component to use them:
+
+⏺ Update(/home/user/llm-curriculum/src/components/ModuleView.jsx)
+  ⎿  Added 10 lines, removed 1 line
+      48    const accentColor = tierColor ||                             
+          DIFF_COLORS[module.difficulty] || '#378ADD';                   
+      49    const totalSteps = module.steps.length;                      
+      50                                                                 
+      51 +  // Shuffle seed — changes per attempt/session, consistent    
+         +within one attempt                                             
+      52 +  const [shuffleSeed, setShuffleSeed] = useState(() =>         
+         +getAttemptSeed(module.id));                                    
+      53 +                                                               
+      54 +  // Precompute shuffled steps: randomized option order +      
+         +question order (for tests)                                     
+      55 +  const shuffledSteps = useMemo(                               
+      56 +    () => shuffleModuleSteps(module.steps, module.moduleType,  
+         +shuffleSeed),                                                  
+      57 +    [module.steps, module.moduleType, shuffleSeed]             
+      58 +  );                                                           
+      59 +                                                               
+      60    const [step, setStep] = useState(() => {                     
+      61      const p = loadProgress();                                  
+      62      const saved = p[module.id]?.currentStep || 0;              
+     ...
+      60      return p[module.id]?.answers || {};                        
+      61    });                                                          
+      62                                                                 
+      63 -  const current = step < totalSteps ? module.steps             
+         -[step] : null;                                                 
+      63 +  const current = step < totalSteps ? shuffledSteps            
+         +[step] : null;                                                 
+      64    const isComplete = step >= totalSteps;                       
+      65                                                                 
+      66    const [flaggedSteps, setFlaggedSteps] = useState(() => {     
+
+⏺ Now update the completion screen scoring to use shuffledSteps, and update
+  Retry to reset the seed:
+
+⏺ Update(/home/user/llm-curriculum/src/components/ModuleView.jsx)
+  ⎿  Added 2 lines, removed 2 lines
+      145                                                                
+      146    if (isComplete) {                                           
+      147      const correct = Object.entries(answers).reduce((n, [idx,  
+           ans]) => {                                                    
+      148 -      const s = module.steps[Number(idx)];                    
+      148 +      const s = shuffledSteps[Number(idx)];                   
+      149        return s?.type === 'mc' && ans === s.correct ? n + 1 :  
+           n;                                                            
+      150      }, 0);                                                    
+      151 -    const totalMc = module.steps.                             
+          -filter(s => s.type === 'mc').length;                          
+      151 +    const totalMc = shuffledSteps.                            
+          +filter(s => s.type === 'mc').length;                          
+      152      return (                                                  
+      153        <div style={S.container}>                               
+      154          <div style={S.inner}>                                 
+
+⏺ Update the Retry button to reset the shuffle seed:
+
+⏺ Update(/home/user/llm-curriculum/src/components/ModuleView.jsx)
+  ⎿  Added 1 line, removed 1 line
+      162                {correct}/{totalMc} questions correct           
+      163              </p>                                              
+      164              <div style={{ display: 'flex', gap: 10,           
+           justifyContent: 'center' }}>                                  
+      165 -              <button onClick={() => {                        
+          -setStep(0); setAnswers({}); }} style={{ ...S.btn, background: 
+          -'transparent', border: `1.5px solid ${accentColor}`, color:   
+          -accentColor }}>                                               
+      165 +              <button onClick={() => {                        
+          +setShuffleSeed(resetAttemptSeed(module.id));                  
+          +setStep(0); setAnswers({}); }} style={{ ...S.btn, background: 
+          +'transparent', border: `1.5px solid ${accentColor}`, color:   
+          +accentColor }}>                                               
+      166                  Retry                                         
+      167                </button>                                       
+      168                <button onClick={onClose} style={{ ...S.btn,    
+           background: accentColor }}>                                   
+
+⏺ Now update WarmupView to shuffle options too:
+⏺ Update(/home/user/llm-curriculum/src/components/WarmupView.jsx)
+  ⎿  Added 1 line
+      2  import MathText from './MathText';                              
+      3  import { MODULES } from '../modules';                           
+      4  import { getModuleProgress } from './ModuleView';               
+      5 +import { shuffleMcStep, createRng } from '../utils/shuffle';    
+      6                                                                  
+      7  const WARMUP_SIZE = 10;                                         
+      8                                                                  
+
+⏺ Now update the buildWarmup function to also shuffle options for each selected
+  question:
+
+⏺ Update(/home/user/llm-curriculum/src/components/WarmupView.jsx)
+  ⎿  Added 8 lines, removed 1 line
+       88    const diffOrder = { easy: 0, medium: 1, hard: 2 };          
+       89    selected.sort((a, b) => (diffOrder[a.difficulty] ?? 1) -    
+           (diffOrder[b.difficulty] ?? 1));                              
+       90                                                                
+       91 -  return selected.slice(0, WARMUP_SIZE);                      
+       91 +  // Shuffle option order for each question so correct        
+          +answers aren't always in the same position                    
+       92 +  const optionRng = createRng(seed + 77777);                  
+       93 +  const withShuffledOptions = selected.slice(0,               
+          +WARMUP_SIZE).map(q => {                                       
+       94 +    const stepSeed = Math.floor(optionRng() * 2147483646) +   
+          +1;                                                            
+       95 +    return shuffleMcStep(q, stepSeed);                        
+       96 +  });                                                         
+       97 +                                                              
+       98 +  return withShuffledOptions;                                 
+       99  }                                                             
+      100                                                                
+      101  const DIFF_COLORS = { easy: '#1D9E75', medium: '#BA7517',     
+           hard: '#D85A30' };                                            
+
+⏺ Good. Now let me tackle the answer redistribution across all modules. Rather
+  than manually editing hundreds of lines, I'll write a script that rebalances
+  the correct answer positions by swapping options.
+
+⏺ I'll write a Node script to redistribute correct answer positions across all
+  module files.
+
+⏺ Write(/home/user/llm-curriculum/scripts/redistribute-answers.mjs)
+  ⎿  Wrote 159 lines to ../../../../../home/user/llm-curriculum/scripts/red
+     istribute-answers.mjs
+     #!/usr/bin/env node
+     /**
+      * Redistribute correct answer positions across all module files
+      * to achieve ~25% per position (0, 1, 2, 3).
+      *
+      * For each module's MC questions, assigns positions in a balanced 
+     pattern
+      * and swaps options accordingly.
+      */
+
+     import { readFileSync, writeFileSync } from 'fs';
+     … +149 lines (ctrl+o to expand)
+
+⏺ Bash(node scripts/redistribute-answers.mjs)
+  ⎿  Processing 19 module files...
+
+     assess-branch-a.js: 38/50 questions repositioned
+     … +15 lines (ctrl+o to expand)
+
+⏺ Now let me verify the new distribution is balanced:
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+⏺ Much better - nearly uniform distribution (120/132/120/120 across positions
+  0-3). Now let me verify the files still parse correctly:
+
+⏺ Bash(node -e "
+        const fs = require('fs');…)
+  ⎿  index.js: Cannot find module '/home/user/llm-curriculum/src/modules/li
+     near-algebra' imported from /home/user/llm-curriculum/src/modules/inde
+     x.js
+
+⏺ That's just a CJS/ESM import issue in the test - the files are ESM. Let me
+  check with a proper syntax check:
+
+⏺ Bash(for f in src/modules/*.js; do node --check "$f" 2>&1 && echo "$f: OK" ||
+      echo "$f: FAIL"; done)
+  ⎿  src/modules/assess-branch-a.js: OK
+     src/modules/assess-branch-b.js: OK
+     src/modules/assess-branch-cd.js: OK
+     … +17 lines (ctrl+o to expand)
+
+⏺ All pass. Now let me expand the entropy/cross-entropy question pool. Let me
+  read the current file first.
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Now I have the full picture of the entropy module. It has 3 learning modules
+  with 5 MC questions each (15 total). Let me add more questions to each module
+  to create a larger pool. I'll also read the entropy assessment to expand it.
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Now I'll expand the entropy question pools. I'll add deeper MC questions to
+  each module.
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)
+  ⎿  Added 14 lines
+      25        explanation: "Distribution A is uniform over 4 outcomes, 
+           giving $H(A) = \\log_2 4 = 2$ bits — the maximum possible for 
+           4 outcomes. Distribution B concentrates almost all mass on    
+          one outcome: $H(B) \\approx 0.97 \\cdot 0.044 + 3 \\cdot 0.01  
+          \\cdot 6.64 \\approx 0.24$ bits. High concentration means low  
+          uncertainty, hence low entropy."                               
+      26      },                                                         
+      27      {                                                          
+      28 +      type: "mc",                                              
+      29 +      question: "A coin flip has $P(\\text{heads}) = p$. At    
+         +what value of $p$ is the entropy $H(X)$ maximized?",           
+      30 +      options: ["$p = 0$ — certainty about the outcome         
+         +maximizes information", "$p = 0.5$ — maximum uncertainty when  
+         +both outcomes are equally likely", "$p = 1/e \\approx 0.37$ —  
+         +this minimizes $-p \\log p$", "$p = 1$ — a guaranteed outcome  
+         +carries the most information"],                                
+      31 +      correct: 1,                                              
+      32 +      explanation: "For a Bernoulli variable, $H(X) = -p\\log  
+         +p - (1-p)\\log(1-p)$. This is a concave function maximized at  
+         +$p = 0.5$, where $H = 1$ bit. At $p = 0$ or $p = 1$, entropy   
+         +is 0 — there is no uncertainty. The value $1/e$ minimizes (not 
+         + maximizes) the function $-p\\log p$ for a single term, but    
+         +entropy involves two terms that together peak at $p = 0.5$."   
+      33 +    },                                                         
+      34 +    {                                                          
+      35 +      type: "mc",                                              
+      36 +      question: "You have two language models. Model X assigns 
+         + probability 0.8 to the correct next token on average. Model Y 
+         + assigns probability 0.2. Roughly how do their per-token       
+         +cross-entropies compare?",                                     
+      37 +      options: ["Model X's cross-entropy is 4x lower (0.2 vs   
+         +0.8)", "Model X's cross-entropy is about $-\\ln(0.8) \\approx  
+         +0.22$ nats vs Model Y's $-\\ln(0.2) \\approx 1.61$ nats — a    
+         +~7x difference", "They have similar cross-entropy since both   
+         +are far from perfect", "Model Y's cross-entropy is lower       
+         +because it spreads probability more evenly"],                  
+      38 +      correct: 1,                                              
+      39 +      explanation: "Cross-entropy involves $-\\log             
+         +Q(w_{\\text{correct}})$. For Model X: $-\\ln(0.8) \\approx     
+         +0.22$ nats. For Model Y: $-\\ln(0.2) \\approx 1.61$ nats. The  
+         +ratio is about 7x, not 4x, because cross-entropy is            
+         +logarithmic in probability — small changes in probability near 
+         + 1.0 matter less than small changes near 0. This is why the    
+         +last few percentage points of accuracy are disproportionately  
+         +hard to achieve in terms of loss reduction."                   
+      40 +    },                                                         
+      41 +    {                                                          
+      42        type: "info",                                            
+      43        title: "Cross-Entropy: When Your Model Is Wrong",        
+      44        content: "**Cross-entropy** measures the expected        
+          surprise when you use model $Q$ to encode data that actually   
+          follows distribution $P$:\n\n$$H(P, Q) = -\\sum_x P(x) \\log   
+          Q(x) = \\mathbb{E}_P[-\\log Q(X)]$$\n\nIf $Q = P$, this        
+          reduces to plain entropy $H(P)$. If $Q \\neq P$, you pay extra 
+           bits — and the excess is exactly the KL divergence:\n\n$$H(P, 
+           Q) = H(P) + \\text{KL}(P \\| Q)$$\n\nThis decomposition is    
+          the reason **language model training loss is cross-entropy**.  
+          When we train a model $Q_\\theta$ by minimizing $-\\sum_t      
+          \\log Q_\\theta(w_t \\mid w_{<t})$ over the training corpus,   
+          we are minimizing $H(P_{\\text{data}}, Q_\\theta)$. Since      
+          $H(P_{\\text{data}})$ is a constant (the intrinsic entropy of  
+          language), minimizing cross-entropy is equivalent to           
+          minimizing $\\text{KL}(P_{\\text{data}} \\| Q_\\theta)$."      
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)
+  ⎿  Added 7 lines
+      56        explanation: "By definition: $H(P, Q) = H(P) +           
+          \\text{KL}(P \\| Q)$, so $H(P, Q) - H(P) = \\text{KL}(P \\|    
+          Q)$. This is the *forward* KL — the penalty your model pays    
+          for deviating from the true distribution. It is always $\\geq  
+          0$, with equality iff $Q = P$. This is why cross-entropy loss  
+          is a sound training objective: minimizing it drives $Q$ toward 
+           $P$."                                                         
+      57      },                                                         
+      58      {                                                          
+      59 +      type: "mc",                                              
+      60 +      question: "Is cross-entropy symmetric? That is, does     
+         +$H(P, Q) = H(Q, P)$ in general?",                              
+      61 +      options: ["Yes — cross-entropy is a distance metric so   
+         +it must be symmetric", "No — $H(P, Q) = H(P) + \\text{KL}(P    
+         +\\| Q)$ while $H(Q, P) = H(Q) + \\text{KL}(Q \\| P)$, and      
+         +these differ when $P \\neq Q$", "Yes — since $\\sum_x P(x)     
+         +\\log Q(x) = \\sum_x Q(x) \\log P(x)$ by the symmetry of       
+         +multiplication", "It depends on whether $P$ and $Q$ have the   
+         +same support"],                                                
+      62 +      correct: 1,                                              
+      63 +      explanation: "Cross-entropy is NOT symmetric. $H(P, Q) = 
+         + H(P) + \\text{KL}(P \\| Q)$ and $H(Q, P) = H(Q) +             
+         +\\text{KL}(Q \\| P)$. Both KL divergence and entropy differ    
+         +between $P$ and $Q$ in general, so the two cross-entropies     
+         +differ. This is why it matters which distribution is 'true'    
+         +and which is the 'model' in the training loss — we minimize    
+         +$H(P_{\\text{data}}, Q_\\theta)$, not $H(Q_\\theta,            
+         +P_{\\text{data}})$."                                           
+      64 +    },                                                         
+      65 +    {                                                          
+      66        type: "info",                                            
+      67        title: "Conditional Entropy: The Irreducible Floor",     
+      68        content: "**Conditional entropy** $H(X \\mid Y)$         
+          measures how uncertain $X$ remains after observing             
+          $Y$:\n\n$$H(X \\mid Y) = -\\sum_{x, y} P(x, y) \\log P(x \\mid 
+           y) = \\mathbb{E}_{(X,Y)}[-\\log P(X \\mid Y)]$$\n\nFor        
+          language models, the crucial quantity is $H(W_t \\mid W_{<t})$ 
+           — the entropy of the next token given all preceding context.  
+          This is the **intrinsic unpredictability of language** at      
+          position $t$.\n\nA perfect model $Q^* = P$ achieves training   
+          loss:\n\n$$H(P_{\\text{data}}, Q^*) = H(P_{\\text{data}}) =    
+          \\mathbb{E}[-\\log P(W_t \\mid W_{<t})]$$\n\nNo model can do   
+          better than this, no matter how large or well-trained. This    
+          quantity is the **Bayes-optimal loss** — the irreducible noise 
+           floor. It is nonzero because language is genuinely            
+          stochastic: given a context, multiple valid continuations      
+          exist.\n\nThe chain rule of entropy decomposes sequence        
+          entropy: $H(W_1, \\ldots, W_T) = \\sum_{t=1}^T H(W_t \\mid     
+          W_{<t})$. Each token's conditional entropy contributes to the  
+          total."                                                        
+
+⏺ Now add more questions to the perplexity and temperature sections:
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)
+  ⎿  Added 7 lines
+      87        explanation: "Cross-entropy $= \\log_2(\\text{PPL})$, so 
+           the difference is $\\log_2(90) - \\log_2(30) = \\log_2(90/30) 
+           = \\log_2(3) \\approx 1.58$ bits per token. This means Model  
+          B wastes 1.58 extra bits per token compared to A. Note that    
+          perplexity ratios correspond to cross-entropy *differences*    
+          (because $\\log$ turns ratios into differences) — a 3x         
+          perplexity improvement always equals $\\log_2 3 \\approx 1.58$ 
+           bits, regardless of the absolute values."                     
+      88      },                                                         
+      89      {                                                          
+      90 +      type: "mc",                                              
+      91 +      question: "A language model achieves a cross-entropy     
+         +loss of 3.0 nats per token on a held-out set. What is the      
+         +model's perplexity?",                                          
+      92 +      options: ["$3.0$", "$2^3 = 8$", "$e^3 \\approx 20.1$",   
+         +"$\\ln(3) \\approx 1.1$"],                                     
+      93 +      correct: 2,                                              
+      94 +      explanation: "When cross-entropy is measured in nats     
+         +(using $\\ln$), perplexity is $e^{\\text{loss}}$, so $e^{3.0}  
+         +\\approx 20.1$. If the loss were in bits (using $\\log_2$),    
+         +perplexity would be $2^{\\text{loss}}$. The choice of log base 
+         + determines the exponentiation base. In most deep learning     
+         +frameworks, the loss is in nats (natural log), so $e$ is the   
+         +correct base."                                                 
+      95 +    },                                                         
+      96 +    {                                                          
+      97        type: "info",                                            
+      98        title: "The Entropy Rate of English",                    
+      99        content: "Shannon estimated the **entropy rate** of      
+          English at about **1.0–1.5 bits per character** (through human 
+           prediction experiments). Compare this to the                  
+          maximum:\n\n$$H_{\\text{uniform}} = \\log_2 26 \\approx 4.7    
+          \\text{ bits/char}$$\n\nif every letter were equally likely.   
+          English is therefore roughly **70% redundant** — most of the   
+          \"information capacity\" of the character stream is consumed   
+          by spelling patterns, grammar, and semantic                    
+          constraints.\n\nThis redundancy is exactly what language       
+          models exploit. A model that captures these patterns           
+          compresses language toward its entropy rate. Modern LLMs       
+          achieve cross-entropy below 1 bit per character on many        
+          benchmarks, approaching (and for some domains, roughly         
+          matching) Shannon's estimates.\n\nAt the token level (with BPE 
+           tokenization, average ~4 chars/token), the entropy rate is    
+          roughly $4 \\times 1.3 \\approx 5.2$ bits/token. GPT-4-class   
+          models achieve perplexities around 6–10 on standard            
+          benchmarks, corresponding to $\\log_2(8) = 3$ bits/token —     
+          well below the character-level entropy rate, because subword   
+          tokenization captures spelling redundancy in the tokenizer     
+          itself."                                                       
+
+⏺ Now add more questions to the medium module (MI section):
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)  ⎿  Added 14 lines
+      158        explanation: "$I(X; Z) = 0$ requires $X \\perp Z$,      
+           meaning $Z$ carries no information about $X$. For a           
+           deterministic $Z = f(X)$, this happens only if $f$ is         
+           constant — $Z$ takes the same value regardless of input. Any  
+           non-constant deterministic function has $I(X; Z) > 0$,        
+           because knowing $Z$ eliminates at least some uncertainty      
+           about $X$. A hash function that maps different inputs to      
+           different outputs would actually have high MI, even though    
+           it's not invertible."                                         
+      159      },                                                        
+      160      {                                                         
+      161 +      type: "mc",                                             
+      162 +      question: "Two random variables $X$ and $Y$ have        
+          +correlation $\\rho = 0$ but are clearly dependent (e.g., $Y = 
+          + X^2$ where $X \\sim \\text{Uniform}(-1, 1)$). What is $I(X;  
+          +Y)$?",                                                        
+      163 +      options: ["$I(X; Y) = 0$ because zero correlation       
+          +implies independence", "$I(X; Y) = 0$ because MI equals the   
+          +square of correlation", "$I(X; Y) > 0$ — MI detects all       
+          +dependencies including nonlinear ones, unlike correlation     
+          +which only measures linear relationships", "$I(X; Y) < 0$ —   
+          +the nonlinear relationship introduces negative information"], 
+      164 +      correct: 2,                                             
+      165 +      explanation: "MI is zero if and only if $X$ and $Y$ are 
+          + independent. Zero correlation only rules out *linear*        
+          +dependence. If $Y = X^2$ and $X$ is symmetric around 0, then  
+          +$\\text{Corr}(X, Y) = 0$ but $Y$ is completely determined by  
+          +$X$, so $I(X; Y) = H(Y) > 0$. This is a key advantage of MI   
+          +over correlation: it captures arbitrary statistical           
+          +dependencies, making it a more principled measure for         
+          +representation learning."                                     
+      166 +    },                                                        
+      167 +    {                                                         
+      168 +      type: "mc",                                             
+      169 +      question: "In the information bottleneck framework, you 
+          + want to find a representation $Z$ of input $X$ that          
+          +maximizes $I(Z; Y) - \\beta \\cdot I(Z; X)$ for task label    
+          +$Y$. What happens as $\\beta \\to 0$?",                       
+      170 +      options: ["The representation becomes maximally         
+          +compressed (constant $Z$)", "The representation retains all   
+          +input information — $Z$ becomes a copy of $X$ with no         
+          +compression", "The representation becomes random noise", "The 
+          + optimization becomes infeasible"],                           
+      171 +      correct: 1,                                             
+      172 +      explanation: "As $\\beta \\to 0$, the compression       
+          +penalty $\\beta \\cdot I(Z; X)$ vanishes, so the objective    
+          +reduces to maximizing $I(Z; Y)$ alone. The optimal solution   
+          +retains all information from $X$ (no compression) to maximize 
+          + task-relevant information. As $\\beta$ increases, the        
+          +compression penalty becomes stronger, forcing $Z$ to discard  
+          +task-irrelevant details from $X$. This is the information     
+          +bottleneck tradeoff: $\\beta$ controls the                    
+          +compression-relevance balance."                               
+      173 +    },                                                        
+      174 +    {                                                         
+      175        type: "info",                                           
+      176        title: "Data Processing Inequality: Information Only    
+           Flows Downhill",                                              
+      177        content: "The **data processing inequality** (DPI) is   
+           one of the most powerful results in information theory:\n\nIf 
+            $X \\to Y \\to Z$ is a Markov chain (i.e., $Z$ depends on    
+           $X$ only through $Y$), then:\n\n$$I(X; Z) \\leq I(X;          
+           Y)$$\n\nEach processing step can only **lose** information,   
+           never create it.\n\nIn a neural network, the layers form a    
+           Markov chain:\n\n$$X \\to h_1 \\to h_2 \\to \\cdots \\to h_L  
+           \\to \\hat{Y}$$\n\nSo DPI gives us: $I(X; h_1) \\geq I(X;     
+           h_2) \\geq \\cdots \\geq I(X; h_L)$. Deeper layers can only   
+           have *less* mutual information with the input.\n\nThis has a  
+           striking interpretation: as information flows through the     
+           network, each layer acts as an information bottleneck. Early  
+           layers retain most input information; deeper layers           
+           progressively discard task-irrelevant details. The            
+           **information plane** plots $I(X; h_l)$ vs. $I(Y; h_l)$ for   
+           each layer $l$ — a well-trained network should show layers    
+           moving toward the bottom-right: low input MI (compressed) but 
+            high task MI (useful).\n\n*Caveat*: For deterministic        
+           networks with invertible activations (like ReLU on distinct   
+           inputs), DPI is technically satisfied with equality. The      
+           \"information compression\" story is nuanced and debated."    
+
+⏺ Now add more questions to the hard module (calibration/smoothing):
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)
+  ⎿  Added 7 lines
+      270        explanation: "The optimal gap is                        
+           $\\log\\frac{(1-\\alpha)K}{\\alpha} = \\log\\frac{0.9 \\times 
+            50000}{0.1} = \\log(450000) \\approx 13.0$ (using natural    
+           log). Without label smoothing, this gap would be $+\\infty$.  
+           With $\\alpha = 0.1$, it is a large but finite number. The    
+           logits stabilize rather than growing without bound, leading   
+           to better-conditioned gradients in the final layers."         
+      271      },                                                        
+      272      {                                                         
+      273 +      type: "mc",                                             
+      274 +      question: "You increase the label smoothing parameter   
+          +from $\\alpha = 0.1$ to $\\alpha = 0.3$. How does this change 
+          + the optimal logit gap?",                                     
+      275 +      options: ["The gap increases — stronger smoothing       
+          +requires more confident predictions", "The gap stays the same 
+          + — $\\alpha$ only affects the loss magnitude, not the optimal 
+          + logits", "The gap decreases — stronger smoothing means the   
+          +target is closer to uniform, so optimal logits are less       
+          +extreme", "The gap becomes negative — the model should be     
+          +more confident in wrong answers"],                            
+      276 +      correct: 2,                                             
+      277 +      explanation: "The optimal logit gap is                  
+          +$\\log\\frac{(1-\\alpha)K}{\\alpha}$. Increasing $\\alpha$    
+          +from 0.1 to 0.3 means the numerator decreases ($0.7K$ vs      
+          +$0.9K$) and the denominator increases ($0.3$ vs $0.1$), so    
+          +the gap shrinks substantially. At $\\alpha = 0.3$: $\\log(0.7 
+          + \\times 50000 / 0.3) \\approx \\log(116667) \\approx 11.7$,  
+          +vs $\\approx 13.0$ at $\\alpha = 0.1$. Stronger smoothing     
+          +pulls the optimal output closer to uniform (smaller logit     
+          +gaps)."                                                       
+      278 +    },                                                        
+      279 +    {                                                         
+      280        type: "info",                                           
+      281        title: "Calibration: When Confidence Matches Accuracy", 
+      282        content: "A model is **calibrated** if its confidence   
+           estimates match its actual accuracy:\n\n$$P(\\text{correct}   
+           \\mid \\text{confidence} = p) = p$$\n\nIf a calibrated model  
+           says \"90% confident\" on 1000 predictions, approximately 900 
+            should be correct.\n\nCross-entropy is a **proper scoring    
+           rule**: the expected loss is uniquely minimized when $Q =     
+           P_{\\text{true}}$. This means a model trained to global       
+           optimum on infinite data with cross-entropy loss would be     
+           perfectly calibrated.\n\nBut in practice, three factors break 
+            calibration:\n\n**1. Finite data**: The model overfits,      
+           learning to be confident on training examples without         
+           proportional accuracy on new data.\n\n**2.                    
+           Overparameterization**: Modern networks can fit the training  
+           data with room to spare, and the excess capacity drives       
+           predictions toward extreme confidence.\n\n**3. Batch          
+           normalization and weight decay**: These interact with softmax 
+            in subtle ways that shift the confidence                     
+           distribution.\n\nThe result: modern neural networks are       
+           systematically **overconfident** — their predicted            
+           probabilities exceed their actual accuracy. Guo et al. (2017) 
+            demonstrated this across architectures: deeper and wider     
+           networks are more miscalibrated despite being more accurate." 
+
+⏺ Now add more questions to the hard module's calibration and RLHF sections:
+
+⏺ Update(/home/user/llm-curriculum/src/modules/entropy-cross-entropy-mi.js)
+  ⎿  Added 7 lines
+      289        explanation: "The model said \"90% confident\" but only 
+            72/100 = 72% were correct. It is **overconfident**: its      
+           stated confidence (90%) significantly exceeds its actual      
+           accuracy (72%) for this confidence bin. The **expected        
+           calibration error** (ECE) would flag this as a large          
+           deviation. A well-calibrated model at 90% confidence should   
+           get approximately 90 out of 100 correct. This overconfidence  
+           is the norm for modern deep networks and motivates post-hoc   
+           calibration techniques."                                      
+      290      },                                                        
+      291      {                                                         
+      292 +      type: "mc",                                             
+      293 +      question: "Why are modern deep networks typically       
+          +overconfident rather than underconfident, even when           
+          +well-trained with cross-entropy loss?",                       
+      294 +      options: ["Cross-entropy loss penalizes underconfidence 
+          + more heavily than overconfidence", "Overparameterized models 
+          + can perfectly fit training data, then the softmax            
+          +concentrates mass as logit magnitudes grow during training —  
+          +finite data cannot prevent this", "Batch normalization        
+          +ensures outputs sum to more than 1.0", "The softmax function  
+          +is inherently biased toward extreme probabilities regardless  
+          +of logit values"],                                            
+      295 +      correct: 1,                                             
+      296 +      explanation: "Cross-entropy is a proper scoring rule,   
+          +so at the infinite-data optimum the model would be            
+          +calibrated. But in practice, overparameterized networks fit   
+          +training data perfectly and then continue pushing logits      
+          +apart (increasing $\\|z\\|$), which concentrates the softmax  
+          +output toward a point mass. Without enough data to penalize   
+          +this on held-out examples during training, overconfidence     
+          +grows unchecked. This is exacerbated by architectural choices 
+          + (e.g., residual connections allow logit magnitudes to grow   
+          +freely) and training heuristics like weight decay that        
+          +insufficiently regularize the logit scale."                   
+      297 +    },                                                        
+      298 +    {                                                         
+      299        type: "info",                                           
+      300        title: "Temperature Scaling for Post-Hoc Calibration",  
+      301        content: "**Temperature scaling** (Guo et al., 2017) is 
+            a remarkably simple calibration fix: after training is       
+           complete, learn a single scalar $T > 0$ that rescales all     
+           logits:\n\n$$Q_{\\text{cal}}(y \\mid x) =                     
+           \\text{softmax}(z(x) / T)$$\n\nThe temperature $T$ is chosen  
+           to minimize the negative log-likelihood on a **held-out       
+           validation set**.\n\nCritical insight: temperature scaling is 
+            a **monotonic transformation** of probabilities. It          
+           preserves the ranking of predictions — the $\\arg\\max$ class 
+            does not change. So:\n- **Accuracy is unchanged**: the top-1 
+            prediction stays the same.\n- **Confidence is adjusted**:    
+           the softmax entropy increases ($T > 1$) or decreases ($T <    
+           1$).\n\nFor overconfident models (the common case), the       
+           optimal $T > 1$: logits are divided by $T > 1$, compressing   
+           them toward zero, making the softmax distribution more        
+           uniform (higher entropy). This spreads probability from the   
+           top class to alternatives, bringing stated confidence in line 
+            with actual accuracy.\n\nRemarkably, this **single           
+           parameter** often suffices to calibrate even                  
+           billion-parameter models. Platt scaling, isotonic regression, 
+            and other multi-parameter approaches rarely outperform it    
+           significantly."                                               
+
+⏺ Now expand the entropy assessment with more questions:
+
+⏺ Update(/home/user/llm-curriculum/src/modules/prob-assessment-entropy.js)
+  ⎿  Added 35 lines
+       87        options: ["It has no effect on training dynamics", "It  
+           increases the entropy of the model to match the entropy of    
+           the smoothed labels", "It makes the model converge to a       
+           uniform distribution", "It prevents the model from driving    
+           logits to $\\pm \\infty$ — the optimal logit gap becomes      
+           finite, acting as implicit regularization on confidence"],    
+       88        correct: 3,                                             
+       89        explanation: "Without label smoothing, the optimal      
+           logits are $+\\infty$ for the correct class and $-\\infty$    
+           for others. Label smoothing caps the optimal logit gap at a   
+           finite value (proportional to $\\log((1-\\alpha)K/\\alpha)$), 
+            preventing overconfident predictions. This acts as entropy   
+           regularization — the model's output entropy stays bounded     
+           away from zero, improving calibration and generalization."    
+       90 +    },                                                        
+       91 +    {                                                         
+       92 +      type: "mc",                                             
+       93 +      question: "A model's training cross-entropy loss        
+          +converges to 2.5 nats per token but validation loss plateaus  
+          +at 3.2 nats. What is the most informative interpretation?",   
+       94 +      options: ["The model is underfitting — it needs more    
+          +parameters to reduce training loss further", "The gap of 0.7  
+          +nats between train and val represents overfitting: the model  
+          +memorizes training patterns that don't generalize, wasting    
+          +capacity on spurious correlations", "The true entropy rate of 
+          + the language is exactly 2.5 nats", "The validation set is    
+          +from a different language or domain"],                        
+       95 +      correct: 1,                                             
+       96 +      explanation: "The train-val gap (0.7 nats) indicates    
+          +the model has memorized training-specific patterns. Training  
+          +loss reflects both genuine language structure and             
+          +training-set-specific memorization; the difference            
+          +(generalization gap) quantifies the latter. The true entropy  
+          +rate $H(P)$ is at most the validation loss (3.2 nats), since  
+          +$H(P, Q_{\\text{val}}) = H(P) + \\text{KL}(P \\| Q)$ and KL   
+          +is non-negative. The training loss can go below $H(P)$        
+          +precisely because of memorization."                           
+       97 +    },                                                        
+       98 +    {                                                         
+       99 +      type: "mc",                                             
+      100 +      question: "You apply temperature scaling with $T = 2.0$ 
+          + to a model's logits during inference. If the original top-1  
+          +probability was 0.95, approximately what will it become?",    
+      101 +      options: ["$0.95 / 2 = 0.475$ — probabilities scale     
+          +linearly with temperature", "Still close to 0.95 —            
+          +temperature only affects low-probability tokens",             
+          +"Significantly reduced (roughly $0.95^{1/2} \\approx 0.87$ to 
+          + $0.90$, depending on logit structure) — dividing logits by 2 
+          + compresses them toward zero, spreading mass to other         
+          +tokens", "Exactly $0.5$ — doubling temperature always halves  
+          +the top probability"],                                        
+      102 +      correct: 2,                                             
+      103 +      explanation: "Temperature scaling divides logits by $T$ 
+          + before softmax. If the top logit was much larger than others 
+          + (giving 0.95), dividing by 2 halves the logit gap, spreading 
+          + probability to other tokens. The exact new probability       
+          +depends on the logit distribution, but for a sharply peaked   
+          +distribution going from $T=1$ to $T=2$ typically reduces the  
+          +top probability noticeably. The relationship is NOT linear in 
+          + $T$ — it goes through the softmax nonlinearity."             
+      104 +    },                                                        
+      105 +    {                                                         
+      106 +      type: "mc",                                             
+      107 +      question: "In contrastive learning (e.g., SimCLR), why  
+          +does using a very small batch size (e.g., 32) limit           
+          +performance even with longer training?",                      
+      108 +      options: ["Small batches cause gradient noise that      
+          +prevents convergence", "The InfoNCE bound on MI is $\\log N$  
+          +where $N$ is batch size — a batch of 32 can estimate at most  
+          +$\\log_2(32) = 5$ bits of MI, regardless of training          
+          +duration", "Small batches cause mode collapse in the          
+          +representation space", "Small batches violate the i.i.d.      
+          +assumption required for contrastive learning"],               
+      109 +      correct: 1,                                             
+      110 +      explanation: "The InfoNCE loss provides a lower bound:  
+          +$I(X;Y) \\geq \\log N - \\mathcal{L}$. Even if the loss       
+          +reaches 0, you can only estimate $\\log N$ bits of MI. With   
+          +batch size 32: $\\log_2(32) = 5$ bits maximum. If the true MI 
+          + between views is much higher, this ceiling prevents the      
+          +model from learning fine-grained distinctions. This is why    
+          +CLIP uses batch sizes of 32K+ ($\\log_2(32768) \\approx 15$   
+          +bits) — it raises the MI ceiling, enabling richer             
+          +representations."                                             
+      111 +    },                                                        
+      112 +    {                                                         
+      113 +      type: "mc",                                             
+      114 +      question: "For a Markov chain $X \\to Y \\to Z$, when   
+          +does $I(X; Z) = I(X; Y)$ (equality in the data processing     
+          +inequality)?",                                                
+      115 +      options: ["When $Z$ is a higher-dimensional version of  
+          +$Y$ (e.g., zero-padding)", "When $Z$ is a sufficient          
+          +statistic of $Y$ for $X$ — meaning $X \\to Z \\to Y$ is also  
+          +a valid Markov chain, so no information about $X$ is lost",   
+          +"Equality never holds — processing always loses some          
+          +information", "Only when $Y = Z$ (the identity mapping)"],    
+      116 +      correct: 1,                                             
+      117 +      explanation: "DPI gives equality when $Z$ retains all   
+          +information that $Y$ has about $X$, formally when $Z$ is a    
+          +sufficient statistic of $Y$ for $X$. This means $P(X \\mid Y) 
+          + = P(X \\mid Z)$ — knowing $Z$ is just as good as knowing $Y$ 
+          + for predicting $X$. An invertible transformation $Z = g(Y)$  
+          +trivially satisfies this (since $Y$ can be recovered from     
+          +$Z$), but sufficiency is the general condition. Identity is   
+          +sufficient but not necessary."                                
+      118 +    },                                                        
+      119 +    {                                                         
+      120 +      type: "mc",                                             
+      121 +      question: "A language model trained on English text     
+          +achieves perplexity 8.0. Shannon estimated English entropy at 
+          + ~1.3 bits/char, and BPE tokens average ~4 chars. How does    
+          +this model compare to the theoretical limit?",                
+      122 +      options: ["The model has nearly reached the entropy     
+          +limit — $\\log_2(8) = 3$ bits/token vs theoretical ~$4        
+          +\\times 1.3 = 5.2$ bits/token, actually beating it because    
+          +the tokenizer absorbs spelling redundancy", "The model is far 
+          + above the limit — perplexity 8 is very high", "The           
+          +comparison is invalid because Shannon's estimate is per       
+          +character, not per token", "The model exactly matches the     
+          +entropy limit"],                                              
+      123 +      correct: 0,                                             
+      124 +      explanation: "At perplexity 8: cross-entropy $=         
+          +\\log_2(8) = 3$ bits/token. Shannon's character-level entropy 
+          + rate (~1.3 bits/char) times ~4 chars/token gives ~5.2        
+          +bits/token as a crude token-level estimate. But BPE           
+          +tokenization already encodes spelling patterns (absorbing     
+          +~1-2 bits/char of redundancy), so the effective per-token     
+          +entropy limit is lower than 5.2 bits. The model at 3          
+          +bits/token is performing well, suggesting it captures most of 
+          + the remaining (post-tokenization) statistical structure."    
+      125      }                                                         
+      126    ]                                                           
+      127  };                                                            
+
+⏺ Good. Now let me verify syntax on the modified files and run a build:
+
+⏺ Bash(node --check src/modules/entropy-cross-entropy-mi.js && node --check
+      src/modules/prob-assessment-entropy.js && node --check
+      src/utils/shuffle.js && node --check…)
+  ⎿  Error: Exit code 1
+     node:internal/modules/esm/get_format:219
+       throw new ERR_UNKNOWN_FILE_EXTENSION(ext, filepath);
+             ^
+
+     TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".jsx" for 
+     /home/user/llm-curriculum/src/components/ModuleView.jsx
+         at Object.getFileProtocolModuleFormat [as file:] 
+     (node:internal/modules/esm/get_format:219:9)
+         at defaultGetFormat (node:internal/modules/esm/get_format:245:36)
+         at checkSyntax (node:internal/main/check_syntax:69:20) {
+       code: 'ERR_UNKNOWN_FILE_EXTENSION'
+     … +3 lines (ctrl+o to see all)
+
+⏺ Bash(npm run build 2>&1 | tail -20)
+  ⎿  > llm-curriculum@0.0.0 build
+     > vite build
+
+     sh: 1: vite: not found
+
+⏺ Bash(npm install 2>&1 | tail -5)
+  ⎿  To address all issues (including breaking changes), run:
+       npm audit fix --force
+
+     Run `npm audit` for details.
+
+⏺ Bash(npx vite build 2>&1 | tail -20)
+  ⎿  dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+     dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+     dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+     … +16 lines (ctrl+o to expand)
+
+⏺ Build succeeds. Now let me clean up the redistribution script (it was a
+  one-time tool) and commit everything.
+
+⏺ Bash(rm /home/user/llm-curriculum/scripts/redistribute-answers.mjs)
+  ⎿  Done
+
+⏺ Now let me commit and push.
+
+⏺ Bash(git checkout -b claude/randomize-quiz-questions-hRXJr 2>/dev/null || git
+      checkout claude/randomize-quiz-questions-hRXJr)
+  ⎿  Already on 'claude/randomize-quiz-questions-hRXJr'
+     M  src/components/ModuleView.jsx
+     M  src/components/WarmupView.jsx
+     … +19 lines (ctrl+o to expand)
+
+⏺ Bash(git log --oneline -5)
+  ⎿  bfa55b9 Auto-commit: 2 files changed, 71 insertions(+), 34 deletions(-
+     )
+     cb4771d Auto-commit: 22 files changed, 215 insertions(+), 46 deletions
+     … +4 lines (ctrl+o to expand)
+
+⏺ Bash(git add src/utils/shuffle.js src/components/ModuleView.jsx
+      src/components/WarmupView.jsx src/modules/entropy-cross-entropy-mi.js
+      src/modules/prob-assessment-ent…)
+  ⎿  (No output)
+
+⏺ Bash(git commit -m "$(cat <<'EOF'
+      Randomize quiz questions and options to prevent pattern-matching…)
+  ⎿  [claude/randomize-quiz-questions-hRXJr 29cb3d7] Randomize quiz questio
+     ns and options to prevent pattern-matching
+      22 files changed, 926 insertions(+), 2498 deletions(-)
+      create mode 100644 src/utils/shuffle.js
+
+⏺ Bash(git push -u origin claude/randomize-quiz-questions-hRXJr)
+  ⎿  remote:
+     remote: Create a pull request for 'claude/randomize-quiz-questions-hRX
+     Jr' on GitHub by visiting:
+     … +8 lines (ctrl+o to expand)
+
+⏺ Done. Here's a summary of what was changed:
+
+  Runtime Randomization (the core fix)
+
+  - src/utils/shuffle.js — New seeded shuffle utility with Fisher-Yates
+  algorithm. Generates a per-attempt seed stored in sessionStorage so each quiz
+  attempt gets a fresh randomization, but it's consistent within the same
+  attempt.
+  - ModuleView.jsx — Shuffles option order on every MC question. For test
+  modules, also shuffles question order (keeping any intro step first). Clicking
+   "Retry" resets the seed, giving a completely new arrangement.
+  - WarmupView.jsx — Shuffles option order for each warmup question (question
+  order was already shuffled by the daily seed).
+
+  Answer Position Redistribution
+
+  - Rebalanced correct answer positions across all 479 MC questions in 19 module
+   files. Was ~90% at position 1 (B). Now evenly distributed: 120/132/120/120
+  across positions 0-3.
+
+  Expanded Question Pool
+
+  - Entropy easy module: +3 new questions (coin flip entropy, cross-entropy
+  comparison, cross-entropy asymmetry)
+  - Entropy medium module: +2 new questions (MI vs correlation, information
+  bottleneck tradeoff)
+  - Entropy hard module: +2 new questions (label smoothing parameter effects,
+  overconfidence mechanics)
+  - Entropy assessment: +5 new questions (train-val gap interpretation,
+  temperature scaling numerics, contrastive batch size limits, DPI equality
+  conditions, perplexity vs entropy rate comparison)
+
+  The data files remain the source of truth for content — the UI layer handles
+  all randomization at runtime. This means you can keep adding questions to
+  modules and they'll automatically get shuffled.
+
+[Image #1]
+
+❯ No you still haven’t solved the problem. This is what I’m saying. It’s very   
+easy for me as a human to look at this and quickly guess which one is the       
+answer just by seeing that one of them is 3x longer than the others.            
+                                                                                
+Please either rethink the evaluation protocol or the answer option generation   
+protocol.                                                                       
+⏺ You're right. The core issue isn't just position randomization — it's that the
+   correct answer is almost always the longest, most detailed option. Shuffling
+  positions doesn't fix that; a human can still spot the "textbook answer"
+  instantly.
+
+  There are two viable approaches:
+
+  1. Rewrite all distractors to match the correct answer's length/detail —
+  labor-intensive, needs to be done per-question
+  2. Normalize option length at the UI level — truncate/expand options to
+  similar lengths, but this risks cutting off meaning
+
+  The real fix is #1: every distractor needs to be as detailed and plausible as
+  the correct answer. Let me audit the scope of this problem and then fix it
+  systematically.
+
+⏺ Explore(Audit option length imbalance)
+  ⎿  Done (24 tool uses · 79.4k tokens · 1m 32s)
+  (ctrl+o to expand)
+
+⏺ You're absolutely right. The audit shows 80% of questions have the correct
+  answer as the longest/most detailed option. Runtime shuffling doesn't fix this
+   — a human can just pick the most "textbook-sounding" option every time.
+
+  The fix: rewrite every distractor across all modules to match the correct
+  answer's length, detail level, and style. I'll process all 19 module files in
+  parallel.
+
+⏺ 8 agents launched (ctrl+o to expand)
+   ├─ Rewrite distractors: prob-assessment files batch 1
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: prob-assessment files batch 2
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: assess-branch-a
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: assess-branch-b
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: assess-branch-cd
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: branch-e, branch-f
+   │  ⎿  Running in the background
+   ├─ Rewrite distractors: branch-g, tier1 parts
+   │  ⎿  Running in the background
+   └─ Rewrite distractors: learning modules
+      ⎿  Running in the background
+
+⏺ I've launched 8 parallel agents rewriting all distractors across all 19 module
+   files. Each agent is:
+  - Making every distractor match the correct answer's length and detail level
+  - Adding plausible technical reasoning to short distractors
+  - Ensuring no option is identifiable by style alone
+
+  Waiting for all agents to complete...
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Let me wait for the agents to complete their work before proceeding with
+  verification.
+
+⏺ Bash(sleep 30 && echo "Checking file modification times..." && ls -lt
+      src/modules/*.js | head -20)
+  ⎿  Checking file modification times...
+     -rw-r--r-- 1 root root 13669 Mar 23 19:29 src/modules/prob-assessment-
+     bayesian.js
+     … +21 lines (ctrl+o to expand)
+
+⏺ Agents are still working — only a few files updated so far. Let me wait for
+  them to finish.
+
+⏺ Bash(sleep 60 && echo "Checking progress..." && ls -lt src/modules/*.js | head
+       -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 14098 Mar 23 19:31 src/modules/prob-assessment-
+     bayesian.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ Bash(sleep 90 && echo "Checking progress..." && ls -lt src/modules/*.js | head
+       -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 17397 Mar 23 19:33 src/modules/prob-assessment-
+     entropy.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ Bash(sleep 120 && echo "Checking progress..." && ls -lt src/modules/*.js |
+      head -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 12760 Mar 23 19:36 src/modules/prob-assessment-
+     sampling.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ Good progress — the smaller prob-assessment files are done. The larger branch
+  assessment files are still being processed. Let me wait for those.
+
+⏺ Bash(sleep 180 && echo "Checking progress..." && ls -lt src/modules/*.js |
+      head -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 13729 Mar 23 19:37 src/modules/prob-assessment-
+     applied.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ All prob-assessment files are done. Waiting for the larger assessment files
+  (branch-a through branch-g, tier1, and learning modules)...
+
+⏺ Bash(sleep 180 && echo "Checking progress..." && ls -lt src/modules/*.js |
+      head -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 13729 Mar 23 19:37 src/modules/prob-assessment-
+     applied.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ The larger files (50-80 questions each) are still being processed. Let me keep
+   waiting.
+
+⏺ Bash(sleep 240 && echo "Checking progress..." && ls -lt src/modules/*.js |
+      head -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 13729 Mar 23 19:37 src/modules/prob-assessment-
+     applied.js
+     … +20 lines (ctrl+o to expand)
+
+⏺ Let me check the agent output files to see if any have finished or failed.
+
+⏺ Bash(for f in /tmp/claude-0/-home-user-llm-curriculum/8eced800-f6e0-4db9-be4a-
+      643f2760b515/tasks/*.output; do echo "=== $(basename $f) ===" && tail -3
+      "$f" 2>/dev/nu…)
+  ⎿  === a1f47db8a2012d028.output ===
+     {"parentUuid":"85c11f68-a8f6-4710-a72f-c1743f3b94ab","isSidechain":tru
+     e,"agentId":"a1f47db8a2012d028","type":"progress","data":{"type":"hook
+     … +411 lines (ctrl+o to expand)
+
+⏺ Bash(for f in /tmp/claude-0/-home-user-llm-curriculum/8eced800-f6e0-4db9-be4a-
+      643f2760b515/tasks/*.output; do name=$(basename "$f" .output);
+      status=$(grep -c '"type"…)
+  ⎿  a1f47db8a2012d028: completed=0
+     0
+     a201651e4fe06c209: completed=0
+     … +19 lines (ctrl+o to expand)
+⏺ All agents are still actively working. The large files (50-80 questions each)
+  take time to rewrite all distractors. Let me continue waiting.
+
+⏺ Bash(sleep 300 && echo "Checking progress..." && ls -lt src/modules/*.js |
+      head -20)
+  ⎿  Checking progress...
+     -rw-r--r-- 1 root root 13729 Mar 23 19:37 src/modules/prob-assessment-
+     applied.js
+     … +20 lines (ctrl+o to expand)
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: prob-assessment files batch 2" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: prob-assessment files batch 1" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: assess-branch-cd" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: assess-branch-a" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: branch-e, branch-f" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: learning modules" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: branch-g, tier1 parts" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+⏺ Agent "Rewrite distractors: assess-branch-b" completed
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+❯ Continue                                                                      
+  ⎿  You're out of extra usage · resets 12am (UTC)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+❯ /model claude-opus-4-6[1m]                                                    
+  ⎿  Set model to claude-opus-4-6[1m]
+
+❯ continue                                                                      
+  ⎿  API Error: Rate limit reached
+
+❯ continue bro                                                                  
+  ⎿  API Error: Rate limit reached
+
+❯ try again                                                                     
+  ⎿  API Error: Rate limit reached
+
+❯ Check again bro                                                               
+
+⏺ Let me check the current state of the branch and what's been done so far.
+
+⏺ Bash(git branch --show-current)
+  ⎿  claude/randomize-quiz-questions-hRXJr
+
+⏺ Bash(git status --short)
+  ⎿   M src/modules/prob-assessment-applied.js
+      M src/modules/prob-assessment-bayesian.js
+      M src/modules/prob-assessment-concentration.js
+     … +5 lines (ctrl+o to expand)
+
+⏺ Bash(git log --oneline -10)
+  ⎿  29cb3d7 Randomize quiz questions and options to prevent pattern-matchi
+     ng
+     bfa55b9 Auto-commit: 2 files changed, 71 insertions(+), 34 deletions(-
+     … +11 lines (ctrl+o to expand)
+
+⏺ I see 8 modified prob-assessment files from the two agents that completed
+  successfully. The other 6 agents ran out of usage and didn't make changes. Let
+   me verify the build passes, then commit and push what we have.
+⏺ Bash(npm run build 2>&1 | tail -20)
+  ⎿  dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+     dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+     dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+     … +16 lines (ctrl+o to expand)
+
+⏺ Build passes. Let me commit and push the distractor improvements.
+
+⏺ Bash(git add src/modules/prob-assessment-applied.js
+      src/modules/prob-assessment-bayesian.js
+      src/modules/prob-assessment-concentration.js
+      src/modules/prob-assessment-…)
+  ⎿  (No output)
+
+⏺ Bash(git commit -m "$(cat <<'EOF'
+      Equalize distractor lengths across prob-assessment modules…)
+  ⎿  [claude/randomize-quiz-questions-hRXJr 0ca6490] Equalize distractor le
+     ngths across prob-assessment modules
+      8 files changed, 122 insertions(+), 122 deletions(-)
+
+⏺ Bash(git push -u origin claude/randomize-quiz-questions-hRXJr 2>&1)
+  ⎿  To http://127.0.0.1:36857/git/RobotSail/llm-curriculum
+        29cb3d7..0ca6490  claude/randomize-quiz-questions-hRXJr -> claude/r
+     andomize-quiz-questions-hRXJr
+     … +2 lines (ctrl+o to expand)
+
+⏺ Done. Committed and pushed the distractor length equalization for all 8
+  prob-assessment files.
+
+  The 6 other agents (assess-branch-a, assess-branch-b, assess-branch-cd,
+  branch-e/f, branch-g/tier1, and learning modules) ran out of usage and didn't
+  complete their work. The 8 prob-assessment files that were successfully
+  improved are now pushed to the branch.
+
+⏺ Session resumed
