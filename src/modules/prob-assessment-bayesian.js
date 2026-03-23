@@ -18,13 +18,8 @@ export const bayesianAssessment = {
     {
       type: "mc",
       question: "Bayes' theorem states $P(\\theta \\mid \\mathcal{D}) = \\frac{P(\\mathcal{D} \\mid \\theta) P(\\theta)}{P(\\mathcal{D})}$. The denominator $P(\\mathcal{D}) = \\int P(\\mathcal{D} \\mid \\theta) P(\\theta) d\\theta$ is called the **evidence** or **marginal likelihood**. Why is it typically intractable?",
-      options: [
-        "Because $P(\\mathcal{D} \\mid \\theta)$ is unknown",
-        "Because the integral is over the entire parameter space, which is high-dimensional for neural networks — making it impossible to evaluate analytically or numerically",
-        "Because the prior $P(\\theta)$ is always improper",
-        "Because the data $\\mathcal{D}$ is too large"
-      ],
-      correct: 1,
+      options: ["Because $P(\\mathcal{D} \\mid \\theta)$ is unknown", "Because the data $\\mathcal{D}$ is too large", "Because the prior $P(\\theta)$ is always improper", "Because the integral is over the entire parameter space, which is high-dimensional for neural networks — making it impossible to evaluate analytically or numerically"],
+      correct: 3,
       explanation: "For a neural network with millions of parameters, $P(\\mathcal{D}) = \\int P(\\mathcal{D} \\mid \\theta) P(\\theta) d\\theta$ requires integrating over a million-dimensional space. This integral has no closed form (the likelihood is a complex nonlinear function of $\\theta$) and is too high-dimensional for numerical quadrature. This intractability motivates both MCMC (sampling) and variational inference (optimization) as approximation strategies."
     },
     {
@@ -42,37 +37,22 @@ export const bayesianAssessment = {
     {
       type: "mc",
       question: "The **ELBO** (Evidence Lower Bound) is $\\mathcal{L}(q) = \\mathbb{E}_q[\\log P(\\mathcal{D} \\mid \\theta)] - \\text{KL}(q(\\theta) \\| P(\\theta))$. Why is it called a \"lower bound\"?",
-      options: [
-        "Because it lower-bounds the KL divergence",
-        "Because $\\log P(\\mathcal{D}) = \\mathcal{L}(q) + \\text{KL}(q \\| P(\\theta \\mid \\mathcal{D})) \\geq \\mathcal{L}(q)$, since KL $\\geq 0$ — so the ELBO lower-bounds the log-evidence",
-        "Because the expected log-likelihood is always negative",
-        "Because the prior term is always a penalty"
-      ],
-      correct: 1,
+      options: ["Because $\\log P(\\mathcal{D}) = \\mathcal{L}(q) + \\text{KL}(q \\| P(\\theta \\mid \\mathcal{D})) \\geq \\mathcal{L}(q)$, since KL $\\geq 0$ — so the ELBO lower-bounds the log-evidence", "Because it lower-bounds the KL divergence", "Because the expected log-likelihood is always negative", "Because the prior term is always a penalty"],
+      correct: 0,
       explanation: "We can decompose: $\\log P(\\mathcal{D}) = \\mathcal{L}(q) + \\text{KL}(q(\\theta) \\| P(\\theta \\mid \\mathcal{D}))$. Since KL is always $\\geq 0$, we get $\\log P(\\mathcal{D}) \\geq \\mathcal{L}(q)$. Maximizing the ELBO simultaneously (1) tightens the bound on the evidence, and (2) minimizes $\\text{KL}(q \\| P(\\theta \\mid \\mathcal{D}))$, making $q$ a better posterior approximation. The ELBO equals the evidence when $q$ equals the true posterior."
     },
     {
       type: "mc",
       question: "In the VAE (Variational Autoencoder), the ELBO for a single datapoint is $\\mathcal{L}(x) = \\mathbb{E}_{q(z|x)}[\\log p(x \\mid z)] - \\text{KL}(q(z \\mid x) \\| p(z))$. The two terms correspond to:",
-      options: [
-        "Accuracy and speed",
-        "**Reconstruction** (how well can we decode $z$ back to $x$) and **regularization** (how close is the encoder's posterior to the prior)",
-        "Training loss and validation loss",
-        "Bias and variance of the model"
-      ],
-      correct: 1,
+      options: ["Accuracy and speed", "Training loss and validation loss", "**Reconstruction** (how well can we decode $z$ back to $x$) and **regularization** (how close is the encoder's posterior to the prior)", "Bias and variance of the model"],
+      correct: 2,
       explanation: "The first term $\\mathbb{E}_{q(z|x)}[\\log p(x|z)]$ encourages accurate reconstruction — $z$ must contain enough information to reproduce $x$. The second term $\\text{KL}(q(z|x) \\| p(z))$ regularizes the latent space, pushing $q(z|x)$ toward the prior $p(z) = \\mathcal{N}(0, I)$. The tension between these creates a learned compression: encode enough to reconstruct, but stay close to a simple prior."
     },
     {
       type: "mc",
       question: "The **reparameterization trick** in VAEs writes $z = \\mu(x) + \\sigma(x) \\odot \\epsilon$ where $\\epsilon \\sim \\mathcal{N}(0, I)$. Why is this needed?",
-      options: [
-        "To make the latent space continuous",
-        "To move the stochasticity outside the computational graph, enabling backpropagation through the sampling operation via the deterministic path $\\mu(x)$ and $\\sigma(x)$",
-        "To ensure $z$ follows a Gaussian distribution",
-        "To reduce the dimensionality of $z$"
-      ],
-      correct: 1,
+      options: ["To make the latent space continuous", "To reduce the dimensionality of $z$", "To ensure $z$ follows a Gaussian distribution", "To move the stochasticity outside the computational graph, enabling backpropagation through the sampling operation via the deterministic path $\\mu(x)$ and $\\sigma(x)$"],
+      correct: 3,
       explanation: "You can't backpropagate through a random sampling operation $z \\sim q(z|x)$. The reparameterization trick rewrites this as a deterministic function of learned parameters ($\\mu, \\sigma$) plus fixed noise ($\\epsilon$). Now gradients flow through $\\mu$ and $\\sigma$ to the encoder. This same idea (making gradients flow through stochastic operations) appears in policy gradient methods and Gumbel-softmax for discrete distributions."
     },
     {
@@ -102,25 +82,15 @@ export const bayesianAssessment = {
     {
       type: "mc",
       question: "**Bayesian model comparison** uses the evidence $P(\\mathcal{D} \\mid M) = \\int P(\\mathcal{D} \\mid \\theta, M) P(\\theta \\mid M) d\\theta$ to compare models $M_1$ and $M_2$ via the Bayes factor $\\frac{P(\\mathcal{D} \\mid M_1)}{P(\\mathcal{D} \\mid M_2)}$. How does this naturally implement Occam's razor?",
-      options: [
-        "It penalizes models with more parameters through an explicit penalty term",
-        "Complex models spread their prior mass over many possible datasets, so they assign lower prior probability to any specific dataset — the evidence automatically balances fit and complexity",
-        "It uses cross-validation internally",
-        "It selects the model with the highest likelihood on the training data"
-      ],
-      correct: 1,
+      options: ["It penalizes models with more parameters through an explicit penalty term", "It uses cross-validation internally", "Complex models spread their prior mass over many possible datasets, so they assign lower prior probability to any specific dataset — the evidence automatically balances fit and complexity", "It selects the model with the highest likelihood on the training data"],
+      correct: 2,
       explanation: "A complex model can fit many possible datasets but must spread its prior predictive probability $P(\\mathcal{D} \\mid M) = \\int P(\\mathcal{D} \\mid \\theta) P(\\theta) d\\theta$ thinly over all of them. A simple model concentrates its probability on fewer datasets but assigns higher probability to those. The evidence thus naturally penalizes unnecessary complexity — no regularization parameter needed. This is called the \"Bayesian Occam's razor.\""
     },
     {
       type: "mc",
       question: "**Amortized inference** (as in VAEs) trains an encoder $q_\\phi(z \\mid x)$ to approximate the posterior for any $x$, rather than optimizing $q$ separately for each $x$. The key advantage is:",
-      options: [
-        "It guarantees exact posterior inference",
-        "After training, inference for a new $x$ is a single forward pass through the encoder — no iterative optimization needed. This trades per-datapoint optimality for speed",
-        "It eliminates the need for the ELBO",
-        "It makes the posterior always Gaussian"
-      ],
-      correct: 1,
+      options: ["It guarantees exact posterior inference", "It makes the posterior always Gaussian", "It eliminates the need for the ELBO", "After training, inference for a new $x$ is a single forward pass through the encoder — no iterative optimization needed. This trades per-datapoint optimality for speed"],
+      correct: 3,
       explanation: "Traditional VI optimizes $q(z)$ separately per datapoint (expensive). Amortized inference learns a single function $q_\\phi(z|x)$ (the encoder) that maps any $x$ to an approximate posterior in one forward pass. The trade-off: the \"amortization gap\" — the shared encoder may not be as good as per-datapoint optimization. But the speedup (one pass vs. iterative optimization) makes it practical for large datasets."
     }
   ]

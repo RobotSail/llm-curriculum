@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import MathText from './MathText';
+import { shuffleModuleSteps, getAttemptSeed, resetAttemptSeed } from '../utils/shuffle';
 
 const MODULE_PROGRESS_KEY = 'llm-curriculum-modules-v1';
 
@@ -47,6 +48,15 @@ export default function ModuleView({ module, tierColor, onClose }) {
   const accentColor = tierColor || DIFF_COLORS[module.difficulty] || '#378ADD';
   const totalSteps = module.steps.length;
 
+  // Shuffle seed — changes per attempt/session, consistent within one attempt
+  const [shuffleSeed, setShuffleSeed] = useState(() => getAttemptSeed(module.id));
+
+  // Precompute shuffled steps: randomized option order + question order (for tests)
+  const shuffledSteps = useMemo(
+    () => shuffleModuleSteps(module.steps, module.moduleType, shuffleSeed),
+    [module.steps, module.moduleType, shuffleSeed]
+  );
+
   const [step, setStep] = useState(() => {
     const p = loadProgress();
     const saved = p[module.id]?.currentStep || 0;
@@ -59,7 +69,7 @@ export default function ModuleView({ module, tierColor, onClose }) {
     return p[module.id]?.answers || {};
   });
 
-  const current = step < totalSteps ? module.steps[step] : null;
+  const current = step < totalSteps ? shuffledSteps[step] : null;
   const isComplete = step >= totalSteps;
 
   const [flaggedSteps, setFlaggedSteps] = useState(() => {
@@ -135,10 +145,10 @@ export default function ModuleView({ module, tierColor, onClose }) {
 
   if (isComplete) {
     const correct = Object.entries(answers).reduce((n, [idx, ans]) => {
-      const s = module.steps[Number(idx)];
+      const s = shuffledSteps[Number(idx)];
       return s?.type === 'mc' && ans === s.correct ? n + 1 : n;
     }, 0);
-    const totalMc = module.steps.filter(s => s.type === 'mc').length;
+    const totalMc = shuffledSteps.filter(s => s.type === 'mc').length;
     return (
       <div style={S.container}>
         <div style={S.inner}>
@@ -152,7 +162,7 @@ export default function ModuleView({ module, tierColor, onClose }) {
               {correct}/{totalMc} questions correct
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={() => { setStep(0); setAnswers({}); }} style={{ ...S.btn, background: 'transparent', border: `1.5px solid ${accentColor}`, color: accentColor }}>
+              <button onClick={() => { setShuffleSeed(resetAttemptSeed(module.id)); setStep(0); setAnswers({}); }} style={{ ...S.btn, background: 'transparent', border: `1.5px solid ${accentColor}`, color: accentColor }}>
                 Retry
               </button>
               <button onClick={onClose} style={{ ...S.btn, background: accentColor }}>

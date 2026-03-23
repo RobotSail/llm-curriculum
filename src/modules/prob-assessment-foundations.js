@@ -18,25 +18,15 @@ export const probabilityFoundationsAssessment = {
     {
       type: "mc",
       question: "A language model assigns probability $P(w_t \\mid w_{<t})$ to each token. By the chain rule of probability, the joint probability of a sequence $w_1, \\dots, w_T$ is:",
-      options: [
-        "$\\sum_{t=1}^{T} P(w_t \\mid w_{<t})$",
-        "$\\prod_{t=1}^{T} P(w_t \\mid w_{<t})$",
-        "$\\frac{1}{T} \\sum_{t=1}^{T} P(w_t \\mid w_{<t})$",
-        "$\\max_{t} P(w_t \\mid w_{<t})$"
-      ],
-      correct: 1,
+      options: ["$\\sum_{t=1}^{T} P(w_t \\mid w_{<t})$", "$\\frac{1}{T} \\sum_{t=1}^{T} P(w_t \\mid w_{<t})$", "$\\prod_{t=1}^{T} P(w_t \\mid w_{<t})$", "$\\max_{t} P(w_t \\mid w_{<t})$"],
+      correct: 2,
       explanation: "The chain rule of probability says $P(w_1, \\dots, w_T) = \\prod_{t=1}^{T} P(w_t \\mid w_1, \\dots, w_{t-1})$. This is the foundational factorization that autoregressive language models exploit — they model each conditional factor in the product."
     },
     {
       type: "mc",
       question: "You have a classifier with 95% true positive rate ($P(\\text{pos} \\mid \\text{spam}) = 0.95$) and 3% false positive rate ($P(\\text{pos} \\mid \\text{ham}) = 0.03$). If only 1% of emails are spam ($P(\\text{spam}) = 0.01$), what is $P(\\text{spam} \\mid \\text{pos})$ approximately?",
-      options: [
-        "About 95% — the classifier is very accurate",
-        "About 50% — it's a coin flip",
-        "About 24% — the low base rate dominates",
-        "About 1% — the prior barely changes"
-      ],
-      correct: 2,
+      options: ["About 95% — the classifier is very accurate", "About 50% — it's a coin flip", "About 1% — the prior barely changes", "About 24% — the low base rate dominates"],
+      correct: 3,
       explanation: "By Bayes' theorem: $P(\\text{spam} \\mid \\text{pos}) = \\frac{0.95 \\times 0.01}{0.95 \\times 0.01 + 0.03 \\times 0.99} = \\frac{0.0095}{0.0095 + 0.0297} \\approx 0.242$. This is the base rate fallacy — even with a good classifier, a low prior dramatically reduces the posterior. This is critical intuition for understanding how priors interact with likelihoods."
     },
     {
@@ -54,25 +44,15 @@ export const probabilityFoundationsAssessment = {
     {
       type: "mc",
       question: "In a language model's output layer, the **softmax** function converts logits $z_i$ to probabilities. Which distribution does this define over the vocabulary?",
-      options: [
-        "A Bernoulli distribution",
-        "A multinomial (categorical) distribution",
-        "A Poisson distribution",
-        "A Dirichlet distribution"
-      ],
-      correct: 1,
+      options: ["A multinomial (categorical) distribution", "A Bernoulli distribution", "A Poisson distribution", "A Dirichlet distribution"],
+      correct: 0,
       explanation: "Softmax produces a **categorical distribution** over the vocabulary: $P(w = i) = \\frac{e^{z_i}}{\\sum_j e^{z_j}}$. Each token gets a probability, probabilities sum to 1, and we sample one token. When we sample multiple tokens with replacement, the counts follow a multinomial. The Dirichlet would be a distribution *over* such probability vectors, not a single draw."
     },
     {
       type: "mc",
       question: "The **law of total expectation** states $\\mathbb{E}[X] = \\mathbb{E}[\\mathbb{E}[X \\mid Y]]$. In the context of language modeling, if $X$ is the log-probability of a sequence and $Y$ is the topic, this means:",
-      options: [
-        "The overall log-probability equals the best topic-conditional log-probability",
-        "The overall expected log-probability is the topic-weighted average of per-topic expected log-probabilities",
-        "The log-probability is independent of the topic",
-        "You must know the topic to compute the log-probability"
-      ],
-      correct: 1,
+      options: ["The overall log-probability equals the best topic-conditional log-probability", "The log-probability is independent of the topic", "The overall expected log-probability is the topic-weighted average of per-topic expected log-probabilities", "You must know the topic to compute the log-probability"],
+      correct: 2,
       explanation: "The law of total expectation says you can decompose an unconditional expectation by first conditioning on $Y$, computing the conditional expectation, then averaging over $Y$. Here: $\\mathbb{E}[\\log P] = \\sum_{\\text{topic}} P(\\text{topic}) \\cdot \\mathbb{E}[\\log P \\mid \\text{topic}]$. This is fundamental to understanding mixture models and how perplexity varies across data subsets."
     },
     {
@@ -90,13 +70,8 @@ export const probabilityFoundationsAssessment = {
     {
       type: "mc",
       question: "The **law of total probability** says $P(A) = \\sum_i P(A \\mid B_i) P(B_i)$ for a partition $\\{B_i\\}$. When marginalizing over latent variable $z$ in a latent variable model, we compute:",
-      options: [
-        "$P(x) = \\max_z P(x \\mid z) P(z)$",
-        "$P(x) = \\sum_z P(x \\mid z) P(z)$ (or $\\int$ for continuous $z$)",
-        "$P(x) = P(x \\mid z^*) $ where $z^* = \\arg\\max P(z)$",
-        "$P(x) = \\sum_z P(z \\mid x) P(x)$"
-      ],
-      correct: 1,
+      options: ["$P(x) = \\max_z P(x \\mid z) P(z)$", "$P(x) = \\sum_z P(z \\mid x) P(x)$", "$P(x) = P(x \\mid z^*) $ where $z^* = \\arg\\max P(z)$", "$P(x) = \\sum_z P(x \\mid z) P(z)$ (or $\\int$ for continuous $z$)"],
+      correct: 3,
       explanation: "Marginalization is exactly the law of total probability applied to a latent variable: $P(x) = \\sum_z P(x, z) = \\sum_z P(x \\mid z) P(z)$. This integral is often intractable, which is why we need variational inference (ELBO) or sampling methods. The max version gives the MAP estimate, not the marginal."
     },
     {

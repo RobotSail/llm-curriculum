@@ -20,14 +20,23 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "Distribution A: $P = (0.25, 0.25, 0.25, 0.25)$. Distribution B: $P = (0.97, 0.01, 0.01, 0.01)$. Which has higher entropy?",
-      options: [
-        "Distribution B — it has one dominant outcome, so more information content",
-        "Distribution A — it is uniform, so maximum uncertainty",
-        "They have equal entropy because both are over 4 outcomes",
-        "Cannot determine without knowing what the outcomes represent"
-      ],
-      correct: 1,
+      options: ["Distribution B — it has one dominant outcome, so more information content", "They have equal entropy because both are over 4 outcomes", "Distribution A — it is uniform, so maximum uncertainty", "Cannot determine without knowing what the outcomes represent"],
+      correct: 2,
       explanation: "Distribution A is uniform over 4 outcomes, giving $H(A) = \\log_2 4 = 2$ bits — the maximum possible for 4 outcomes. Distribution B concentrates almost all mass on one outcome: $H(B) \\approx 0.97 \\cdot 0.044 + 3 \\cdot 0.01 \\cdot 6.64 \\approx 0.24$ bits. High concentration means low uncertainty, hence low entropy."
+    },
+    {
+      type: "mc",
+      question: "A coin flip has $P(\\text{heads}) = p$. At what value of $p$ is the entropy $H(X)$ maximized?",
+      options: ["$p = 0$ — certainty about the outcome maximizes information", "$p = 0.5$ — maximum uncertainty when both outcomes are equally likely", "$p = 1/e \\approx 0.37$ — this minimizes $-p \\log p$", "$p = 1$ — a guaranteed outcome carries the most information"],
+      correct: 1,
+      explanation: "For a Bernoulli variable, $H(X) = -p\\log p - (1-p)\\log(1-p)$. This is a concave function maximized at $p = 0.5$, where $H = 1$ bit. At $p = 0$ or $p = 1$, entropy is 0 — there is no uncertainty. The value $1/e$ minimizes (not maximizes) the function $-p\\log p$ for a single term, but entropy involves two terms that together peak at $p = 0.5$."
+    },
+    {
+      type: "mc",
+      question: "You have two language models. Model X assigns probability 0.8 to the correct next token on average. Model Y assigns probability 0.2. Roughly how do their per-token cross-entropies compare?",
+      options: ["Model X's cross-entropy is 4x lower (0.2 vs 0.8)", "Model X's cross-entropy is about $-\\ln(0.8) \\approx 0.22$ nats vs Model Y's $-\\ln(0.2) \\approx 1.61$ nats — a ~7x difference", "They have similar cross-entropy since both are far from perfect", "Model Y's cross-entropy is lower because it spreads probability more evenly"],
+      correct: 1,
+      explanation: "Cross-entropy involves $-\\log Q(w_{\\text{correct}})$. For Model X: $-\\ln(0.8) \\approx 0.22$ nats. For Model Y: $-\\ln(0.2) \\approx 1.61$ nats. The ratio is about 7x, not 4x, because cross-entropy is logarithmic in probability — small changes in probability near 1.0 matter less than small changes near 0. This is why the last few percentage points of accuracy are disproportionately hard to achieve in terms of loss reduction."
     },
     {
       type: "info",
@@ -47,6 +56,13 @@ export const entropyEasy = {
       explanation: "By definition: $H(P, Q) = H(P) + \\text{KL}(P \\| Q)$, so $H(P, Q) - H(P) = \\text{KL}(P \\| Q)$. This is the *forward* KL — the penalty your model pays for deviating from the true distribution. It is always $\\geq 0$, with equality iff $Q = P$. This is why cross-entropy loss is a sound training objective: minimizing it drives $Q$ toward $P$."
     },
     {
+      type: "mc",
+      question: "Is cross-entropy symmetric? That is, does $H(P, Q) = H(Q, P)$ in general?",
+      options: ["Yes — cross-entropy is a distance metric so it must be symmetric", "No — $H(P, Q) = H(P) + \\text{KL}(P \\| Q)$ while $H(Q, P) = H(Q) + \\text{KL}(Q \\| P)$, and these differ when $P \\neq Q$", "Yes — since $\\sum_x P(x) \\log Q(x) = \\sum_x Q(x) \\log P(x)$ by the symmetry of multiplication", "It depends on whether $P$ and $Q$ have the same support"],
+      correct: 1,
+      explanation: "Cross-entropy is NOT symmetric. $H(P, Q) = H(P) + \\text{KL}(P \\| Q)$ and $H(Q, P) = H(Q) + \\text{KL}(Q \\| P)$. Both KL divergence and entropy differ between $P$ and $Q$ in general, so the two cross-entropies differ. This is why it matters which distribution is 'true' and which is the 'model' in the training loss — we minimize $H(P_{\\text{data}}, Q_\\theta)$, not $H(Q_\\theta, P_{\\text{data}})$."
+    },
+    {
       type: "info",
       title: "Conditional Entropy: The Irreducible Floor",
       content: "**Conditional entropy** $H(X \\mid Y)$ measures how uncertain $X$ remains after observing $Y$:\n\n$$H(X \\mid Y) = -\\sum_{x, y} P(x, y) \\log P(x \\mid y) = \\mathbb{E}_{(X,Y)}[-\\log P(X \\mid Y)]$$\n\nFor language models, the crucial quantity is $H(W_t \\mid W_{<t})$ — the entropy of the next token given all preceding context. This is the **intrinsic unpredictability of language** at position $t$.\n\nA perfect model $Q^* = P$ achieves training loss:\n\n$$H(P_{\\text{data}}, Q^*) = H(P_{\\text{data}}) = \\mathbb{E}[-\\log P(W_t \\mid W_{<t})]$$\n\nNo model can do better than this, no matter how large or well-trained. This quantity is the **Bayes-optimal loss** — the irreducible noise floor. It is nonzero because language is genuinely stochastic: given a context, multiple valid continuations exist.\n\nThe chain rule of entropy decomposes sequence entropy: $H(W_1, \\ldots, W_T) = \\sum_{t=1}^T H(W_t \\mid W_{<t})$. Each token's conditional entropy contributes to the total."
@@ -54,13 +70,8 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "A language model's per-token training loss can never go below which quantity?",
-      options: [
-        "Zero — a sufficiently large model could memorize every sequence",
-        "$H(W_t \\mid W_{<t})$, the conditional entropy of the next token given context",
-        "$H(W_t)$, the marginal entropy of the token distribution",
-        "$\\log K$ where $K$ is the vocabulary size"
-      ],
-      correct: 1,
+      options: ["Zero — a sufficiently large model could memorize every sequence", "$\\log K$ where $K$ is the vocabulary size", "$H(W_t)$, the marginal entropy of the token distribution", "$H(W_t \\mid W_{<t})$, the conditional entropy of the next token given context"],
+      correct: 3,
       explanation: "The minimum achievable cross-entropy is $H(P_{\\text{data}}, Q^*) = H(P_{\\text{data}})$, which equals $\\mathbb{E}[H(W_t \\mid W_{<t})]$ averaged over positions. This is the conditional entropy of language itself — the irreducible uncertainty given perfect context modeling. Even memorizing the training set doesn't help: the Bayes-optimal predictor must spread probability across all valid continuations, not just the one that appeared in the corpus."
     },
     {
@@ -71,14 +82,16 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "Model A has perplexity 30 and Model B has perplexity 90. How much better is A than B in cross-entropy (bits)?",
-      options: [
-        "60 bits — the difference in perplexity",
-        "$\\log_2(90) - \\log_2(30) = \\log_2(3) \\approx 1.58$ bits",
-        "$\\log_2(90/30) = \\log_2(3) \\approx 1.58$ bits per token, but the models might have different vocabularies",
-        "Cannot compare without knowing the vocabulary size"
-      ],
-      correct: 1,
+      options: ["$\\log_2(90) - \\log_2(30) = \\log_2(3) \\approx 1.58$ bits", "60 bits — the difference in perplexity", "$\\log_2(90/30) = \\log_2(3) \\approx 1.58$ bits per token, but the models might have different vocabularies", "Cannot compare without knowing the vocabulary size"],
+      correct: 0,
       explanation: "Cross-entropy $= \\log_2(\\text{PPL})$, so the difference is $\\log_2(90) - \\log_2(30) = \\log_2(90/30) = \\log_2(3) \\approx 1.58$ bits per token. This means Model B wastes 1.58 extra bits per token compared to A. Note that perplexity ratios correspond to cross-entropy *differences* (because $\\log$ turns ratios into differences) — a 3x perplexity improvement always equals $\\log_2 3 \\approx 1.58$ bits, regardless of the absolute values."
+    },
+    {
+      type: "mc",
+      question: "A language model achieves a cross-entropy loss of 3.0 nats per token on a held-out set. What is the model's perplexity?",
+      options: ["$3.0$", "$2^3 = 8$", "$e^3 \\approx 20.1$", "$\\ln(3) \\approx 1.1$"],
+      correct: 2,
+      explanation: "When cross-entropy is measured in nats (using $\\ln$), perplexity is $e^{\\text{loss}}$, so $e^{3.0} \\approx 20.1$. If the loss were in bits (using $\\log_2$), perplexity would be $2^{\\text{loss}}$. The choice of log base determines the exponentiation base. In most deep learning frameworks, the loss is in nats (natural log), so $e$ is the correct base."
     },
     {
       type: "info",
@@ -88,13 +101,8 @@ export const entropyEasy = {
     {
       type: "mc",
       question: "A uniform model over a 50,000-token vocabulary assigns $P(w) = 1/50000$ for every token regardless of context. What is its perplexity?",
-      options: [
-        "$\\log_2(50000) \\approx 15.6$",
-        "$50000$",
-        "$\\sqrt{50000} \\approx 224$",
-        "$50000^2 = 2.5 \\times 10^9$"
-      ],
-      correct: 1,
+      options: ["$\\log_2(50000) \\approx 15.6$", "$\\sqrt{50000} \\approx 224$", "$50000$", "$50000^2 = 2.5 \\times 10^9$"],
+      correct: 2,
       explanation: "Cross-entropy of a uniform model is $-\\sum_w P(w) \\log(1/50000) = \\log(50000)$. So $\\text{PPL} = e^{\\log 50000} = 50000$. The uniform model's perplexity equals the vocabulary size — it is equivalent to rolling a 50,000-sided die. This is the worst possible perplexity for this vocabulary, confirming the interpretation of perplexity as \"effective vocabulary size.\""
     },
     {
@@ -133,13 +141,8 @@ export const entropyMedium = {
     {
       type: "mc",
       question: "If $X$ and $Y$ are independent, what is $I(X; Y)$?",
-      options: [
-        "$H(X) + H(Y)$ — their total uncertainty",
-        "$H(X) \\cdot H(Y)$",
-        "$0$, because $H(X \\mid Y) = H(X)$ when $X \\perp Y$",
-        "$-\\infty$, because the log-ratio in KL is undefined"
-      ],
-      correct: 2,
+      options: ["$H(X) + H(Y)$ — their total uncertainty", "$H(X) \\cdot H(Y)$", "$-\\infty$, because the log-ratio in KL is undefined", "$0$, because $H(X \\mid Y) = H(X)$ when $X \\perp Y$"],
+      correct: 3,
       explanation: "When $X \\perp Y$: $P(X, Y) = P(X)P(Y)$, so the KL divergence $\\text{KL}(P(X,Y) \\| P(X)P(Y)) = 0$. Equivalently, $H(X \\mid Y) = H(X)$ — observing $Y$ doesn't reduce uncertainty about $X$ — so $I(X;Y) = H(X) - H(X) = 0$. Independence means zero shared information."
     },
     {
@@ -150,14 +153,23 @@ export const entropyMedium = {
     {
       type: "mc",
       question: "A representation $Z = f(X)$ is a deterministic function of $X$. Can $I(X; Z)$ be zero?",
-      options: [
-        "No — a deterministic function always preserves some information",
-        "Yes — if $Z$ is a constant function (maps all inputs to the same value), then $I(X; Z) = 0$",
-        "Yes — if $f$ is a non-invertible hash function, MI is always zero",
-        "It depends on the dimensionality of $Z$ relative to $X$"
-      ],
-      correct: 1,
+      options: ["Yes — if $Z$ is a constant function (maps all inputs to the same value), then $I(X; Z) = 0$", "No — a deterministic function always preserves some information", "Yes — if $f$ is a non-invertible hash function, MI is always zero", "It depends on the dimensionality of $Z$ relative to $X$"],
+      correct: 0,
       explanation: "$I(X; Z) = 0$ requires $X \\perp Z$, meaning $Z$ carries no information about $X$. For a deterministic $Z = f(X)$, this happens only if $f$ is constant — $Z$ takes the same value regardless of input. Any non-constant deterministic function has $I(X; Z) > 0$, because knowing $Z$ eliminates at least some uncertainty about $X$. A hash function that maps different inputs to different outputs would actually have high MI, even though it's not invertible."
+    },
+    {
+      type: "mc",
+      question: "Two random variables $X$ and $Y$ have correlation $\\rho = 0$ but are clearly dependent (e.g., $Y = X^2$ where $X \\sim \\text{Uniform}(-1, 1)$). What is $I(X; Y)$?",
+      options: ["$I(X; Y) = 0$ because zero correlation implies independence", "$I(X; Y) = 0$ because MI equals the square of correlation", "$I(X; Y) > 0$ — MI detects all dependencies including nonlinear ones, unlike correlation which only measures linear relationships", "$I(X; Y) < 0$ — the nonlinear relationship introduces negative information"],
+      correct: 2,
+      explanation: "MI is zero if and only if $X$ and $Y$ are independent. Zero correlation only rules out *linear* dependence. If $Y = X^2$ and $X$ is symmetric around 0, then $\\text{Corr}(X, Y) = 0$ but $Y$ is completely determined by $X$, so $I(X; Y) = H(Y) > 0$. This is a key advantage of MI over correlation: it captures arbitrary statistical dependencies, making it a more principled measure for representation learning."
+    },
+    {
+      type: "mc",
+      question: "In the information bottleneck framework, you want to find a representation $Z$ of input $X$ that maximizes $I(Z; Y) - \\beta \\cdot I(Z; X)$ for task label $Y$. What happens as $\\beta \\to 0$?",
+      options: ["The representation becomes maximally compressed (constant $Z$)", "The representation retains all input information — $Z$ becomes a copy of $X$ with no compression", "The representation becomes random noise", "The optimization becomes infeasible"],
+      correct: 1,
+      explanation: "As $\\beta \\to 0$, the compression penalty $\\beta \\cdot I(Z; X)$ vanishes, so the objective reduces to maximizing $I(Z; Y)$ alone. The optimal solution retains all information from $X$ (no compression) to maximize task-relevant information. As $\\beta$ increases, the compression penalty becomes stronger, forcing $Z$ to discard task-irrelevant details from $X$. This is the information bottleneck tradeoff: $\\beta$ controls the compression-relevance balance."
     },
     {
       type: "info",
@@ -167,13 +179,8 @@ export const entropyMedium = {
     {
       type: "mc",
       question: "Layer 3 of a network has $I(X; h_3) = 5$ bits. What can you say about $I(X; h_5)$ for layer 5?",
-      options: [
-        "$I(X; h_5) = 5$ bits — information is conserved across layers",
-        "$I(X; h_5) \\leq 5$ bits — the data processing inequality prevents information from increasing",
-        "$I(X; h_5) \\geq 5$ bits — deeper layers learn richer representations",
-        "Nothing — MI between non-adjacent layers is not constrained by DPI"
-      ],
-      correct: 1,
+      options: ["$I(X; h_5) = 5$ bits — information is conserved across layers", "$I(X; h_5) \\geq 5$ bits — deeper layers learn richer representations", "$I(X; h_5) \\leq 5$ bits — the data processing inequality prevents information from increasing", "Nothing — MI between non-adjacent layers is not constrained by DPI"],
+      correct: 2,
       explanation: "Since $X \\to h_3 \\to h_4 \\to h_5$ is a Markov chain, DPI gives $I(X; h_5) \\leq I(X; h_3) = 5$ bits. Each additional layer can only preserve or lose information about the input. The *useful* information $I(Y; h_5)$ might be concentrated and refined, but the *total* input information $I(X; h_5)$ cannot exceed what layer 3 retained."
     },
     {
@@ -201,13 +208,8 @@ export const entropyMedium = {
     {
       type: "mc",
       question: "In CLIP training with batch size $N = 1024$, what is the maximum mutual information $I(\\text{image}; \\text{text})$ that the InfoNCE loss can estimate?",
-      options: [
-        "$1024$ bits",
-        "$\\sqrt{1024} = 32$ bits",
-        "$\\log_2(1024) = 10$ bits",
-        "$1024 \\cdot \\log_2(1024) = 10240$ bits"
-      ],
-      correct: 2,
+      options: ["$1024$ bits", "$\\sqrt{1024} = 32$ bits", "$1024 \\cdot \\log_2(1024) = 10240$ bits", "$\\log_2(1024) = 10$ bits"],
+      correct: 3,
       explanation: "The InfoNCE bound is $I(X; Y) \\geq \\log N - \\mathcal{L}$. Even when the loss is driven to zero, the bound saturates at $\\log N$. With $N = 1024$: $\\log_2(1024) = 10$ bits. If the true MI exceeds 10 bits, the InfoNCE loss with this batch size simply cannot distinguish — the bound is too loose. This is why CLIP uses batch sizes of 32K+: $\\log_2(32768) = 15$ bits, allowing the model to capture finer-grained correspondences."
     },
     {
@@ -218,13 +220,8 @@ export const entropyMedium = {
     {
       type: "mc",
       question: "Why is estimating MI between a 768-dimensional representation and its input fundamentally hard?",
-      options: [
-        "768 dimensions is too many for any neural network to process",
-        "MI is not well-defined for continuous random variables",
-        "Reliable MI estimation requires sample complexity that grows exponentially with the true MI value",
-        "The representation must be discrete for MI to be computable"
-      ],
-      correct: 2,
+      options: ["Reliable MI estimation requires sample complexity that grows exponentially with the true MI value", "MI is not well-defined for continuous random variables", "768 dimensions is too many for any neural network to process", "The representation must be discrete for MI to be computable"],
+      correct: 0,
       explanation: "MI is well-defined for continuous variables (as a KL divergence between densities), but *estimating* it reliably is the problem. The McAllester-Statos impossibility result shows that any estimator providing a high-confidence lower bound needs exponentially many samples in the true MI. A 768-dim representation can have very high MI with its input (potentially hundreds of bits for a deterministic encoder), making reliable estimation require astronomical sample sizes. This is why empirical \"information plane\" analyses of deep networks should be interpreted with caution."
     }
   ]
@@ -273,6 +270,13 @@ export const entropyHard = {
       explanation: "The optimal gap is $\\log\\frac{(1-\\alpha)K}{\\alpha} = \\log\\frac{0.9 \\times 50000}{0.1} = \\log(450000) \\approx 13.0$ (using natural log). Without label smoothing, this gap would be $+\\infty$. With $\\alpha = 0.1$, it is a large but finite number. The logits stabilize rather than growing without bound, leading to better-conditioned gradients in the final layers."
     },
     {
+      type: "mc",
+      question: "You increase the label smoothing parameter from $\\alpha = 0.1$ to $\\alpha = 0.3$. How does this change the optimal logit gap?",
+      options: ["The gap increases — stronger smoothing requires more confident predictions", "The gap stays the same — $\\alpha$ only affects the loss magnitude, not the optimal logits", "The gap decreases — stronger smoothing means the target is closer to uniform, so optimal logits are less extreme", "The gap becomes negative — the model should be more confident in wrong answers"],
+      correct: 2,
+      explanation: "The optimal logit gap is $\\log\\frac{(1-\\alpha)K}{\\alpha}$. Increasing $\\alpha$ from 0.1 to 0.3 means the numerator decreases ($0.7K$ vs $0.9K$) and the denominator increases ($0.3$ vs $0.1$), so the gap shrinks substantially. At $\\alpha = 0.3$: $\\log(0.7 \\times 50000 / 0.3) \\approx \\log(116667) \\approx 11.7$, vs $\\approx 13.0$ at $\\alpha = 0.1$. Stronger smoothing pulls the optimal output closer to uniform (smaller logit gaps)."
+    },
+    {
       type: "info",
       title: "Calibration: When Confidence Matches Accuracy",
       content: "A model is **calibrated** if its confidence estimates match its actual accuracy:\n\n$$P(\\text{correct} \\mid \\text{confidence} = p) = p$$\n\nIf a calibrated model says \"90% confident\" on 1000 predictions, approximately 900 should be correct.\n\nCross-entropy is a **proper scoring rule**: the expected loss is uniquely minimized when $Q = P_{\\text{true}}$. This means a model trained to global optimum on infinite data with cross-entropy loss would be perfectly calibrated.\n\nBut in practice, three factors break calibration:\n\n**1. Finite data**: The model overfits, learning to be confident on training examples without proportional accuracy on new data.\n\n**2. Overparameterization**: Modern networks can fit the training data with room to spare, and the excess capacity drives predictions toward extreme confidence.\n\n**3. Batch normalization and weight decay**: These interact with softmax in subtle ways that shift the confidence distribution.\n\nThe result: modern neural networks are systematically **overconfident** — their predicted probabilities exceed their actual accuracy. Guo et al. (2017) demonstrated this across architectures: deeper and wider networks are more miscalibrated despite being more accurate."
@@ -280,14 +284,16 @@ export const entropyHard = {
     {
       type: "mc",
       question: "A model outputs \"90% confident\" on 100 predictions. Of these, 72 are correct. Is the model well-calibrated, overconfident, or underconfident?",
-      options: [
-        "Well-calibrated — 72% is close enough to 90%",
-        "Underconfident — it should have said higher confidence since some might be right by chance",
-        "Overconfident — it claimed 90% confidence but only achieved 72% accuracy on those predictions",
-        "Cannot determine — calibration requires looking at all confidence levels"
-      ],
-      correct: 2,
+      options: ["Well-calibrated — 72% is close enough to 90%", "Underconfident — it should have said higher confidence since some might be right by chance", "Cannot determine — calibration requires looking at all confidence levels", "Overconfident — it claimed 90% confidence but only achieved 72% accuracy on those predictions"],
+      correct: 3,
       explanation: "The model said \"90% confident\" but only 72/100 = 72% were correct. It is **overconfident**: its stated confidence (90%) significantly exceeds its actual accuracy (72%) for this confidence bin. The **expected calibration error** (ECE) would flag this as a large deviation. A well-calibrated model at 90% confidence should get approximately 90 out of 100 correct. This overconfidence is the norm for modern deep networks and motivates post-hoc calibration techniques."
+    },
+    {
+      type: "mc",
+      question: "Why are modern deep networks typically overconfident rather than underconfident, even when well-trained with cross-entropy loss?",
+      options: ["Cross-entropy loss penalizes underconfidence more heavily than overconfidence", "Overparameterized models can perfectly fit training data, then the softmax concentrates mass as logit magnitudes grow during training — finite data cannot prevent this", "Batch normalization ensures outputs sum to more than 1.0", "The softmax function is inherently biased toward extreme probabilities regardless of logit values"],
+      correct: 1,
+      explanation: "Cross-entropy is a proper scoring rule, so at the infinite-data optimum the model would be calibrated. But in practice, overparameterized networks fit training data perfectly and then continue pushing logits apart (increasing $\\|z\\|$), which concentrates the softmax output toward a point mass. Without enough data to penalize this on held-out examples during training, overconfidence grows unchecked. This is exacerbated by architectural choices (e.g., residual connections allow logit magnitudes to grow freely) and training heuristics like weight decay that insufficiently regularize the logit scale."
     },
     {
       type: "info",
@@ -297,13 +303,8 @@ export const entropyHard = {
     {
       type: "mc",
       question: "Post-hoc temperature scaling with $T > 1$ does what to a trained model's predictions?",
-      options: [
-        "Changes which class is predicted (different $\\arg\\max$), improving accuracy",
-        "Makes predictions less confident (higher entropy) without changing which class is predicted",
-        "Makes predictions more confident (lower entropy), fixing underconfidence",
-        "Retrains the final layer to improve calibration"
-      ],
-      correct: 1,
+      options: ["Makes predictions less confident (higher entropy) without changing which class is predicted", "Changes which class is predicted (different $\\arg\\max$), improving accuracy", "Makes predictions more confident (lower entropy), fixing underconfidence", "Retrains the final layer to improve calibration"],
+      correct: 0,
       explanation: "Dividing logits by $T > 1$ compresses them toward zero, making the softmax output more uniform — higher entropy, lower confidence. Since dividing all logits by the same positive constant preserves their ordering, the $\\arg\\max$ is unchanged: accuracy is identical. Only the *confidence* of the prediction changes. This is why temperature scaling is so appealing: it fixes calibration (confidence matches accuracy) with zero cost to accuracy and only one parameter to tune."
     },
     {

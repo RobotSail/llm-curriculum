@@ -19,85 +19,50 @@ export const easyModule = {
     {
       type: "mc",
       question: "A function $f: \\mathbb{R}^n \\to \\mathbb{R}^m$ has a Jacobian matrix $J$. What is the shape of $J$?",
-      options: [
-        "$n \\times n$",
-        "$m \\times n$",
-        "$n \\times m$",
-        "$m \\times m$"
-      ],
-      correct: 1,
+      options: ["$m \\times n$", "$n \\times n$", "$n \\times m$", "$m \\times m$"],
+      correct: 0,
       explanation: "The Jacobian $J \\in \\mathbb{R}^{m \\times n}$ has entry $J_{ij} = \\partial f_i / \\partial x_j$. Each row corresponds to one output dimension, each column to one input dimension. When $m = 1$ (scalar output), this reduces to the familiar gradient $\\nabla f \\in \\mathbb{R}^{1 \\times n}$ (a row vector)."
     },
     {
       type: "mc",
       question: "A real symmetric matrix $A$ has eigendecomposition $A = Q \\Lambda Q^\\top$. Which statement is **always** true?",
-      options: [
-        "The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are real",
-        "The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are positive",
-        "All eigenvalues are distinct",
-        "$A$ must be positive definite"
-      ],
-      correct: 0,
+      options: ["The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are positive", "The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are real", "All eigenvalues are distinct", "$A$ must be positive definite"],
+      correct: 1,
       explanation: "By the **Spectral Theorem**, every real symmetric matrix has real eigenvalues and an orthonormal eigenbasis — so $Q$ is orthogonal ($Q^\\top Q = I$) and $\\Lambda$ is real diagonal. Eigenvalues need not be positive or distinct; positive-definiteness is an additional condition requiring all $\\lambda_i > 0$."
     },
     {
       type: "mc",
       question: "Matrix $A \\in \\mathbb{R}^{m \\times n}$ (with $m \\geq n$) has SVD $A = U \\Sigma V^\\top$. What are the shapes of $U$, $\\Sigma$, and $V$?",
-      options: [
-        "$U \\in \\mathbb{R}^{m \\times m},\\ \\Sigma \\in \\mathbb{R}^{m \\times n},\\ V \\in \\mathbb{R}^{n \\times n}$",
-        "$U \\in \\mathbb{R}^{m \\times n},\\ \\Sigma \\in \\mathbb{R}^{n \\times n},\\ V \\in \\mathbb{R}^{n \\times n}$",
-        "$U \\in \\mathbb{R}^{m \\times m},\\ \\Sigma \\in \\mathbb{R}^{n \\times n},\\ V \\in \\mathbb{R}^{n \\times m}$",
-        "$U \\in \\mathbb{R}^{n \\times n},\\ \\Sigma \\in \\mathbb{R}^{n \\times m},\\ V \\in \\mathbb{R}^{m \\times m}$"
-      ],
-      correct: 0,
+      options: ["$U \\in \\mathbb{R}^{m \\times m},\\ \\Sigma \\in \\mathbb{R}^{n \\times n},\\ V \\in \\mathbb{R}^{n \\times m}$", "$U \\in \\mathbb{R}^{m \\times n},\\ \\Sigma \\in \\mathbb{R}^{n \\times n},\\ V \\in \\mathbb{R}^{n \\times n}$", "$U \\in \\mathbb{R}^{m \\times m},\\ \\Sigma \\in \\mathbb{R}^{m \\times n},\\ V \\in \\mathbb{R}^{n \\times n}$", "$U \\in \\mathbb{R}^{n \\times n},\\ \\Sigma \\in \\mathbb{R}^{n \\times m},\\ V \\in \\mathbb{R}^{m \\times m}$"],
+      correct: 2,
       explanation: "Full SVD: $U \\in \\mathbb{R}^{m \\times m}$ (left singular vectors), $\\Sigma \\in \\mathbb{R}^{m \\times n}$ (diagonal, with $n$ singular values on the diagonal), $V \\in \\mathbb{R}^{n \\times n}$ (right singular vectors). Both $U$ and $V$ are orthogonal matrices. The 'thin' or 'economy' SVD keeps only $n$ columns of $U$, making $\\Sigma$ square $n \\times n$ — common in practice."
     },
     {
       type: "mc",
       question: "What does `torch.einsum('ij,jk->ik', A, B)` compute?",
-      options: [
-        "Element-wise product of $A$ and $B$",
-        "Matrix product $AB$",
-        "Outer product of $A$ and $B$",
-        "Trace of $AB$"
-      ],
-      correct: 1,
+      options: ["Element-wise product of $A$ and $B$", "Trace of $AB$", "Outer product of $A$ and $B$", "Matrix product $AB$"],
+      correct: 3,
       explanation: "The index $j$ appears on both inputs but not in the output, so it is summed over: $\\sum_j A_{ij} B_{jk} = (AB)_{ik}$. This is exactly matrix multiplication. Einsum notation makes the contraction axis explicit — `ij,jk->ik` is the canonical matrix multiply pattern."
     },
     {
       type: "mc",
       question: "A matrix $A$ is **positive semi-definite (PSD)** if and only if:",
-      options: [
-        "All entries of $A$ are non-negative",
-        "$x^\\top A x \\geq 0$ for all $x \\in \\mathbb{R}^n$",
-        "$A$ is symmetric and invertible",
-        "$A$ has a non-negative determinant"
-      ],
-      correct: 1,
+      options: ["$x^\\top A x \\geq 0$ for all $x \\in \\mathbb{R}^n$", "All entries of $A$ are non-negative", "$A$ is symmetric and invertible", "$A$ has a non-negative determinant"],
+      correct: 0,
       explanation: "$A$ is PSD iff $x^\\top A x \\geq 0$ for all $x$ — this is the definition. Equivalently (for symmetric $A$), all eigenvalues are $\\geq 0$. Hessians of convex functions are PSD; this is why checking eigenvalues of the Hessian tells you about convexity. Non-negative entries is a much weaker (and unrelated) condition."
     },
     {
       type: "mc",
       question: "The **spectral norm** $\\|A\\|_2$ of a matrix equals:",
-      options: [
-        "The sum of all singular values",
-        "The square root of the sum of squared entries",
-        "The largest singular value $\\sigma_1$",
-        "The largest absolute eigenvalue"
-      ],
-      correct: 2,
+      options: ["The sum of all singular values", "The largest singular value $\\sigma_1$", "The square root of the sum of squared entries", "The largest absolute eigenvalue"],
+      correct: 1,
       explanation: "$\\|A\\|_2 = \\sigma_1$, the largest singular value. It equals $\\max_{\\|x\\|=1} \\|Ax\\|$, i.e., how much $A$ stretches a unit vector at most. This is the operationally important norm for stability analysis — gradient explosion occurs when products of weight matrices have spectral norms $\\gg 1$. (The sum of singular values is the nuclear norm; the Frobenius norm is the square root of sum of squares.)"
     },
     {
       type: "mc",
       question: "Which einsum string computes a **batched matrix multiply** $C_{b} = A_{b} B_{b}$ for a batch of matrices?",
-      options: [
-        "`'ij,jk->ik'`",
-        "`'bij,bjk->bik'`",
-        "`'bi,bj->bij'`",
-        "`'bij,bkj->bik'`"
-      ],
-      correct: 1,
+      options: ["`'ij,jk->ik'`", "`'bi,bj->bij'`", "`'bij,bjk->bik'`", "`'bij,bkj->bik'`"],
+      correct: 2,
       explanation: "`'bij,bjk->bik'`: index $b$ appears in all three tensors so it is kept (not summed); $j$ is summed over as the shared inner dimension. The result is $C_{bik} = \\sum_j A_{bij} B_{bjk}$ — independently multiplying the $b$-th matrix pair. This is what PyTorch's `torch.bmm` does under the hood."
     }
   ]
@@ -119,25 +84,15 @@ export const mediumModule = {
     {
       type: "mc",
       question: "For a linear layer $z = Wx$ with $W \\in \\mathbb{R}^{m \\times n}$, $x \\in \\mathbb{R}^n$, scalar loss $L$. The upstream gradient is $\\delta = \\nabla_z L \\in \\mathbb{R}^m$. What is $\\nabla_W L$?",
-      options: [
-        "$\\delta^\\top x$",
-        "$\\delta x^\\top$",
-        "$x \\delta^\\top$",
-        "$W^\\top \\delta$"
-      ],
-      correct: 1,
+      options: ["$\\delta^\\top x$", "$W^\\top \\delta$", "$x \\delta^\\top$", "$\\delta x^\\top$"],
+      correct: 3,
       explanation: "$\\nabla_W L = \\delta x^\\top \\in \\mathbb{R}^{m \\times n}$. This is an outer product: the gradient with respect to each weight $W_{ij}$ is $\\delta_i x_j$, since $\\partial z_i / \\partial W_{ij} = x_j$. This outer-product structure explains why gradient updates are low-rank (rank 1 per sample, rank $\\leq$ batch size for a mini-batch) — the foundation of why LoRA works."
     },
     {
       type: "mc",
       question: "The **Eckart-Young theorem** says: among all rank-$k$ matrices, $\\hat{A}_k = \\sum_{i=1}^k \\sigma_i u_i v_i^\\top$ minimizes which quantity?",
-      options: [
-        "Only the spectral norm $\\|A - \\hat{A}_k\\|_2$",
-        "Only the Frobenius norm $\\|A - \\hat{A}_k\\|_F$",
-        "Both the spectral norm and the Frobenius norm",
-        "The nuclear norm $\\|A - \\hat{A}_k\\|_*$"
-      ],
-      correct: 2,
+      options: ["Both the spectral norm and the Frobenius norm", "Only the Frobenius norm $\\|A - \\hat{A}_k\\|_F$", "Only the spectral norm $\\|A - \\hat{A}_k\\|_2$", "The nuclear norm $\\|A - \\hat{A}_k\\|_*$"],
+      correct: 0,
       explanation: "Eckart-Young holds for **both** the spectral norm and the Frobenius norm — the rank-$k$ truncated SVD is simultaneously optimal under both. The residual errors are $\\|A - \\hat{A}_k\\|_2 = \\sigma_{k+1}$ and $\\|A - \\hat{A}_k\\|_F = \\sqrt{\\sum_{i>k} \\sigma_i^2}$. This robustness to choice of norm makes SVD the gold standard for low-rank approximation."
     },
     {
@@ -155,37 +110,22 @@ export const mediumModule = {
     {
       type: "mc",
       question: "Computing the eigendecomposition $A = Q \\Lambda Q^\\top$ gives a fast way to compute $A^k$ for large integer $k$. What is $A^k$?",
-      options: [
-        "$Q \\Lambda^k Q^\\top$",
-        "$Q^k \\Lambda Q^{\\top k}$",
-        "$Q \\Lambda Q^\\top + k(Q \\Lambda Q^\\top)$",
-        "$k \\cdot Q \\Lambda Q^\\top$"
-      ],
-      correct: 0,
+      options: ["$Q \\Lambda Q^\\top + k(Q \\Lambda Q^\\top)$", "$Q^k \\Lambda Q^{\\top k}$", "$Q \\Lambda^k Q^\\top$", "$k \\cdot Q \\Lambda Q^\\top$"],
+      correct: 2,
       explanation: "$A^k = (Q \\Lambda Q^\\top)^k = Q \\Lambda^k Q^\\top$, since $Q^\\top Q = I$ collapses all the middle factors. This makes matrix powers cheap: just raise the diagonal entries to the $k$-th power. The same trick gives $\\exp(A) = Q \\exp(\\Lambda) Q^\\top$ and $A^{-1} = Q \\Lambda^{-1} Q^\\top$ (when $A$ is invertible). This is the basis for efficient computation in Hessian-based optimizers."
     },
     {
       type: "mc",
       question: "The Hessian $H = \\nabla^2 L$ of a loss function is always symmetric. At a local minimum, what can you say about $H$?",
-      options: [
-        "$H$ must be the identity matrix",
-        "$H$ must be positive definite (all eigenvalues $> 0$)",
-        "$H$ must be positive semi-definite (all eigenvalues $\\geq 0$)",
-        "$H$ can have any eigenvalue signs"
-      ],
-      correct: 2,
+      options: ["$H$ must be the identity matrix", "$H$ must be positive definite (all eigenvalues $> 0$)", "$H$ can have any eigenvalue signs", "$H$ must be positive semi-definite (all eigenvalues $\\geq 0$)"],
+      correct: 3,
       explanation: "The second-order **necessary** condition at a local minimum is $H \\succeq 0$ (PSD — all eigenvalues $\\geq 0$). Positive definiteness ($H \\succ 0$) is the **sufficient** condition that *confirms* a minimum, but it is not required — local minima with zero eigenvalues (flat directions) are common and valid. In neural network training, Hessians at minima routinely have many near-zero eigenvalues. The key distinction: if any eigenvalue is **negative**, the point is a saddle, not a minimum; if all are $\\geq 0$, it can be a minimum."
     },
     {
       type: "mc",
       question: "What does `torch.einsum('bhij,bhjd->bhid', attn_weights, V)` compute in a multi-head attention layer? (Indices: $b$=batch, $h$=head, $i$=query position, $j$=key position, $d$=head dim)",
-      options: [
-        "The dot-product attention scores $QK^\\top / \\sqrt{d}$",
-        "The weighted sum of values: for each query position $i$, sum values $V$ weighted by attention over positions $j$",
-        "The outer product of queries and keys",
-        "Layer normalization across the head dimension"
-      ],
-      correct: 1,
+      options: ["The weighted sum of values: for each query position $i$, sum values $V$ weighted by attention over positions $j$", "The dot-product attention scores $QK^\\top / \\sqrt{d}$", "The outer product of queries and keys", "Layer normalization across the head dimension"],
+      correct: 0,
       explanation: "Index $j$ is summed over (it appears in both inputs but not the output), giving $\\text{output}_{bhid} = \\sum_j \\text{attn}_{bhij} \\cdot V_{bhjd}$. This is exactly the attention output: for each batch $b$, head $h$, and query position $i$, compute a weighted sum of the value vectors $V_{bhjd}$ across all key/value positions $j$, with weights given by the (softmaxed) attention scores."
     }
   ]
@@ -219,49 +159,29 @@ export const hardModule = {
     {
       type: "mc",
       question: "You want to compress a trained weight matrix $W \\in \\mathbb{R}^{4096 \\times 4096}$ by keeping only its top-$r$ singular values. After inspecting the singular value spectrum, you find $\\sigma_1 = 850$, $\\sigma_2 = 832$, ..., $\\sigma_{50} = 810$, $\\sigma_{51} = 12$, $\\sigma_{52} = 11.5$, .... What does this suggest about an appropriate $r$?",
-      options: [
-        "$r = 4096$ (keep everything — the spectrum is too dense)",
-        "$r \\approx 50$ (there is a sharp spectral gap at rank 50)",
-        "$r = 1$ (the first singular value dominates)",
-        "$r$ cannot be determined without knowing the task loss"
-      ],
-      correct: 1,
+      options: ["$r = 4096$ (keep everything — the spectrum is too dense)", "$r = 1$ (the first singular value dominates)", "$r \\approx 50$ (there is a sharp spectral gap at rank 50)", "$r$ cannot be determined without knowing the task loss"],
+      correct: 2,
       explanation: "The **spectral gap** between $\\sigma_{50} \\approx 810$ and $\\sigma_{51} \\approx 12$ (a factor of ~67×) is a strong signal. The top 50 singular vectors capture structured information; the rest are noise-level. Setting $r = 50$ keeps almost all the signal while compressing storage from $4096^2 \\approx 16.8$M parameters to $2 \\times 50 \\times 4096 = 409.6$K parameters — a ~41× reduction. This spectral-gap criterion is the practical heuristic behind SVD-based model compression."
     },
     {
       type: "mc",
       question: "**Spectral normalization** divides each weight matrix by its spectral norm: $\\hat{W} = W / \\sigma_1(W)$. This ensures $\\|\\hat{W}\\|_2 = 1$. Why does this stabilize training?",
-      options: [
-        "It makes the weight matrices orthogonal",
-        "It ensures the Jacobian of each layer is an isometry",
-        "It bounds the Lipschitz constant of each linear layer to 1, preventing gradient explosion",
-        "It makes the loss landscape convex"
-      ],
-      correct: 2,
+      options: ["It makes the weight matrices orthogonal", "It ensures the Jacobian of each layer is an isometry", "It makes the loss landscape convex", "It bounds the Lipschitz constant of each linear layer to 1, preventing gradient explosion"],
+      correct: 3,
       explanation: "For a linear map $x \\mapsto Wx$, the Lipschitz constant is exactly $\\|W\\|_2 = \\sigma_1(W)$. After spectral normalization, $\\|\\hat{W}x - \\hat{W}y\\|_2 \\leq \\|x - y\\|_2$ for all $x, y$ (1-Lipschitz). In a deep network, the global Lipschitz constant is at most the product of per-layer Lipschitz constants — spectral normalization keeps each factor $\\leq 1$, preventing gradient explosion through deep chains of linear layers."
     },
     {
       type: "mc",
       question: "The gradient of the loss $L$ with respect to the input $x$ of a linear layer $z = Wx$ is:",
-      options: [
-        "$\\nabla_x L = \\nabla_z L \\cdot W$",
-        "$\\nabla_x L = W^\\top \\nabla_z L$",
-        "$\\nabla_x L = W \\nabla_z L$",
-        "$\\nabla_x L = \\nabla_z L \\cdot W^\\top$"
-      ],
-      correct: 1,
+      options: ["$\\nabla_x L = W^\\top \\nabla_z L$", "$\\nabla_x L = \\nabla_z L \\cdot W$", "$\\nabla_x L = W \\nabla_z L$", "$\\nabla_x L = \\nabla_z L \\cdot W^\\top$"],
+      correct: 0,
       explanation: "By the chain rule, $(\\nabla_x L)_j = \\sum_i (\\nabla_z L)_i \\frac{\\partial z_i}{\\partial x_j} = \\sum_i (\\nabla_z L)_i W_{ij}$. In matrix form this is $W^\\top (\\nabla_z L)$. The transpose of $W$ appears naturally because backprop reverses the direction of information flow — the Jacobian of $z = Wx$ w.r.t. $x$ is $W$, and its transpose appears in the vector-Jacobian product. This is why every backward pass through a linear layer is another matrix multiply with the transposed weight."
     },
     {
       type: "mc",
       question: "Scaled dot-product attention computes $\\text{Attention}(Q, K, V) = \\text{softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right) V$. Using einsum notation with indices $b$ (batch), $h$ (head), $i$ (query pos), $j$ (key pos), $d$ (head dim): which sequence of einsum calls correctly computes the attention output?",
-      options: [
-        "`scores = einsum('bhid,bhjd->bhij', Q, K)` then `out = einsum('bhij,bhjd->bhid', softmax(scores/√d), V)`",
-        "`scores = einsum('bhid,bhid->bhi', Q, K)` then `out = einsum('bhi,bhid->bhid', softmax(scores/√d), V)`",
-        "`scores = einsum('bhid,bhjd->bhid', Q, K)` then `out = einsum('bhij,bhjd->bij', softmax(scores/√d), V)`",
-        "`scores = einsum('bhij,bhjd->bhid', Q, K)` then `out = einsum('bhid,bhjd->bhij', softmax(scores/√d), V)`"
-      ],
-      correct: 0,
+      options: ["`scores = einsum('bhid,bhid->bhi', Q, K)` then `out = einsum('bhi,bhid->bhid', softmax(scores/√d), V)`", "`scores = einsum('bhid,bhjd->bhij', Q, K)` then `out = einsum('bhij,bhjd->bhid', softmax(scores/√d), V)`", "`scores = einsum('bhid,bhjd->bhid', Q, K)` then `out = einsum('bhij,bhjd->bij', softmax(scores/√d), V)`", "`scores = einsum('bhij,bhjd->bhid', Q, K)` then `out = einsum('bhid,bhjd->bhij', softmax(scores/√d), V)`"],
+      correct: 1,
       explanation: "Step 1: `'bhid,bhjd->bhij'` — $d$ is summed (dot product over head dim between each query $i$ and key $j$), giving attention logits of shape $(b, h, i, j)$. Step 2: `'bhij,bhjd->bhid'` — $j$ is summed (weighted sum of values over key positions), giving output of shape $(b, h, i, d)$. The full attention pattern is: contract over $d$ to get scores, softmax, then contract over $j$ to aggregate values."
     },
     {
