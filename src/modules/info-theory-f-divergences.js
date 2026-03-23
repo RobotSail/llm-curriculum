@@ -18,7 +18,7 @@ export const easyModule = {
     {
       type: "mc",
       question: "Which of the following is a known limitation of KL divergence that motivates looking for alternatives?",
-      options: ["It requires both distributions to be discrete", "It cannot handle continuous distributions", "It is always bounded between 0 and 1", "It is asymmetric: $\\text{KL}(P \\| Q) \\neq \\text{KL}(Q \\| P)$"],
+      options: ["It requires both distributions to be discrete for the divergence to be well-defined", "It cannot handle continuous distributions without first discretizing the support", "It is always bounded between 0 and 1, limiting its sensitivity to large mismatches", "It is asymmetric: $\\text{KL}(P \\| Q) \\neq \\text{KL}(Q \\| P)$ in general for $P \\neq Q$"],
       correct: 3,
       explanation: "KL divergence is **asymmetric** — swapping the arguments gives a fundamentally different quantity. This asymmetry has deep practical consequences: $\\text{KL}(P \\| Q)$ and $\\text{KL}(Q \\| P)$ penalize different types of mismatch, leading to different model behaviors."
     },
@@ -30,7 +30,7 @@ export const easyModule = {
     {
       type: "mc",
       question: "A target distribution $P$ is bimodal with two well-separated peaks. You fit $Q$ by minimizing **forward KL** $\\text{KL}(P \\| Q)$. What behavior do you expect?",
-      options: ["$Q$ spreads to cover both peaks, possibly placing mass between them", "$Q$ locks onto one peak and ignores the other", "$Q$ assigns uniform probability everywhere", "$Q$ exactly matches $P$"],
+      options: ["$Q$ spreads to cover both peaks, possibly placing significant mass between them", "$Q$ locks onto one peak and assigns near-zero probability to the other peak", "$Q$ converges toward a uniform distribution that ignores the bimodal structure", "$Q$ exactly matches $P$ because forward KL guarantees recovery of the true distribution"],
       correct: 0,
       explanation: "Forward KL is **mode-covering**: $Q$ must assign probability wherever $P$ has mass (otherwise $\\log P/Q \\to \\infty$). For a bimodal $P$, $Q$ will cover both modes — but if $Q$ is a unimodal family (e.g., a single Gaussian), it may place significant mass in the valley between the peaks. This is the classic failure mode of variational inference with forward KL."
     },
@@ -60,10 +60,10 @@ export const easyModule = {
       type: "mc",
       question: "You need a divergence that is both **symmetric** and **bounded** (won't blow up to infinity). Which would you choose?",
       options: [
-        "KL divergence ($f(t) = t \\log t$)",
-        "Chi-squared divergence ($f(t) = (t-1)^2$)",
-        "Jensen-Shannon divergence",
-        "Reverse KL divergence ($f(t) = -\\log t$)"
+        "KL divergence ($f(t) = t \\log t$), which is asymmetric but unbounded",
+        "Chi-squared divergence ($f(t) = (t-1)^2$), which is asymmetric but bounded",
+        "Jensen-Shannon divergence, which is symmetric and bounded in $[0, \\log 2]$",
+        "Reverse KL divergence ($f(t) = -\\log t$), which is asymmetric but bounded"
       ],
       correct: 2,
       explanation: "Jensen-Shannon is the only option that is both symmetric ($\\text{JS}(P \\| Q) = \\text{JS}(Q \\| P)$) and bounded ($0 \\leq \\text{JS} \\leq \\log 2$). This is why it was used in the original GAN formulation — bounded values prevent infinite losses, and symmetry means neither distribution is privileged."
@@ -76,7 +76,7 @@ export const easyModule = {
     {
       type: "mc",
       question: "During language model training with cross-entropy loss (= forward KL minimization), the training data $P$ has support on certain token sequences. If $Q$ (your model) assigns near-zero probability to a sequence that $P$ covers, what happens?",
-      options: ["The KL divergence stays bounded and training proceeds smoothly", "The gradient signal for that sequence vanishes", "The model ignores that sequence and focuses on higher-probability ones", "The loss for that sequence becomes very large, creating a strong gradient signal"],
+      options: ["The KL divergence stays bounded and training proceeds smoothly for that sequence", "The gradient signal for that sequence vanishes, so the model never learns to cover it", "The model ignores that sequence entirely and focuses on more likely training sequences", "The loss for that sequence becomes very large, creating a strong corrective gradient signal"],
       correct: 3,
       explanation: "Since $\\text{KL}(P \\| Q) = \\sum P(x) \\log(P(x)/Q(x))$, when $Q(x) \\to 0$ for some $x$ where $P(x) > 0$, the term $\\log(P/Q) \\to \\infty$. This creates a large loss and strong gradient, forcing the model to assign *some* probability to every sequence in the training data. This is forward KL's mode-covering property at work — it's also why language models sometimes hallucinate: they've been forced to cover the full support of $P$, including rare patterns."
     },
@@ -104,7 +104,7 @@ export const mediumModule = {
     {
       type: "mc",
       question: "The chi-squared divergence is $\\chi^2(P \\| Q) = \\mathbb{E}_Q[(P/Q)^2] - 1$. Recall that $\\text{Var}[X] = \\mathbb{E}[X^2] - (\\mathbb{E}[X])^2$. What is $\\mathbb{E}_Q[P(x)/Q(x)]$?",
-      options: ["$1$", "$0$", "It depends on $P$ and $Q$", "$\\text{KL}(P \\| Q)$"],
+      options: ["$1$, because $\\sum_x Q(x) \\cdot P(x)/Q(x) = \\sum_x P(x) = 1$", "$0$, because the positive and negative density ratios cancel out", "It depends on $P$ and $Q$ — there is no general closed-form result", "$\\text{KL}(P \\| Q)$, because the expectation of the ratio equals the divergence"],
       correct: 0,
       explanation: "$\\mathbb{E}_Q[P/Q] = \\sum_x Q(x) \\cdot \\frac{P(x)}{Q(x)} = \\sum_x P(x) = 1$. The importance weight $P/Q$ always has expectation 1 under $Q$. This is the fundamental property that makes importance sampling work — and it means $\\chi^2(P \\| Q) = \\mathbb{E}_Q[(P/Q)^2] - 1 = \\text{Var}_Q[P/Q]$."
     },
@@ -117,10 +117,10 @@ export const mediumModule = {
       type: "mc",
       question: "In off-policy RLHF, you collect rollouts from a behavior policy $\\pi_{\\text{old}}$ and use them to update the current policy $\\pi$. The importance weight is $w(x) = \\pi(x)/\\pi_{\\text{old}}(x)$. What quantity directly measures the reliability of this off-policy estimate?",
       options: [
-        "$\\text{KL}(\\pi \\| \\pi_{\\text{old}})$",
-        "$\\text{KL}(\\pi_{\\text{old}} \\| \\pi)$",
-        "$\\chi^2(\\pi \\| \\pi_{\\text{old}}) = \\text{Var}_{\\pi_{\\text{old}}}[\\pi/\\pi_{\\text{old}}]$",
-        "$\\text{JS}(\\pi \\| \\pi_{\\text{old}})$"
+        "$\\text{KL}(\\pi \\| \\pi_{\\text{old}})$, the forward KL from the current to the behavior policy",
+        "$\\text{KL}(\\pi_{\\text{old}} \\| \\pi)$, the reverse KL from the behavior to the current policy",
+        "$\\chi^2(\\pi \\| \\pi_{\\text{old}}) = \\text{Var}_{\\pi_{\\text{old}}}[\\pi/\\pi_{\\text{old}}]$, the importance weight variance",
+        "$\\text{JS}(\\pi \\| \\pi_{\\text{old}})$, the symmetric Jensen-Shannon divergence between policies"
       ],
       correct: 2,
       explanation: "The chi-squared divergence $\\chi^2(\\pi \\| \\pi_{\\text{old}})$ is exactly the variance of the importance weights $\\pi/\\pi_{\\text{old}}$ under $\\pi_{\\text{old}}$. When this is large, individual samples can have outsized influence on the gradient estimate, making training unstable. PPO's clipping ($\\epsilon$-clipping the ratio) is a crude but effective way to bound this variance."
@@ -134,10 +134,10 @@ export const mediumModule = {
       type: "mc",
       question: "For large density ratios $t = P(x)/Q(x) \\gg 1$, which grows faster — the KL contribution $t \\log t$ or the chi-squared contribution $(t-1)^2$?",
       options: [
-        "$t \\log t$ grows faster (KL is more sensitive to large ratios)",
-        "$(t-1)^2$ grows faster (chi-squared is more sensitive to large ratios)",
-        "They grow at the same rate",
-        "It depends on the specific distributions"
+        "$t \\log t$ grows faster — KL is more sensitive to large density ratios than chi-squared",
+        "$(t-1)^2$ grows faster — chi-squared is more sensitive to large density ratios than KL",
+        "They grow at the same asymptotic rate — both are superlinear functions of the ratio $t$",
+        "It depends on the specific distributions — no general ordering exists between them"
       ],
       correct: 1,
       explanation: "For $t \\gg 1$: $(t-1)^2 \\approx t^2$ (quadratic) while $t \\log t$ is superlinear but subquadratic. So **chi-squared is more sensitive** to large importance weights. This means chi-squared will flag distributional mismatch that KL might underweight — which is why directly bounding the ratio (PPO clipping) is more conservative than a KL penalty."
@@ -150,7 +150,7 @@ export const mediumModule = {
     {
       type: "mc",
       question: "If $P$ and $Q$ have completely disjoint support (no overlap at all), what is $\\text{JS}(P \\| Q)$?",
-      options: ["$0$", "$\\infty$", "$\\log 2$", "Undefined"],
+      options: ["$0$ — disjoint support means the distributions agree on placing zero mass in common regions", "$\\infty$ — disjoint support causes the divergence to blow up, just as it does for KL divergence", "$\\log 2$ — JS saturates at its finite upper bound when the two distributions share no support", "Undefined — JS requires overlapping support to be well-defined and this condition is violated"],
       correct: 2,
       explanation: "When $P$ and $Q$ don't overlap: $M = (P+Q)/2$ has support everywhere either does. Then $\\text{KL}(P \\| M) = \\sum P \\log \\frac{P}{P/2} = \\sum P \\log 2 = \\log 2$, and similarly $\\text{KL}(Q \\| M) = \\log 2$. So $\\text{JS} = \\frac{1}{2}\\log 2 + \\frac{1}{2}\\log 2 = \\log 2$. JS saturates at its maximum — it tells you the distributions are maximally different, but **the gradient of this constant is zero**. This is the vanishing gradient problem that motivated Wasserstein GANs."
     },
@@ -162,7 +162,7 @@ export const mediumModule = {
     {
       type: "mc",
       question: "Early in GAN training, the generator produces low-quality samples far from the data distribution. The discriminator easily distinguishes real from fake (near-perfect classification). What happens to the JS divergence gradient?",
-      options: ["The gradient is very large, providing a strong learning signal", "The gradient is moderate and training proceeds normally", "The gradient oscillates unpredictably", "The gradient nearly vanishes because JS saturates at $\\log 2$"],
+      options: ["The gradient is very large, providing a strong learning signal to the generator", "The gradient is moderate and stable, so training proceeds at a normal pace", "The gradient oscillates unpredictably between positive and negative values", "The gradient nearly vanishes because JS saturates at its upper bound $\\log 2$"],
       correct: 3,
       explanation: "When the discriminator is near-perfect, $P$ and $Q_G$ are effectively non-overlapping. JS saturates at its maximum $\\log 2$, and $\\nabla_G \\text{JS} \\approx 0$. The generator receives almost no gradient signal. This is the **GAN training instability** that led to alternatives: Wasserstein GAN uses Earth Mover's distance (not an f-divergence) which provides gradients even for non-overlapping distributions."
     },
@@ -174,7 +174,7 @@ export const mediumModule = {
     {
       type: "mc",
       question: "A representation $Z = f(X)$ is a deterministic function of input $X$. If $I(X; Z) = 0$, what can you conclude about $Z$?",
-      options: ["$Z$ is independent of $X$ — it carries no information about the input", "$Z$ perfectly encodes all information in $X$", "$Z$ encodes only task-relevant information", "Nothing — MI can be zero even for useful representations"],
+      options: ["$Z$ is independent of $X$ — the representation carries no information about the input at all", "$Z$ perfectly encodes all information in $X$ — the representation is a lossless encoding", "$Z$ encodes only task-relevant information — it has discarded all irrelevant input features", "Nothing definitive — MI can be zero even for representations that are useful for downstream tasks"],
       correct: 0,
       explanation: "$I(X; Z) = 0$ means $P(X, Z) = P(X)P(Z)$, i.e., $X$ and $Z$ are independent. The representation carries **no information** about the input — it's useless. High MI means $Z$ is informative about $X$; low MI means $Z$ has discarded information. The information bottleneck asks: what's the minimum MI $I(X; Z)$ you can get away with while still predicting the target $Y$ well?"
     }
@@ -214,7 +214,7 @@ export const hardModule = {
     {
       type: "mc",
       question: "In the variational bound $D_f(P \\| Q) \\geq \\sup_T\\{\\mathbb{E}_P[T] - \\mathbb{E}_Q[f^*(T)]\\}$, the function $T$ is optimized to tighten the bound. In a GAN, what plays the role of $T$?",
-      options: ["The generator network", "The loss function", "The discriminator network", "The latent noise vector"],
+      options: ["The generator network, which produces samples to fool the bound", "The loss function, which defines the divergence being estimated", "The discriminator network, which tightens the variational bound", "The latent noise vector, which provides the randomness for sampling"],
       correct: 2,
       explanation: "The **discriminator** maximizes the variational bound — it's the function $T$ that distinguishes real from generated data. The generator then minimizes the resulting (approximate) f-divergence. This is the adversarial game: the discriminator tightens the lower bound on the divergence, and the generator minimizes it."
     },
@@ -226,7 +226,7 @@ export const hardModule = {
     {
       type: "mc",
       question: "Least-Squares GAN (LSGAN) replaces the log-loss with squared error: $\\min_G \\max_D\\; \\mathbb{E}_P[(D(x)-1)^2] + \\mathbb{E}_{Q_G}[D(x)^2]$. Based on the f-GAN framework, which f-divergence does LSGAN approximately minimize?",
-      options: ["KL divergence", "Jensen-Shannon divergence", "Total variation distance", "Pearson chi-squared divergence"],
+      options: ["KL divergence — the log-loss corresponds to minimizing the forward KL between distributions", "Jensen-Shannon divergence — the squared error is equivalent to the symmetrized KL formulation", "Total variation distance — the squared error directly measures absolute probability differences", "Pearson chi-squared divergence — the squared error corresponds to penalizing squared density ratios"],
       correct: 3,
       explanation: "LSGAN's squared-error objective corresponds to the **Pearson chi-squared divergence** ($f(t) = (t-1)^2$). The conjugate of $(t-1)^2$ is $f^*(u) = u + u^2/4$, which gives a quadratic (least-squares) discriminator loss. This was shown by Mao et al. (2017) and provides a theoretical justification for why LSGAN training is often more stable than the original — chi-squared has nicer gradient properties near saturation."
     },
@@ -239,10 +239,10 @@ export const hardModule = {
       type: "mc",
       question: "During training, you observe that several attention heads in the same layer have attention entropy dropping to near zero. What is the most likely consequence?",
       options: [
-        "Those heads are learning precise, useful attention patterns",
-        "Those heads are collapsing to attend to a single position (e.g., [BOS] token), effectively wasting model capacity",
-        "The model is converging faster than expected",
-        "The learning rate should be increased to prevent stagnation"
+        "Those heads are learning precise, useful attention patterns that focus on the most informative tokens",
+        "Those heads are collapsing to attend to a single fixed position (e.g., [BOS]), wasting model capacity",
+        "The model is converging faster than expected, and the low entropy indicates efficient learning dynamics",
+        "The learning rate should be increased to prevent the stagnation that low attention entropy signals"
       ],
       correct: 1,
       explanation: "Attention entropy near zero means the attention distribution is nearly one-hot — the head always attends to the same position regardless of input. This is **entropy collapse**: the head has stopped being useful and is wasting parameters. The $1/\\sqrt{d_k}$ scaling in attention exists precisely to prevent softmax saturation that leads to this collapse. If multiple heads collapse simultaneously, it often indicates the learning rate is too high or a training instability is developing."
@@ -255,7 +255,7 @@ export const hardModule = {
     {
       type: "mc",
       question: "In both the information bottleneck and RLHF, $\\beta$ controls a trade-off. In the IB, increasing $\\beta$ makes the model retain more task-relevant information. In RLHF, increasing $\\beta$ makes the policy:",
-      options: ["Stay closer to $\\pi_{\\text{ref}}$, sacrificing potential reward", "Chase higher rewards more aggressively, diverging further from $\\pi_{\\text{ref}}$", "Have no effect — $\\beta$ only matters in the IB setting", "Increase the entropy of the policy distribution"],
+      options: ["Stay closer to $\\pi_{\\text{ref}}$, sacrificing potential reward for distributional safety", "Chase higher rewards more aggressively, diverging further from $\\pi_{\\text{ref}}$", "Have no effect on the policy, because $\\beta$ only matters in the IB setting", "Increase the entropy of the policy distribution independent of the reference model"],
       correct: 0,
       explanation: "In the RLHF objective $\\max \\mathbb{E}[R] - \\beta \\cdot \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$, a larger $\\beta$ increases the penalty for deviating from $\\pi_{\\text{ref}}$. The policy stays closer to the reference model and sacrifices potential reward for safety/coherence. This is exactly analogous to the IB: higher $\\beta$ → stronger constraint → more conservative behavior. The Pareto frontier traced by varying $\\beta$ is called the **rate-distortion curve** in information theory."
     }
