@@ -57,10 +57,10 @@ export const sftAssessment = {
       type: "mc",
       question: "The \"quality vs. quantity\" debate in SFT has been largely resolved in favor of:",
       options: [
-        "Quantity — more data always wins regardless of quality",
-        "Quality — a small set of diverse, high-quality examples outperforms a large set of noisy examples, though there are diminishing returns",
-        "Neither matters — only the base model size determines SFT performance",
-        "An exact 50/50 tradeoff that depends only on model size"
+        "Quantity — scaling the number of examples always wins regardless of individual example quality, since more data reduces variance in the gradient estimates",
+        "Quality — a small set of diverse, high-quality examples outperforms a large set of noisy examples, though there are diminishing returns beyond core task coverage",
+        "Neither quality nor quantity matters significantly — the base model size and pretraining corpus are the dominant factors determining post-SFT performance",
+        "An exact 50/50 tradeoff between quality and quantity that shifts predictably based on model size, with larger models favoring quantity over curation"
       ],
       correct: 1,
       explanation: "Multiple studies (LIMA, Alpaca, WizardLM ablations) converge on the finding that data quality dominates. Key quality factors include: (1) correctness of responses, (2) diversity of tasks/formats, (3) appropriate complexity, and (4) consistent style. A curated set of 1K–10K examples often outperforms 100K+ noisy examples. However, quality has diminishing returns — after covering the main task distribution, more high-quality data yields marginal gains."
@@ -90,10 +90,10 @@ export const sftAssessment = {
       type: "mc",
       question: "Consider the SFT objective $\\mathcal{L}_{\\text{SFT}} = -\\mathbb{E}_{(x,y) \\sim \\mathcal{D}} \\left[ \\sum_{t=1}^{|y|} \\log \\pi_\\theta(y_t \\mid x, y_{<t}) \\right]$. This is equivalent to minimizing $\\text{KL}(p_{\\text{data}} \\| \\pi_\\theta)$ (forward KL). What behavioral consequence does this have compared to reverse KL?",
       options: [
-        "Forward KL produces sharper, more focused outputs",
+        "Forward KL is mode-seeking: $\\pi_\\theta$ concentrates mass on a single high-probability mode of $p_{\\text{data}}$, producing sharper, more focused but less diverse outputs",
         "Forward KL is mode-covering: $\\pi_\\theta$ tries to place mass everywhere $p_{\\text{data}}$ has mass, leading to diverse but sometimes incoherent or hedging outputs",
-        "Forward KL and reverse KL produce identical results for language models",
-        "Forward KL minimization always converges faster than reverse KL"
+        "Forward KL and reverse KL produce identical gradient updates for autoregressive language models, so the behavioral consequences are indistinguishable in practice",
+        "Forward KL minimization converges faster than reverse KL in all cases, producing equivalent outputs with fewer gradient steps and lower overall compute cost"
       ],
       correct: 1,
       explanation: "Maximum likelihood (SFT) minimizes forward KL $\\text{KL}(p_{\\text{data}} \\| \\pi_\\theta)$, which is mode-covering: $\\pi_\\theta$ is penalized for assigning low probability to anything in $p_{\\text{data}}$. This means the model tries to cover all training modes, potentially spreading mass across contradictory response styles. This contrasts with RLHF/RL objectives that effectively use reverse KL (mode-seeking), producing more focused, consistent outputs — one reason why RLHF improves upon SFT."
@@ -217,10 +217,10 @@ export const rlhfAssessment = {
       type: "mc",
       question: "Generalized Advantage Estimation (GAE) defines $\\hat{A}_t^{\\text{GAE}(\\gamma, \\lambda)} = \\sum_{l=0}^{\\infty} (\\gamma \\lambda)^l \\delta_{t+l}$ where $\\delta_t = r_t + \\gamma V(s_{t+1}) - V(s_t)$. The parameter $\\lambda$ trades off:",
       options: [
-        "Exploration vs. exploitation",
+        "Exploration vs. exploitation: $\\lambda = 0$ favors exploitation of known reward regions, $\\lambda = 1$ encourages broader exploration of the action space",
         "Bias vs. variance: $\\lambda = 0$ gives low-variance but high-bias (1-step TD), $\\lambda = 1$ gives high-variance but unbiased (Monte Carlo)",
-        "Learning rate vs. batch size",
-        "Reward scale vs. KL penalty strength"
+        "Learning rate vs. batch size: $\\lambda = 0$ behaves like a small learning rate with large batches, $\\lambda = 1$ like a large learning rate with small batches",
+        "Reward scale vs. KL penalty strength: $\\lambda = 0$ upweights the KL term relative to reward, $\\lambda = 1$ upweights reward relative to the KL penalty"
       ],
       correct: 1,
       explanation: "At $\\lambda = 0$: $\\hat{A}_t = \\delta_t = r_t + \\gamma V(s_{t+1}) - V(s_t)$, the 1-step TD error. This has low variance (uses the value function baseline) but is biased if $V$ is inaccurate. At $\\lambda = 1$: $\\hat{A}_t = \\sum_l \\gamma^l r_{t+l} - V(s_t)$, the Monte Carlo return minus baseline. This is unbiased but high variance. Intermediate $\\lambda$ (commonly 0.95) interpolates, providing a practical bias-variance tradeoff. In RLHF, $\\lambda \\approx 0.95$ is standard."
@@ -282,7 +282,7 @@ export const rlhfAssessment = {
     {
       type: "mc",
       question: "Consider a simplified RLHF setup with discrete reward $r \\in \\{0, 1\\}$ and a policy $\\pi_\\theta$ parameterized by a single scalar $\\theta$ controlling the probability of a \"good\" action: $\\pi_\\theta(\\text{good}) = \\sigma(\\theta)$. The REINFORCE gradient estimator is $\\nabla_\\theta J = \\mathbb{E}_{a \\sim \\pi_\\theta}[r(a) \\nabla_\\theta \\log \\pi_\\theta(a)]$. With a single sample $a$ and no baseline, the variance of this estimator is high because:",
-      options: ["The gradient is always zero", "When $r(a) = 0$ (bad action), the gradient is zero regardless of how informative the sample is, and when $r(a) = 1$ (good action), the gradient magnitude depends on $\\pi_\\theta(a)$ — high reward but low probability actions produce large, rare gradient spikes", "The estimator is biased", "REINFORCE cannot be applied to discrete action spaces"],
+      options: ["The gradient is always zero in expectation for binary rewards, because the positive and negative action contributions cancel out over repeated samples from the policy distribution", "When $r(a) = 0$ (bad action), the gradient is zero regardless of how informative the sample is, and when $r(a) = 1$ (good action), the gradient magnitude depends on $\\pi_\\theta(a)$ — high reward but low probability actions produce large, rare gradient spikes", "The estimator is biased for binary rewards because the discrete reward structure violates the continuous differentiability assumptions that the log-derivative trick requires for unbiased estimation", "REINFORCE cannot be applied to discrete action spaces with binary rewards because the probability ratio gradient requires a continuous action density for proper normalization of the likelihood"],
       correct: 1,
       explanation: "REINFORCE with $r \\in \\{0, 1\\}$: if the sampled action has $r = 0$, we get $\\nabla = 0$ — no learning signal, even though a bad outcome is informative. If $r = 1$, we get $\\nabla = \\nabla_\\theta \\log \\pi_\\theta(a)$, which is large when $\\pi_\\theta(a)$ is small (rare good actions produce gradient spikes). The variance is $\\text{Var}[r \\nabla \\log \\pi] = \\mathbb{E}[r^2 (\\nabla \\log \\pi)^2] - (\\mathbb{E}[r \\nabla \\log \\pi])^2$, which can be enormous. A baseline $b$ (e.g., $V(s)$) replaces $r$ with $r - b$, drastically reducing variance without introducing bias."
     }
@@ -310,7 +310,7 @@ export const directAlignmentAssessment = {
     {
       type: "mc",
       question: "The DPO loss is $\\mathcal{L}_{\\text{DPO}} = -\\mathbb{E}\\left[\\log \\sigma\\left(\\beta \\log \\frac{\\pi_\\theta(y_w|x)}{\\pi_{\\text{ref}}(y_w|x)} - \\beta \\log \\frac{\\pi_\\theta(y_l|x)}{\\pi_{\\text{ref}}(y_l|x)}\\right)\\right]$. The gradient with respect to $\\theta$ is proportional to $(1 - \\sigma(\\hat{r}_w - \\hat{r}_l))$ where $\\hat{r}_i = \\beta \\log \\frac{\\pi_\\theta(y_i|x)}{\\pi_{\\text{ref}}(y_i|x)}$. This means the gradient:",
-      options: ["Is constant regardless of how well the model has learned the preference, providing uniform gradient signal across all training pairs", "Is always zero for correctly ranked pairs, meaning the model stops learning once it achieves correct ranking on each example", "Is large when the model's implicit reward difference is wrong ($\\hat{r}_w - \\hat{r}_l \\ll 0$) and vanishes when the model already correctly ranks the pair ($\\hat{r}_w - \\hat{r}_l \\gg 0$) — an adaptive weighting similar to the reward model loss", "Only depends on the winning response and not the losing response, since the reference model anchors the losing response's contribution"],
+      options: ["Is constant regardless of how well the model has learned the preference, providing uniform gradient signal across all training pairs — the $(1 - \\sigma(\\cdot))$ factor reduces to a fixed scaling constant", "Is always zero for correctly ranked pairs ($\\hat{r}_w - \\hat{r}_l > 0$), meaning the model completely stops learning once it achieves correct ranking on any given example in the preference dataset", "Is large when the model's implicit reward difference is wrong ($\\hat{r}_w - \\hat{r}_l \\ll 0$) and vanishes when the model already correctly ranks the pair ($\\hat{r}_w - \\hat{r}_l \\gg 0$) — an adaptive weighting similar to the reward model loss", "Only depends on the winning response $y_w$ and ignores the losing response $y_l$, since the reference model's log-probability anchors the losing response's contribution and removes it from the gradient"],
       correct: 2,
       explanation: "The factor $(1 - \\sigma(\\hat{r}_w - \\hat{r}_l))$ acts as an implicit curriculum: when the model already assigns much higher implicit reward to the preferred response, $\\sigma(\\hat{r}_w - \\hat{r}_l) \\approx 1$ and the gradient vanishes. When the model incorrectly ranks the pair, $\\sigma(\\hat{r}_w - \\hat{r}_l) \\approx 0$ and the gradient is maximal. The gradient simultaneously pushes $\\pi_\\theta(y_w|x)$ up and $\\pi_\\theta(y_l|x)$ down relative to the reference."
     },
@@ -358,10 +358,10 @@ export const directAlignmentAssessment = {
       type: "mc",
       question: "Rejection sampling (best-of-$N$) is sometimes used as an alternative to RL-based optimization. Given a prompt $x$, we sample $N$ responses from $\\pi_{\\text{ref}}$, score each with a reward model, and select the best. The effective KL divergence of this procedure scales as:",
       options: [
-        "$\\text{KL} = N$",
+        "$\\text{KL} = N$, growing linearly with $N$ — each additional sample adds exactly one nat of KL divergence from the reference policy",
         "$\\text{KL} \\approx \\log N - \\frac{N-1}{N}$, growing logarithmically with $N$ — each doubling of $N$ adds roughly $\\log 2$ nats of KL",
-        "$\\text{KL} = 0$ for all $N$",
-        "$\\text{KL} = N^2$"
+        "$\\text{KL} = 0$ for all $N$, since selecting the best sample does not change the underlying generating distribution of the policy",
+        "$\\text{KL} = N^2$, growing quadratically with $N$ — the pairwise comparisons between samples compound the divergence superlinearly"
       ],
       correct: 1,
       explanation: "Best-of-$N$ defines an implicit policy $\\pi_{\\text{BoN}}$ that samples the maximum-reward completion from $N$ i.i.d. draws. The KL from this implicit policy to the reference is $\\text{KL}(\\pi_{\\text{BoN}} \\| \\pi_{\\text{ref}}) \\approx \\log N - \\frac{N-1}{N}$. This is remarkably efficient at small $N$ — best-of-16 achieves significant quality improvements at only $\\sim 2.5$ nats of KL. However, the logarithmic scaling means diminishing returns: going from $N=16$ to $N=256$ costs another $\\sim 2.8$ nats but yields smaller gains. This makes rejection sampling competitive with PPO at moderate KL budgets."
@@ -369,14 +369,14 @@ export const directAlignmentAssessment = {
     {
       type: "mc",
       question: "Constitutional AI (CAI) / RLAIF replaces human preference labels with AI-generated feedback. The \"constitutional\" part refers to:",
-      options: ["A legal framework governing model training", "A requirement that training data come from government sources", "The model's architecture being fixed (\"constituted\") during training", "A set of natural-language principles (the \"constitution\") that the AI uses to evaluate and revise its own outputs — the AI critiques responses based on these principles and generates preference labels for RLHF/DPO training"],
+      options: ["A legal compliance framework governing model training, where regulators define mandatory safety constraints that the model must satisfy before deployment", "A requirement that all training data come from government-vetted and approved sources, ensuring institutional quality control over the preference signal", "The model's architecture and weights being permanently fixed (\"constituted\") during alignment training, so only the decoding strategy is adapted to preferences", "A set of natural-language principles (the \"constitution\") that the AI uses to evaluate and revise its own outputs — the AI critiques responses based on these principles and generates preference labels for RLHF/DPO training"],
       correct: 3,
       explanation: "CAI (Bai et al., 2022) works in two phases: (1) **Self-critique and revision**: the model generates a response, then is prompted to critique and revise it according to constitutional principles (e.g., \"Choose the response that is most helpful and least harmful\"). (2) **RLAIF**: the AI compares original vs. revised responses to generate preference labels, which train a reward model for RLHF. The constitution is a set of human-written principles that encode values, replacing per-example human annotation with scalable AI-based evaluation."
     },
     {
       type: "mc",
       question: "ORPO (Odds Ratio Preference Optimization) combines SFT and preference optimization into a single loss: $\\mathcal{L}_{\\text{ORPO}} = \\mathcal{L}_{\\text{SFT}}(y_w) + \\lambda \\cdot \\mathcal{L}_{\\text{OR}}$ where $\\mathcal{L}_{\\text{OR}} = -\\log \\sigma\\left(\\log \\frac{\\text{odds}_\\theta(y_w|x)}{\\text{odds}_\\theta(y_l|x)}\\right)$ and $\\text{odds}_\\theta(y|x) = \\frac{P_\\theta(y|x)}{1 - P_\\theta(y|x)}$. What is the key advantage of this unified approach?",
-      options: ["ORPO achieves higher reward scores than all other methods", "ORPO never overfits regardless of training duration", "It eliminates the need for a separate SFT stage and a reference model — the SFT term teaches the desired format while the odds ratio term simultaneously encodes preferences, reducing the multi-stage pipeline to a single training phase", "The odds ratio is always easier to compute than log-probabilities"],
+      options: ["ORPO achieves consistently higher reward scores than all other preference optimization methods because the odds ratio formulation provides a tighter bound on the true preference likelihood", "ORPO never overfits regardless of training duration because the odds ratio loss self-regularizes, preventing the model from pushing preference margins beyond a natural equilibrium point", "It eliminates the need for a separate SFT stage and a reference model — the SFT term teaches the desired format while the odds ratio term simultaneously encodes preferences, reducing the multi-stage pipeline to a single training phase", "The odds ratio is always numerically easier to compute than log-probabilities, providing identical gradient signal with lower floating-point precision requirements and reduced risk of underflow"],
       correct: 2,
       explanation: "Standard alignment pipelines require: (1) SFT, (2) freeze as $\\pi_{\\text{ref}}$, (3) DPO/RLHF. ORPO merges steps 1 and 2–3: the SFT loss $\\mathcal{L}_{\\text{SFT}}(y_w)$ on the preferred response teaches format and content, while the odds ratio loss $\\mathcal{L}_{\\text{OR}}$ teaches preferences. No reference model is needed because the odds ratio $\\frac{\\text{odds}(y_w)}{\\text{odds}(y_l)}$ implicitly regularizes — it contrasts the chosen vs. rejected response within the same model. This simplifies the pipeline and reduces computational cost."
     }

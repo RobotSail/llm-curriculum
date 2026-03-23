@@ -18,10 +18,10 @@ export const dataAssessment = {
       type: "mc",
       question: "In a typical web-scale data pipeline for LLM pre-training, which step comes **first**?",
       options: [
-        "Deduplication",
+        "Deduplication using MinHash to remove near-duplicate documents from the raw crawl",
         "Language identification and URL-based filtering of raw crawl data",
-        "Perplexity filtering with a trained language model",
-        "Data mixing and upsampling"
+        "Perplexity filtering with a trained language model to score document quality",
+        "Data mixing and upsampling of underrepresented domains to balance the corpus"
       ],
       correct: 1,
       explanation: "The pipeline begins with coarse, cheap filters: language ID (fastText-based), URL blocklists, and removing boilerplate HTML. These steps discard the bulk of low-quality data before expensive operations like deduplication or model-based filtering. Running perplexity filtering on unfiltered Common Crawl would be prohibitively expensive and pointless on non-target-language text."
@@ -84,10 +84,10 @@ export const dataAssessment = {
       type: "mc",
       question: "When handling **Personally Identifiable Information (PII)** in training data, which approach best balances data utility and privacy?",
       options: [
-        "Removing all documents that contain any names",
+        "Removing all documents that contain any proper names or identifiers, discarding them entirely from the training corpus to eliminate any risk of PII leakage at generation time",
         "Applying named entity recognition to detect and redact or replace PII (names, emails, phone numbers, addresses) with placeholder tokens, while preserving surrounding context for language learning",
-        "Training the model to memorize PII so it can generate realistic data",
-        "Only training on data from before 2010 when PII concerns did not exist"
+        "Training the model to memorize PII patterns so it can generate realistic synthetic identities on demand, which replaces the need to scrub real data from the corpus",
+        "Only training on data published before 2010, when privacy regulations were not yet in effect and web content could be freely used without PII concerns or legal constraints"
       ],
       correct: 1,
       explanation: "The practical approach is NER-based PII scrubbing: detect entities classified as personal information and either redact them (replace with [REDACTED]) or substitute them with synthetic replacements (fake names/emails). This preserves the linguistic structure and context around PII while removing the sensitive content. Removing entire documents is too aggressive and loses valuable training signal. This connects to broader concerns: GDPR right-to-be-forgotten creates legal obligations that static training data cannot easily satisfy, motivating techniques like machine unlearning."

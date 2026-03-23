@@ -18,7 +18,7 @@ export const peftAssessment = {
     {
       type: "mc",
       question: "In LoRA, the pretrained weight matrix $W_0 \\in \\mathbb{R}^{d \\times k}$ is frozen and the update is parameterized as $\\Delta W = BA$ where $B \\in \\mathbb{R}^{d \\times r}$ and $A \\in \\mathbb{R}^{r \\times k}$ with rank $r \\ll \\min(d, k)$. How many trainable parameters does this introduce per adapted weight matrix?",
-      options: ["$d \\times k$ (same as the original matrix)", "$r^2$", "$r \\times (d + k)$", "$d \\times k \\times r$"],
+      options: ["$d \\times k$ (same size as the original weight matrix, no parameter savings)", "$r^2$ (the square of the rank, independent of the matrix dimensions $d$ and $k$)", "$r \\times (d + k)$ (the sum of parameters in the two low-rank factors $B$ and $A$)", "$d \\times k \\times r$ (the original matrix size multiplied by the rank factor $r$)"],
       correct: 2,
       explanation: "Matrix $B$ has $d \\times r$ parameters and matrix $A$ has $r \\times k$ parameters, for a total of $r(d + k)$. Since $r \\ll \\min(d, k)$, this is dramatically fewer than the $d \\times k$ parameters in the full matrix. For example, with $d = k = 4096$ and $r = 16$, LoRA uses $2 \\times 4096 \\times 16 = 131{,}072$ parameters vs. $4096^2 = 16{,}777{,}216$ for the full matrix — a 128x reduction."
     },
@@ -45,10 +45,10 @@ export const peftAssessment = {
       type: "mc",
       question: "QLoRA combines 4-bit quantization of the base model with LoRA adapters. Which quantization format does QLoRA introduce, and what is its key property?",
       options: [
-        "INT4 uniform quantization, which divides the range $[\\min, \\max]$ into 16 equally spaced bins",
+        "INT4 uniform quantization, which divides the full weight range $[\\min, \\max]$ into 16 equally spaced bins, assigning each weight to its nearest bin center regardless of the underlying weight distribution",
         "NormalFloat4 (NF4), a data type whose 16 quantization levels are chosen so that each level has equal probability mass under a standard normal distribution, making it information-theoretically optimal for normally-distributed weights",
-        "FP4 (4-bit floating point) with 1 sign bit, 2 exponent bits, and 1 mantissa bit",
-        "Log4 quantization, which spaces levels logarithmically to handle outliers"
+        "FP4 (4-bit floating point) with 1 sign bit, 2 exponent bits, and 1 mantissa bit, providing a fixed dynamic range that prioritizes values near zero at the cost of reduced precision for larger weight magnitudes",
+        "Log4 quantization, which spaces its 16 levels logarithmically to allocate finer resolution near zero and coarser resolution for outliers, optimizing for heavy-tailed weight distributions common in deep networks"
       ],
       correct: 1,
       explanation: "NF4 is based on the empirical observation that pretrained neural network weights are approximately normally distributed. QLoRA computes quantile-based breakpoints: the 16 levels are set at the quantiles $\\{1/32, 3/32, 5/32, \\ldots, 31/32\\}$ of $\\mathcal{N}(0, 1)$, then weights are normalized per-block and mapped to the nearest level. This yields zero quantization error in expectation for truly normal weights. QLoRA also uses double quantization — the per-block quantization constants are themselves quantized to FP8."
@@ -63,7 +63,7 @@ export const peftAssessment = {
     {
       type: "mc",
       question: "DoRA (Weight-Decomposed Low-Rank Adaptation) decomposes the weight update differently from standard LoRA. How does DoRA parameterize the adapted weight?",
-      options: ["It applies LoRA to both the attention and MLP layers simultaneously with shared factors", "It doubles the rank of LoRA and applies dropout between the two low-rank matrices", "It decomposes the weight into magnitude and direction components: $W' = m \\cdot \\frac{W_0 + BA}{\\|W_0 + BA\\|_c}$, where $m$ is a trainable magnitude vector and the direction is updated via LoRA, inspired by weight normalization", "It uses a dictionary of rank-1 updates and selects the top-$k$ at each step"],
+      options: ["It applies LoRA to both the attention and MLP layers simultaneously with shared low-rank factors $B$ and $A$, tying the adaptation across sublayers to reduce parameters while capturing cross-sublayer interactions", "It doubles the rank of LoRA and applies dropout between the two low-rank matrices $B$ and $A$, using the stochastic regularization to prevent the low-rank subspace from overfitting to the fine-tuning data distribution", "It decomposes the weight into magnitude and direction components: $W' = m \\cdot \\frac{W_0 + BA}{\\|W_0 + BA\\|_c}$, where $m$ is a trainable magnitude vector and the direction is updated via LoRA, inspired by weight normalization", "It uses a dictionary of rank-1 updates $\\{u_i v_i^\\top\\}$ and selects the top-$k$ most relevant updates at each step via a learned gating mechanism, forming a sparse mixture-of-adaptations approach"],
       correct: 2,
       explanation: "DoRA is motivated by analyzing the difference between full fine-tuning and LoRA: full fine-tuning tends to make large directional changes with small magnitude changes, while LoRA couples both. By decomposing $W' = m \\cdot \\frac{V'}{\\|V'\\|_c}$ where $V' = W_0 + BA$ (direction via LoRA) and $m$ is a learnable per-column magnitude vector, DoRA decouples these two aspects. The $\\|\\cdot\\|_c$ denotes column-wise normalization. This consistently improves over LoRA, sometimes matching full fine-tuning performance."
     },
@@ -78,10 +78,10 @@ export const peftAssessment = {
       type: "mc",
       question: "Under what conditions can LoRA match or closely approximate full fine-tuning performance?",
       options: [
-        "Only when the model is small enough that $r = d$ can be used",
+        "Only when the model is small enough that $r = d$ can be used, so the low-rank factorization effectively becomes a full-rank update and LoRA degenerates into standard weight tuning with no rank bottleneck",
         "When the task-specific weight update $\\Delta W^*$ has a low intrinsic rank — empirically observed for many downstream tasks, especially when fine-tuning large models where the adaptation lies in a low-dimensional subspace of the full parameter space",
-        "Only when both $A$ and $B$ matrices are initialized from pretrained weights",
-        "When the base model has been pre-quantized to INT8 before applying LoRA"
+        "Only when both $A$ and $B$ matrices are initialized from slices of the pretrained weights rather than from random or zero initialization, so the low-rank subspace begins aligned with the model's learned representations",
+        "When the base model has been pre-quantized to INT8 before applying LoRA, because quantization noise acts as regularization that confines the gradient updates to a low-rank manifold matching LoRA's capacity"
       ],
       correct: 1,
       explanation: "The Aghajanyan et al. (2020) \"intrinsic dimensionality\" paper showed that fine-tuning updates for many tasks lie in a surprisingly low-dimensional subspace. LoRA exploits this directly: if the true $\\Delta W^*$ has rank $\\leq r$, then LoRA with rank $r$ can represent it exactly. In practice, ranks as small as $r = 4$-$16$ suffice for many NLP tasks on models like GPT-3. However, for complex tasks or smaller models where the update has higher effective rank, LoRA with small $r$ will underperform full fine-tuning."
@@ -97,10 +97,10 @@ export const peftAssessment = {
       type: "mc",
       question: "When applying LoRA to a transformer, which weight matrices are typically adapted, and why?",
       options: [
-        "Only the embedding and output layers, because they contain most of the parameters",
-        "All weight matrices uniformly, because each layer contributes equally to the adaptation",
+        "Only the embedding and output layers, because they contain the majority of the model's parameters and adapting them captures the input-output mapping while leaving the internal representations unchanged",
+        "All weight matrices uniformly with equal rank, because each layer contributes equally to the adaptation and distributing rank evenly ensures balanced capacity across the entire model's depth",
         "The query and value projection matrices ($W_Q$, $W_V$) in attention are most common, though recent work shows adapting all linear layers (including $W_K$, $W_O$, and MLP projections) with smaller rank per matrix often outperforms adapting fewer matrices with larger rank",
-        "Only the LayerNorm parameters, because they control the distribution of activations"
+        "Only the LayerNorm parameters ($\\gamma$ and $\\beta$), because they control the distribution of activations flowing through each layer and provide a high-leverage, low-parameter point for steering model behavior"
       ],
       correct: 2,
       explanation: "The original LoRA paper found that adapting $W_Q$ and $W_V$ was sufficient for GPT-3. However, subsequent work (including QLoRA and LLaMA-Adapter) demonstrated that distributing the parameter budget across all linear layers — attention projections ($W_Q, W_K, W_V, W_O$) and MLP layers ($W_{\\text{gate}}, W_{\\text{up}}, W_{\\text{down}}$) — with a proportionally smaller rank per matrix often yields better results than concentrating rank in fewer matrices. This makes intuitive sense: each layer captures different aspects of the adaptation."
@@ -122,7 +122,7 @@ export const memoryEfficientAssessment = {
     {
       type: "mc",
       question: "Gradient checkpointing trades memory for compute by not storing all intermediate activations. For a network with $L$ sequential layers, what is the optimal memory reduction achievable?",
-      options: ["Memory drops from $O(L)$ to $O(\\sqrt{L})$ by placing checkpoints at $\\sqrt{L}$ evenly-spaced layers and recomputing activations within each segment during the backward pass, at the cost of at most one extra forward pass", "Memory drops from $O(L)$ to $O(1)$ by recomputing all activations from the input at every backward step, requiring $L$ extra forward passes but eliminating all activation storage entirely", "Memory drops from $O(L)$ to $O(\\log L)$ by using a recursive binary checkpointing scheme that saves activations at the midpoint of each segment and recursively subdivides during recomputation", "Memory is halved from $O(L)$ to $O(L/2)$ by checkpointing every other layer and recomputing only the non-checkpointed layers during the backward pass, at the cost of roughly half an extra forward pass"],
+      options: ["Memory drops from $O(L)$ to $O(\\sqrt{L})$ by placing checkpoints at $\\sqrt{L}$ evenly-spaced layers and recomputing activations within each segment during the backward pass, at the cost of at most one extra forward pass", "Memory drops from $O(L)$ to $O(1)$ by recomputing all activations from the input at every backward step, requiring $L$ extra forward passes per step but eliminating all intermediate activation storage entirely from GPU memory", "Memory drops from $O(L)$ to $O(\\log L)$ by using a recursive binary checkpointing scheme that saves activations at the midpoint of each segment and recursively subdivides during recomputation, requiring $O(\\log L)$ extra forward passes", "Memory is halved from $O(L)$ to $O(L/2)$ by checkpointing every other layer and recomputing only the non-checkpointed layers during the backward pass, keeping half the activations in memory at all times at the cost of roughly half an extra forward pass"],
       correct: 0,
       explanation: "With $\\sqrt{L}$ checkpoints, the network is divided into $\\sqrt{L}$ segments of $\\sqrt{L}$ layers each. During the backward pass, the activations within a segment are recomputed from its checkpoint. Only one segment's activations ($\\sqrt{L}$) plus the checkpoints ($\\sqrt{L}$) are in memory at once, giving $O(\\sqrt{L})$ total. The compute overhead is at most one extra forward pass because each activation is recomputed exactly once. For a 96-layer model, this reduces activation memory from 96 units to about 10 units."
     },
@@ -130,10 +130,10 @@ export const memoryEfficientAssessment = {
       type: "mc",
       question: "For a model with $N$ parameters trained with the Adam optimizer in mixed-precision, what is the total optimizer state memory?",
       options: [
-        "$2N$ bytes: one FP16 copy of the first moment and one FP16 copy of the second moment",
+        "$2N$ bytes: one FP16 copy of the first moment ($N$ bytes) and one FP16 copy of the second moment ($N$ bytes), with no FP32 state needed since moments can accumulate safely in half-precision",
         "$12N$ bytes: a FP32 master copy of the weights ($4N$), FP32 first moment ($4N$), and FP32 second moment ($4N$), in addition to the $2N$ bytes of FP16 working weights",
-        "$4N$ bytes: one FP32 copy of the momentum",
-        "$8N$ bytes: FP16 copies of both moments plus the gradients"
+        "$4N$ bytes: one FP32 copy of the momentum vector only, since Adam's second moment can be computed on the fly from the current gradient without storing it persistently across steps",
+        "$8N$ bytes: FP16 copies of both moments ($2N$ each) plus the FP16 gradients ($2N$) and the FP16 working weights ($2N$), with all state kept in half-precision to minimize memory"
       ],
       correct: 1,
       explanation: "Mixed-precision Adam maintains: FP16 weights for forward/backward ($2N$ bytes), FP32 master weights for the optimizer step ($4N$ bytes), FP32 first moment $m_t$ ($4N$ bytes), and FP32 second moment $v_t$ ($4N$ bytes). The FP32 copies are essential because accumulating small updates in FP16 causes underflow. Total: $2N + 4N + 4N + 4N = 14N$ bytes. For a 7B parameter model, this is approximately 98 GB just for optimizer states, dominating the memory budget."

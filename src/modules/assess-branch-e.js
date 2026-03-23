@@ -50,10 +50,10 @@ export const vlmAssessment = {
       type: "mc",
       question: "Cross-attention and projection-based fusion represent two paradigms for integrating visual and textual information. Which statement best captures their tradeoff?",
       options: [
-        "Cross-attention is strictly superior in all settings because it attends to all visual tokens at every layer, providing maximal grounding signal",
+        "Cross-attention is strictly superior in all settings because it provides explicit grounding by attending to all visual tokens at every decoder layer, and this additional computational cost always translates to proportionally better multimodal understanding",
         "Projection-based fusion (LLaVA-style) is simpler and cheaper but treats visual tokens identically to text tokens in self-attention, while cross-attention (Flamingo-style) adds dedicated layers that let text tokens attend into visual features, enabling more fine-grained grounding at the cost of additional parameters and compute",
-        "Both approaches converge to identical downstream performance given sufficient paired training data, making the choice purely one of implementation convenience",
-        "Projection-based fusion requires modifying the visual encoder's internal architecture to output text-compatible features, while cross-attention keeps both encoders frozen"
+        "Both approaches converge to identical downstream performance given sufficient paired training data and compute budget, so the choice between projection-based and cross-attention fusion is purely one of implementation convenience and engineering preference",
+        "Projection-based fusion requires modifying the visual encoder's internal architecture to produce text-compatible features through structural changes to its attention layers, while cross-attention keeps both the visual encoder and LLM backbone entirely frozen during training"
       ],
       correct: 1,
       explanation: "In projection-based fusion, visual tokens are concatenated with text tokens and processed by the LLM's self-attention -- simple but the model must learn to ground text in vision entirely through self-attention. Cross-attention (as in Flamingo) inserts gated cross-attention layers where text tokens explicitly attend to visual features via $\\text{Attention}(Q_{\\text{text}}, K_{\\text{vision}}, V_{\\text{vision}})$. This provides a structured inductive bias for grounding but adds parameters and FLOPs per layer. Many recent models favor projection for its simplicity, relying on instruction tuning to teach grounding."
@@ -123,10 +123,10 @@ export const imageGenAssessment = {
       type: "mc",
       question: "The reverse process in DDPM learns $p_\\theta(x_{t-1} | x_t)$ to denoise from $x_T \\sim \\mathcal{N}(0, I)$ back to $x_0$. The network is typically trained to predict the noise $\\epsilon_\\theta(x_t, t)$. What loss function is used?",
       options: [
-        "Adversarial loss between the generated and real images",
+        "Adversarial loss where a discriminator distinguishes between the model's predicted clean image $\\hat{x}_0$ and the true data sample $x_0$, pushing the denoiser to produce realistic outputs",
         "A simplified MSE: $\\mathcal{L} = \\mathbb{E}_{t, x_0, \\epsilon}\\left[\\|\\epsilon - \\epsilon_\\theta(x_t, t)\\|^2\\right]$, which is a reweighted variational lower bound on the log-likelihood",
-        "Cross-entropy between predicted and true pixel values",
-        "Perceptual loss computed in VGG feature space"
+        "Cross-entropy between the predicted per-pixel color distributions $p_\\theta(x_0 | x_t)$ and the one-hot ground truth pixel values, treating each pixel as an independent classification problem",
+        "Perceptual loss computed by comparing intermediate VGG feature activations of the predicted clean image $\\hat{x}_0$ against the true image $x_0$ at multiple network layers"
       ],
       correct: 1,
       explanation: "Ho et al. (2020) showed that the variational lower bound (ELBO) decomposes into per-timestep KL terms, each comparing the learned reverse step to the tractable posterior $q(x_{t-1}|x_t, x_0)$. Through reparameterization, this simplifies to predicting the noise $\\epsilon$ added at each step. The \"simple\" loss drops the per-timestep weighting from the full ELBO, yielding $\\|\\epsilon - \\epsilon_\\theta(x_t, t)\\|^2$. This unweighted version empirically produces better samples despite being a looser bound."
@@ -142,10 +142,10 @@ export const imageGenAssessment = {
       type: "mc",
       question: "During classifier-free guidance training, the conditioning signal $c$ is randomly replaced with the null embedding $\\varnothing$ with some probability $p_{\\text{uncond}}$ (typically 10--20%). Why is this dropout necessary?",
       options: [
-        "It acts as regularization to prevent overfitting to the training set",
+        "It acts as regularization that prevents overfitting to the paired text-image training data by forcing the model to reconstruct noisy images without relying on the text signal, improving generalization to unseen prompts",
         "It trains a single network to model both $\\epsilon_\\theta(x_t, t, c)$ and $\\epsilon_\\theta(x_t, t, \\varnothing)$, so that at inference time the guidance formula can compute both the conditional and unconditional score estimates from one model",
-        "It reduces GPU memory usage during training by skipping the text encoder",
-        "It forces the model to learn unconditional generation first before conditional generation"
+        "It reduces peak GPU memory consumption during training by periodically skipping the text encoder's forward pass, allowing larger batch sizes that improve the quality of the learned noise predictions",
+        "It forces the model to master unconditional image generation before learning conditional generation, establishing a strong prior over natural images that the conditioning signal can then steer toward specific outputs"
       ],
       correct: 1,
       explanation: "Classifier-free guidance requires both conditional and unconditional noise predictions at each denoising step. Rather than training two separate models, Ho & Salimans (2022) train a single model that can operate in both modes by randomly dropping the conditioning during training. When $c = \\varnothing$, the model learns the unconditional score $\\nabla_{x_t} \\log p(x_t)$; when $c$ is present, it learns the conditional score. The drop rate $p_{\\text{uncond}}$ trades off unconditional model quality against conditional model quality."
@@ -330,7 +330,7 @@ export const videoAssessment = {
     {
       type: "mc",
       question: "A 10-second video at 24 FPS and $256 \\times 256$ resolution, tokenized with a spatial patch size of $16 \\times 16$ and temporal patch size of 1 (every frame), produces how many tokens?",
-      options: ["$(10 \\times 24) \\times (256/16)^2 = 240 \\times 256 = 61,440$ tokens", "$240 \\times (16 \\times 16) = 61,440$ tokens", "$240 \\times 256 = 61,440$ tokens where 256 is the number of spatial patches per frame", "$240 \\times 256 = 61,440$ tokens"],
+      options: ["$(10 \\times 24) \\times (256/16)^2 = 240 \\times 256 = 61{,}440$ tokens, since each of the 240 frames contributes 256 spatial patch tokens", "$(10 \\times 24) \\times (16 \\times 16) = 240 \\times 256 = 61{,}440$ tokens, since each patch contributes $16 \\times 16$ sub-tokens to the sequence", "$10 \\times 24 \\times 256 = 61{,}440$ tokens, where 256 is the raw pixel count per row and each row is treated as a single spatial token", "$(256/16) \\times (256/16) \\times 24 = 256 \\times 24 = 6{,}144$ tokens, since only one frame per second requires spatial tokenization"],
       correct: 0,
       explanation: "The calculation: 10 seconds $\\times$ 24 FPS = 240 frames. Each frame has $(256/16) \\times (256/16) = 16 \\times 16 = 256$ spatial patches. Total tokens: $240 \\times 256 = 61{,}440$. With self-attention at $O(n^2)$, this means $\\sim 3.8 \\times 10^9$ attention entries -- already straining memory at this modest resolution. At $1024 \\times 1024$ resolution, the same video would produce $240 \\times 4096 = 983{,}040$ tokens. This token explosion is the fundamental computational bottleneck of video generation."
     },

@@ -37,10 +37,10 @@ export const scalingLawsAssessment = {
       type: "mc",
       question: "Maximal Update Parameterization ($\\mu$P) addresses a practical problem in scaling research. What problem does it solve?",
       options: [
-        "It eliminates the need for warmup in the learning rate schedule",
+        "It eliminates the need for warmup in the learning rate schedule by normalizing gradient magnitudes at initialization, allowing training to start at the peak rate",
         "It enables hyperparameters (especially learning rate) tuned on a small model to transfer directly to larger models without re-tuning",
-        "It ensures all layers have equal gradient norms regardless of depth",
-        "It replaces Adam with a scale-invariant optimizer"
+        "It ensures all layers have equal gradient norms regardless of depth by rescaling the backward pass, preventing vanishing and exploding gradient issues",
+        "It replaces Adam with a scale-invariant optimizer that adjusts its update rule based on model width, removing the need for per-scale tuning"
       ],
       correct: 1,
       explanation: "$\\mu$P (Yang et al., 2022) defines a parameterization where the optimal learning rate remains stable across model widths. You tune hyperparameters on a small \"proxy\" model (e.g., 40M params) and transfer them to the full-scale model (e.g., 6.7B params). Without $\\mu$P, the optimal LR shifts with scale, making large-scale HP sweeps prohibitively expensive."
@@ -70,10 +70,10 @@ export const scalingLawsAssessment = {
       type: "mc",
       question: "In the Chinchilla scaling framework, suppose you have a compute budget of $C$ FLOPs and want to minimize loss. The approximate relationship between optimal model size $N^*$, optimal data $D^*$, and compute is:",
       options: [
-        "$N^* \\propto C$ and $D^*$ is constant",
+        "$N^* \\propto C$ and $D^*$ is constant — all additional compute goes to model size with fixed data",
         "$N^* \\propto C^{0.5}$ and $D^* \\propto C^{0.5}$ — both scale as the square root of compute",
-        "$N^* \\propto C^{0.73}$ and $D^* \\propto C^{0.27}$ — parameters scale much faster",
-        "$N^* \\propto C^{0.3}$ and $D^* \\propto C^{0.7}$ — data scales much faster"
+        "$N^* \\propto C^{0.73}$ and $D^* \\propto C^{0.27}$ — parameters scale much faster than data",
+        "$N^* \\propto C^{0.3}$ and $D^* \\propto C^{0.7}$ — data scales much faster than parameters"
       ],
       correct: 1,
       explanation: "Under Chinchilla, both $N^*$ and $D^*$ scale approximately as $C^{0.5}$ (since $C \\approx 6ND$, equal exponents imply $N^* \\propto \\sqrt{C/6}$ and $D^* \\propto \\sqrt{C/6}$). The exponents are close to equal — roughly $a \\approx b \\approx 0.5$ — in contrast to Kaplan's $0.73/0.27$ split. This equal scaling is what leads to the stable ~20 tokens/parameter ratio."
@@ -117,10 +117,10 @@ export const architectureAssessment = {
       type: "mc",
       question: "Routing collapse in MoE models is a failure mode where:",
       options: [
-        "All experts converge to identical weights, wasting capacity",
+        "All experts converge to identical weights through gradient averaging, effectively reducing the model to a single expert and wasting the additional parameter capacity",
         "The router assigns nearly all tokens to a small subset of experts, leaving most experts undertrained while overloaded experts become bottlenecks",
-        "The gating network outputs uniform probabilities, ignoring input features",
-        "Experts become too specialized and cannot generalize to new domains"
+        "The gating network outputs uniform probabilities across all experts, ignoring input features and distributing tokens randomly rather than by content",
+        "Experts become too narrowly specialized on specific token types and cannot generalize to new domains, causing sharp accuracy drops on distribution shifts"
       ],
       correct: 1,
       explanation: "Routing collapse is a rich-get-richer dynamic: experts that receive more tokens learn faster, causing the router to send even more tokens their way. This leaves most experts undertrained. Load-balancing losses (auxiliary losses that penalize uneven expert utilization) are the standard mitigation, but they introduce a tension between routing quality and load balance."
@@ -183,10 +183,10 @@ export const architectureAssessment = {
       type: "mc",
       question: "In an MoE model using top-2 routing with 8 experts, what happens during training if one expert's router logits are consistently 10x larger than the others?",
       options: [
-        "The model automatically normalizes the logits to prevent this",
+        "The model automatically normalizes the router logits via softmax temperature scaling, preventing any single expert from dominating the selection process",
         "That expert and one other will be selected for nearly all tokens, the remaining 6 experts will receive almost no gradient signal, and model capacity will be severely underutilized",
-        "Training will diverge immediately due to gradient explosion",
-        "The other experts will quickly catch up because they receive cleaner gradients"
+        "Training will diverge immediately due to gradient explosion in the dominant expert, as the concentrated token flow creates unbounded activation magnitudes",
+        "The other experts will quickly catch up because they receive cleaner, less noisy gradients from the tokens that the dominant expert does not process"
       ],
       correct: 1,
       explanation: "With top-2 routing, the dominant expert gets selected for almost every token. The second slot gets competed for among the remaining experts, but with much smaller logits, one or two runners-up will also dominate. The result: 5-6 experts are effectively dead. This is routing collapse. The load-balancing loss combats this by penalizing uneven utilization, but if the coefficient $\\alpha$ is too small, collapse still occurs. If $\\alpha$ is too large, routing quality degrades because load balance overrides content-based routing."
@@ -230,10 +230,10 @@ export const dataCentricAssessment = {
       type: "mc",
       question: "DoReMi (Xie et al., 2023) optimizes the domain mixing proportions for pretraining data (e.g., how much web text vs. code vs. Wikipedia). How does it determine the optimal mixture?",
       options: [
-        "It uses the proportion of each domain in the raw crawl as the optimal mixture",
+        "It uses the proportion of each domain in the raw crawl as the optimal mixture, assuming the natural distribution reflects the ideal training balance",
         "It trains a small proxy model using distributionally robust optimization (DRO) to upweight domains where the model struggles most, then uses those optimized proportions to train the large model",
-        "It computes the KL divergence between each domain and the target, selecting domains with lowest divergence",
-        "It alternates between domains in round-robin fashion"
+        "It computes the KL divergence between each domain and the target evaluation distribution, then selects the domains with the lowest divergence scores",
+        "It alternates between domains in round-robin fashion during training, giving each domain equal exposure regardless of its size or difficulty"
       ],
       correct: 1,
       explanation: "DoReMi uses a two-stage process: (1) train a small reference model on the default mixture, (2) train another small model with group DRO, which dynamically upweights domains with higher excess loss (current loss minus reference loss). The domain weights learned by the small DRO model transfer to the large-scale training run. This avoids expensive large-scale ablations over mixture proportions."
@@ -263,10 +263,10 @@ export const dataCentricAssessment = {
       type: "mc",
       question: "Data deduplication before pretraining is considered essential. What is the primary failure mode if near-duplicate documents are not removed?",
       options: [
-        "The model's vocabulary size becomes too large",
+        "The model's effective vocabulary size grows because duplicated documents introduce redundant surface-level n-gram patterns, fragmenting the learned token representations across synonymous forms",
         "Training loss decreases artificially without improving generalization — the model memorizes duplicated sequences, inflating training metrics while wasting compute on redundant updates and increasing verbatim memorization risks",
-        "The optimizer diverges due to repeated gradient directions",
-        "Attention heads become specialized for the duplicated content, reducing capacity for other patterns"
+        "The optimizer diverges due to repeated gradient directions from the same data points, creating a degenerate update trajectory that spirals away from any stable minimum",
+        "Attention heads become specialized for duplicated content, allocating a disproportionate fraction of the model's representational capacity to memorizing those patterns rather than learning general features"
       ],
       correct: 1,
       explanation: "Lee et al. (2022) showed that deduplication improves both training efficiency and downstream performance. Duplicated data means the model sees certain patterns disproportionately often, leading to memorization rather than generalization. It also wastes compute — tokens spent on duplicates could have been spent on diverse examples. MinHash-based near-deduplication is standard practice. Carlini et al. showed that memorization rates correlate strongly with duplication frequency."
@@ -282,10 +282,10 @@ export const dataCentricAssessment = {
       type: "mc",
       question: "When selecting data for continued pretraining of an LLM on a specialized domain, the optimal strategy with respect to data mixing is:",
       options: [
-        "Use only domain-specific data to maximize specialization",
-        "Use only general data but increase the learning rate to capture domain knowledge from the few relevant examples",
+        "Use only domain-specific data to maximize specialization, since the general capabilities learned during pretraining are robust enough to persist without reinforcement",
+        "Use only general data but increase the learning rate to capture domain knowledge from the few relevant examples that happen to appear in the general corpus",
         "Mix domain-specific data with general-purpose data, tuning the ratio empirically — too much domain data causes forgetting of general capabilities, too little yields insufficient specialization",
-        "Alternate between pure domain and pure general data in separate phases"
+        "Alternate between pure domain and pure general data in separate training phases, letting the model fully adapt to each distribution before switching to the other"
       ],
       correct: 2,
       explanation: "Data mixing is a Pareto optimization between domain performance and general capability retention. The optimal ratio depends on (1) how different the domain is from general text, (2) how much domain data is available, and (3) which general capabilities matter for the application. Typical ratios range from 50-90% domain data. Pure domain training causes rapid forgetting; phase alternation creates oscillation in capabilities. Continuous mixing provides the smoothest learning dynamics."
@@ -418,7 +418,7 @@ export const novelObjectivesAssessment = {
     {
       type: "mc",
       question: "A key practical advantage of MLM over autoregressive LM during pretraining is:",
-      options: ["MLM can use a smaller vocabulary because the masking procedure naturally clusters rare tokens into shared prediction targets, reducing the effective vocabulary size", "MLM requires less training data because it uses each token more efficiently by training on multiple masked positions per sequence rather than a single next-token prediction", "MLM is faster at inference because it generates all tokens in parallel, avoiding the sequential bottleneck of autoregressive decoding that limits tokens per second", "MLM processes all tokens bidirectionally — each masked position attends to both left and right context — which produces richer contextualized representations for downstream tasks that require understanding (e.g., classification, NER), and it achieves this with $T$ prediction tasks per sequence rather than requiring left-to-right factorization"],
+      options: ["MLM can use a smaller vocabulary because the masking procedure naturally clusters rare tokens into shared prediction targets, reducing the effective vocabulary size and improving embedding quality", "MLM requires less training data because it uses each token more efficiently by training on multiple masked positions per sequence rather than a single next-token prediction per position", "MLM is faster at inference because it generates all tokens in parallel, avoiding the sequential bottleneck of autoregressive decoding that limits tokens per second during generation", "MLM processes all tokens bidirectionally — each masked position attends to both left and right context — producing richer representations for downstream understanding tasks like classification and NER"],
       correct: 3,
       explanation: "MLM's bidirectional context is its main strength for representation learning. When predicting a masked token, the model can use information from both sides, producing representations that capture the full context. Autoregressive models only see left context at each position. However, MLM only trains on the ~15% of tokens that are masked (the rest don't contribute to the loss), while autoregressive models get a gradient signal from every token. This makes autoregressive pretraining more compute-efficient per token."
     },
@@ -432,7 +432,7 @@ export const novelObjectivesAssessment = {
     {
       type: "mc",
       question: "Diffusion models have been highly successful for continuous data (images, audio). Why is applying diffusion to discrete text fundamentally harder?",
-      options: ["Discrete data cannot be interpolated smoothly — there is no natural continuous noise process for tokens. Adding Gaussian noise to token embeddings destroys the discrete structure, and discrete corruption processes (e.g., random token replacement) lack the mathematical properties (e.g., known reverse process) that make continuous diffusion tractable", "Text sequences are too short for the diffusion process to work effectively, since diffusion models need long inputs to amortize the cost of the multi-step denoising procedure", "The vocabulary size is too large for the denoising network to predict over, since each denoising step must output a probability vector over the entire vocabulary at every position", "Diffusion requires 2D spatial structure that text does not naturally have, since the denoising U-Net architecture relies on spatial convolutions that cannot be applied to sequential data"],
+      options: ["Discrete data cannot be interpolated smoothly — there is no natural continuous noise process for tokens, and discrete corruption processes lack the mathematical properties that make continuous diffusion tractable", "Text sequences are too short for the diffusion process to work effectively, since diffusion models need long inputs to amortize the cost of the multi-step denoising procedure across enough tokens", "The vocabulary size is too large for the denoising network to predict over, since each denoising step must output a probability vector over the entire vocabulary at every position in the sequence", "Diffusion requires 2D spatial structure that text does not naturally have, since the denoising U-Net architecture relies on spatial convolutions that cannot operate on one-dimensional sequences"],
       correct: 0,
       explanation: "Continuous diffusion relies on gradually adding Gaussian noise and learning to reverse this process. For discrete tokens, there is no natural analog: you cannot \"slightly noise\" a token. Approaches include: (1) embedding tokens in continuous space and applying continuous diffusion (D3PM, Diffusion-LM), (2) using discrete corruption (token masking/replacement) as forward process (multinomial diffusion), or (3) score-matching on the simplex (MDLM). Each has trade-offs: continuous embeddings disconnect from the discrete structure; discrete corruption requires custom transition matrices."
     },
@@ -440,10 +440,10 @@ export const novelObjectivesAssessment = {
       type: "mc",
       question: "Non-autoregressive generation (NAG) methods aim to generate all tokens in parallel rather than sequentially. The fundamental challenge they face is:",
       options: [
-        "They require more parameters than autoregressive models to achieve equivalent quality, making them impractical for large-scale deployment",
-        "They must model the joint distribution without the chain rule's conditional independence structure — tokens generated in parallel cannot condition on each other, leading to repetition, omission, and incoherence when the true distribution has strong inter-token dependencies",
-        "They cannot use the Transformer architecture because the causal attention mask is incompatible with simultaneous token generation",
-        "They are slower than autoregressive models in practice because the parallel decoding overhead exceeds the sequential generation cost"
+        "They require significantly more parameters than autoregressive models to achieve equivalent generation quality, making them impractical for deployment at the scale of modern LLMs",
+        "They must model the joint distribution without the chain rule's sequential factorization — tokens generated in parallel cannot condition on each other, leading to repetition and incoherence",
+        "They cannot use the Transformer architecture because the causal attention mask is incompatible with simultaneous token generation, requiring entirely different neural architectures",
+        "They are slower than autoregressive models in practice because the parallel decoding overhead and iterative refinement steps exceed the cost of sequential generation"
       ],
       correct: 1,
       explanation: "Autoregressive models factor $P(x_1, \\dots, x_T)$ into conditionals, each depending on all previous tokens. NAG must model $P(x_1, \\dots, x_T)$ without this sequential structure — often assuming conditional independence given some latent $z$: $P(x \\mid z) = \\prod_t P(x_t \\mid z)$. This \"conditional independence\" assumption is violated when strong dependencies exist between adjacent tokens (e.g., \"New York\" — generating \"New\" and \"York\" independently risks producing \"New London\" or duplicating tokens). Knowledge distillation from AR models, iterative refinement, and CTC losses are common mitigations."

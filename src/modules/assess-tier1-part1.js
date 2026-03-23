@@ -30,10 +30,10 @@ export const transformerAssessment = {
       type: "mc",
       question: "Anthropic's \"circuits\" view describes the residual stream as a communication bus. Under this interpretation, what is the role of attention heads?",
       options: [
-        "They compute nonlinear activation functions that gate information flow",
+        "They compute nonlinear activation functions that gate information flow between layers, controlling which features pass through to subsequent computations",
         "They read from and write to the residual stream, moving information between token positions — each head implements a specific information-routing operation",
-        "They normalize the residual stream to prevent feature magnitudes from diverging",
-        "They act as memory banks that store factual knowledge retrieved by the FFN layers"
+        "They normalize the residual stream to prevent feature magnitudes from diverging across layers, maintaining stable signal propagation through the network",
+        "They act as memory banks that store factual knowledge retrieved by the FFN layers, enabling recall of learned associations during the forward pass"
       ],
       correct: 1,
       explanation: "In the residual stream view, the stream is a shared memory bus of dimension $d_{\\text{model}}$. Attention heads read from source positions (via $W_Q, W_K$ selecting what to attend to, and $W_V$ selecting what to read) and write to destination positions (via $W_O$). Each head moves specific types of information between positions — e.g., induction heads copy tokens that followed similar patterns. The FFN layers then read from the stream to process information locally at each position."
@@ -43,9 +43,9 @@ export const transformerAssessment = {
       question: "SwiGLU, used in LLaMA and PaLM, replaces the standard FFN with $\\text{SwiGLU}(x) = (\\text{Swish}(xW_1) \\odot xV) W_2$. What is the key structural difference from a vanilla two-layer FFN with ReLU?",
       options: [
         "SwiGLU uses three weight matrices instead of two, introducing a gating mechanism where one linear projection controls the information flow of another",
-        "SwiGLU reduces the parameter count by using a single shared weight matrix",
-        "SwiGLU eliminates the nonlinearity entirely, relying on the element-wise product for expressivity",
-        "SwiGLU applies layer normalization between the two linear projections"
+        "SwiGLU reduces the parameter count by factoring the two weight matrices into a single shared projection that serves both gating and value computation",
+        "SwiGLU eliminates the nonlinearity entirely, relying purely on the element-wise product between two linear branches for all representational expressivity",
+        "SwiGLU applies layer normalization between the two linear projections, conditioning the hidden activations before the second matrix multiplication"
       ],
       correct: 0,
       explanation: "A standard FFN uses two matrices: $\\text{ReLU}(xW_1)W_2$. SwiGLU introduces a third matrix $V$ and uses a gating mechanism: one branch $\\text{Swish}(xW_1)$ produces gating values, and the other branch $xV$ produces candidate values, combined via element-wise product. This gated linear unit structure (from Dauphin et al., 2017) gives the network finer control over information flow. To keep parameter count comparable, the hidden dimension is typically reduced from $4d$ to $\\frac{8}{3}d$. The \"key-value memory\" interpretation views each hidden unit as storing a (key, value) pair where the key determines when the unit activates."
@@ -68,10 +68,10 @@ export const transformerAssessment = {
       type: "mc",
       question: "The concept of **superposition** in transformer residual streams refers to the hypothesis that:",
       options: [
-        "Residual streams encode features in a one-to-one mapping, with each dimension representing exactly one feature",
+        "Residual streams encode features in a strict one-to-one mapping, with each dimension representing exactly one interpretable feature and no sharing across directions",
         "The model represents more features than it has dimensions by encoding them as nearly orthogonal directions, tolerating small interference — analogous to compressed sensing",
-        "Multiple attention heads attend to the same positions, creating redundant representations",
-        "The residual stream superposes the outputs of all previous layers via simple addition"
+        "Multiple attention heads attend to the same positions independently, creating redundant representations that waste capacity through duplicated information routing",
+        "The residual stream superposes the outputs of all previous layers via simple addition, with no learned feature-level structure beyond the cumulative sum"
       ],
       correct: 1,
       explanation: "Superposition (Elhage et al., 2022) is the hypothesis that transformers represent $m \\gg d$ features using $d$-dimensional residual streams by assigning nearly orthogonal directions to different features. This works because most features are sparse (rarely active simultaneously), so the interference from non-orthogonality rarely causes problems. This is closely related to compressed sensing and the Johnson-Lindenstrauss lemma — in high dimensions, random vectors are nearly orthogonal. Superposition makes interpretability hard because features don't align with individual neurons."
@@ -144,10 +144,10 @@ export const tokenizationAssessment = {
       type: "mc",
       question: "When generating Python code, a BPE tokenizer trained on mixed text/code often tokenizes 4-space indentation as a single token but may split unusual indentation inconsistently. Why is this problematic specifically for code generation?",
       options: [
-        "It makes the model's code run slower at execution time",
+        "It makes the generated code slower at execution time because the token boundaries introduce implicit overhead, causing the Python interpreter to handle suboptimally chunked source strings during parsing and compilation",
         "Indentation is syntactically meaningful in Python — inconsistent tokenization of whitespace means the model must learn complex rules about how different token sequences map to the same indentation level, and errors produce silent semantic bugs (wrong block nesting) rather than obvious syntax errors",
-        "The tokenizer will refuse to encode tab characters, preventing tab-indented code",
-        "It increases the vocabulary size beyond what the embedding matrix can handle"
+        "The tokenizer cannot encode tab characters reliably because tabs fall outside the learned BPE merge table, preventing any tab-indented code from being generated and limiting the model to spaces-only output",
+        "It forces the vocabulary to include many whitespace-only tokens of varying lengths, bloating the embedding matrix beyond what the model can efficiently learn and wasting capacity on non-semantic entries"
       ],
       correct: 1,
       explanation: "In Python, indentation defines block structure. If \"    \" (4 spaces) is one token at some depths but \"  \" + \"  \" (two tokens) at others, the model faces a many-to-one mapping problem: different token sequences produce identical indentation. Worse, getting whitespace wrong by even one space changes which block a line belongs to — a semantic error that's syntactically valid. Code-specific tokenizers (like Codex's) address this by ensuring consistent whitespace tokenization. This is one reason why code-specialized models often use different tokenizers than general-purpose LLMs."
@@ -177,10 +177,10 @@ export const tokenizationAssessment = {
       type: "mc",
       question: "SentencePiece (used by LLaMA, T5, and others) treats the input as a raw byte stream and uses a special '\\u2581' (lower one eighth block) character to mark word boundaries. Why is this design choice important for multilingual models?",
       options: [
-        "It allows the tokenizer to produce shorter sequences for all languages equally",
+        "It allows the tokenizer to produce equally short sequences for all languages by dynamically adjusting the merge table at inference time, ensuring uniform compression across scripts and morphologies",
         "It removes the dependency on language-specific pre-tokenization rules (whitespace splitting, punctuation handling) — the tokenizer works identically on languages with spaces (English), without spaces (Chinese/Japanese), and with complex morphology (Turkish/Finnish)",
-        "It enables the tokenizer to handle emojis and special characters",
-        "It reduces the vocabulary size needed for CJK languages by sharing tokens with Latin scripts"
+        "It enables the tokenizer to handle emojis, special characters, and non-standard Unicode sequences that would otherwise be mapped to unknown tokens and lost during encoding",
+        "It reduces the vocabulary size needed for CJK languages by automatically sharing subword tokens with Latin scripts, merging overlapping character patterns across writing systems"
       ],
       correct: 1,
       explanation: "Traditional tokenizers (like GPT-2's) first split on whitespace and punctuation using regex rules designed for English, then apply BPE within each word. This fails for Chinese/Japanese (no spaces between words), agglutinative languages like Turkish (complex morphology), and many scripts. SentencePiece operates on raw text without any pre-tokenization assumptions — it learns word boundaries as part of the BPE/Unigram process, using '\\u2581' to mark where spaces were. This language-agnostic approach is essential for truly multilingual models."
@@ -225,10 +225,10 @@ export const pretrainingAssessment = {
       type: "mc",
       question: "**Grokking** (Power et al., 2022) is the phenomenon where a model first memorizes training data (achieving near-zero training loss while test loss remains high), then suddenly generalizes long after training loss has plateaued. What is the current best explanation?",
       options: [
-        "The model runs out of capacity to memorize, forcing it to learn general patterns",
+        "The model runs out of capacity to memorize individual training examples, forcing it to discover general patterns that compress the data more efficiently than rote storage",
         "Weight decay gradually penalizes the high-norm memorization solution, eventually making the lower-norm generalizing solution more favorable — grokking is a competition between two loss basins mediated by regularization",
-        "The learning rate schedule causes a sudden phase transition in the loss landscape",
-        "Gradient noise from SGD randomly discovers the generalizing solution through diffusion"
+        "The learning rate schedule causes a sudden phase transition in the loss landscape, abruptly shifting the optimization trajectory from a memorization basin to a generalization basin",
+        "Gradient noise from SGD randomly discovers the generalizing solution through a diffusion-like process that stochastically explores the loss landscape until a low-loss region is found"
       ],
       correct: 1,
       explanation: "The memorizing solution typically has higher weight norm than the generalizing solution. Without weight decay, the model stays in the memorization basin indefinitely. Weight decay slowly shrinks the weights, increasing the effective loss of the memorization solution until the generalizing basin becomes favorable. The \"delay\" in grokking corresponds to the time for weight decay to erode the memorization solution enough. Nanda et al. (2023) showed this mechanistically: models learn interpretable algorithms (e.g., modular arithmetic circuits) during grokking, and these circuits have lower weight norm than the memorization solution."
