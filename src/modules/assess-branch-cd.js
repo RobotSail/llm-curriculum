@@ -17,42 +17,42 @@ export const quantizationAssessment = {
     {
       type: "mc",
       question: "In post-training quantization (PTQ), weights are quantized **after** training is complete. Quantization-aware training (QAT) instead:",
-      options: ["Trains a separate smaller model from scratch", "Quantizes only the optimizer states, not the model weights", "Simulates quantization effects during training via straight-through estimators so the model learns to be robust to reduced precision", "Uses lower learning rates to compensate for precision loss"],
+      options: ["Trains a separate smaller model from scratch at the target precision, bypassing the pretrained weights entirely", "Quantizes only the optimizer states rather than the model weights, reducing memory without affecting inference precision", "Simulates quantization effects during training via straight-through estimators so the model learns to be robust to reduced precision", "Uses lower learning rates to compensate for precision loss, allowing the model to converge despite the quantization noise"],
       correct: 2,
       explanation: "QAT inserts fake-quantization nodes during training that round weights/activations to the target precision in the forward pass but pass gradients through unmodified (straight-through estimator). The model thus learns weight configurations that are robust to quantization noise. QAT typically recovers 0.5-1.0 perplexity points over PTQ but requires a full training run, making it far more expensive."
     },
     {
       type: "mc",
       question: "Activation quantization is generally harder than weight quantization because:",
-      options: ["Activations use more memory than weights", "The backward pass requires full-precision activations", "Activations are always stored in float64", "Activations exhibit **outlier features** — a small number of hidden dimensions have magnitudes 10-100x larger than the rest, making uniform quantization waste most of its range on a few extreme values"],
+      options: ["Activations use more memory than weights in aggregate, so quantization errors accumulate over more values and cause greater total degradation", "The backward pass requires full-precision activations for accurate gradient computation, making any activation quantization incompatible with training", "Activations are always stored in float64 by the framework, so quantizing them requires changing the entire compute pipeline rather than just the storage format", "Activations exhibit **outlier features** — a small number of hidden dimensions have magnitudes 10-100x larger than the rest, making uniform quantization waste most of its range on a few extreme values"],
       correct: 3,
       explanation: "Research (e.g., LLM.int8(), SmoothQuant) showed that transformer activations contain persistent outlier dimensions with magnitudes far exceeding the typical range. A uniform INT8 grid spanning $[-100, 100]$ to accommodate outliers wastes precision for the majority of values clustered near $[-1, 1]$. SmoothQuant addresses this by mathematically migrating the quantization difficulty from activations to weights via per-channel scaling: $Y = (X \\cdot \\text{diag}(s)^{-1}) \\cdot (\\text{diag}(s) \\cdot W)$."
     },
     {
       type: "mc",
       question: "GPTQ is a popular weight quantization method. Its core strategy is:",
-      options: ["Training from scratch with quantized weights", "Quantizing weights **column by column**, using the inverse Hessian to optimally adjust remaining weights to compensate for each column's quantization error", "Quantizing all weights simultaneously with k-means clustering", "Pruning weights below a threshold, then quantizing the rest"],
+      options: ["Training from scratch with quantized weights and a modified loss function that accounts for the reduced precision of each weight matrix", "Quantizing weights **column by column**, using the inverse Hessian to optimally adjust remaining weights to compensate for each column's quantization error", "Quantizing all weights simultaneously with k-means clustering to find the optimal set of centroids for each target bit width", "Pruning weights below a threshold first and then quantizing the surviving weights, combining sparsity with reduced precision"],
       correct: 1,
       explanation: "GPTQ extends the Optimal Brain Quantization framework. It processes weight columns sequentially: after quantizing one column, it uses the inverse Hessian $H^{-1}$ of the layer's reconstruction loss to compute the optimal update to all not-yet-quantized columns, minimizing $\\|WX - \\hat{W}X\\|^2$. This Hessian-guided error compensation is what makes GPTQ achieve much better quality than naive round-to-nearest at 4-bit and below."
     },
     {
       type: "mc",
       question: "AWQ (Activation-Aware Weight Quantization) differs from GPTQ by focusing on:",
-      options: ["Identifying the small fraction of **salient weight channels** (those corresponding to large activation magnitudes) and protecting them with per-channel scaling before quantization, rather than using Hessian-based error compensation", "Quantizing activations instead of weights", "Using 8-bit instead of 4-bit quantization", "Training a separate quantization network"],
+      options: ["Identifying the small fraction of **salient weight channels** (those corresponding to large activation magnitudes) and protecting them with per-channel scaling before quantization, rather than using Hessian-based error compensation", "Quantizing activations instead of weights, since activation quantization provides larger memory savings due to the dynamic nature of activation tensors", "Using 8-bit instead of 4-bit quantization for the most sensitive weight matrices, with a learned routing mechanism to determine which layers need higher precision", "Training a separate quantization network that learns to map full-precision weights to their optimal quantized representations through end-to-end optimization"],
       correct: 0,
       explanation: "AWQ observes that only ~1% of weight channels are critical — those connected to activation outlier features. Rather than expensive Hessian computation, AWQ finds per-channel scaling factors $s$ that protect salient channels: it scales weights by $s$ and inversely scales activations, shifting the quantization difficulty away from important channels. This is simpler than GPTQ and often matches or exceeds its quality with faster quantization time."
     },
     {
       type: "mc",
       question: "A model uses mixed-precision quantization: some layers at 4-bit, others at 8-bit. The decision of which layers get higher precision is typically based on:",
-      options: ["Layer index — earlier layers always need more precision", "Parameter count — larger layers get lower precision", "**Per-layer sensitivity analysis** — layers where quantization causes larger increases in output error or perplexity are assigned higher precision, often measured via Hessian trace, Fisher information, or direct calibration loss", "Random assignment with a fixed ratio"],
+      options: ["Layer index — earlier layers always need more precision because they establish the representations that all subsequent layers depend on", "Parameter count — larger layers get lower precision to achieve greater total memory savings from quantizing their larger weight matrices", "**Per-layer sensitivity analysis** — layers where quantization causes larger increases in output error or perplexity are assigned higher precision, often measured via Hessian trace, Fisher information, or direct calibration loss", "Random assignment with a fixed ratio of 4-bit to 8-bit layers, relying on the law of large numbers to average out per-layer quantization errors"],
       correct: 2,
       explanation: "Mixed-precision strategies measure each layer's sensitivity to quantization error, typically by quantizing one layer at a time and measuring the impact on calibration loss. Layers with high Hessian trace ($\\text{tr}(H)$) or large Fisher information are more sensitive. Empirically, attention projection layers and the first/last layers tend to be more sensitive. This yields a constrained optimization: minimize total quality loss subject to a target average bit-width."
     },
     {
       type: "mc",
       question: "SqueezeLLM achieves high-quality ultra-low-bit quantization by combining:",
-      options: ["Knowledge distillation with pruning", "Dynamic quantization at inference time", "Layer fusion and operator merging", "Dense-and-sparse decomposition: a low-bit dense representation for the bulk of weights plus a **sparse matrix** storing outlier weights at full precision, keeping the sensitive values exact"],
+      options: ["Knowledge distillation with pruning, training a smaller student network that mimics the quantized teacher's behavior while inheriting its sparsity pattern", "Dynamic quantization at inference time that adapts the bit width per-token based on the activation magnitudes observed during each forward pass", "Layer fusion and operator merging that combine adjacent linear layers into single operations, reducing the number of quantization boundaries in the compute graph", "Dense-and-sparse decomposition: a low-bit dense representation for the bulk of weights plus a **sparse matrix** storing outlier weights at full precision, keeping the sensitive values exact"],
       correct: 3,
       explanation: "SqueezeLLM decomposes each weight matrix into a dense low-bit component plus a sparse full-precision component for outlier weights. The key insight is that weight sensitivity follows a heavy-tailed distribution — a small number of weights disproportionately affect output quality. By storing these in a sparse matrix (which adds minimal memory overhead due to sparsity), the dense component can be aggressively quantized to 3 or even 2 bits with minimal degradation."
     },
@@ -60,10 +60,10 @@ export const quantizationAssessment = {
       type: "mc",
       question: "BitNet b1.58 uses ternary weights $\\{-1, 0, +1\\}$, meaning each weight requires $\\log_2(3) \\approx 1.58$ bits. Compared to standard float16 models of the same size, BitNet claims:",
       options: [
-        "Identical accuracy with 10x faster inference, due to replacing multiplications with additions/subtractions",
+        "Identical accuracy with 10x faster inference at all model sizes, due to replacing floating-point multiplications with simple additions and subtractions",
         "Matching perplexity at the same parameter count starting from ~3B parameters, with matrix multiplications reduced to additions since $w \\in \\{-1, 0, 1\\}$ eliminates the need for floating-point multiply hardware",
-        "Better accuracy because ternary weights act as regularization",
-        "Worse accuracy but 100x memory savings"
+        "Better accuracy than float16 models because ternary weights act as strong regularization that prevents overfitting to noise in the training data",
+        "Worse accuracy at all scales but 100x memory savings, making it useful only for deployment on extremely memory-constrained edge devices"
       ],
       correct: 1,
       explanation: "With ternary weights, the matrix-vector product $y = Wx$ becomes pure additions and subtractions (multiply by 1, -1, or skip for 0). This eliminates the most expensive operation in inference — floating-point multiplication — and enables dramatically simpler hardware. BitNet b1.58 reports matching LLaMA-equivalent perplexity starting around 3B parameters, suggesting that extreme quantization is viable if applied from the start of training (QAT-style) rather than post-hoc."
@@ -86,10 +86,10 @@ export const quantizationAssessment = {
       type: "mc",
       question: "A researcher quantizes a 70B model to 2-bit weights and observes catastrophic perplexity degradation. Which approach is LEAST likely to help recover quality?",
       options: [
-        "Using a larger calibration dataset for GPTQ",
-        "Switching to mixed-precision with sensitive layers at 4-bit",
-        "Adding LoRA adapters trained on a small dataset after quantization (QLoRA-style)",
-        "Increasing the batch size during inference"
+        "Using a larger and more diverse calibration dataset for GPTQ to improve the Hessian estimates used during weight quantization",
+        "Switching to mixed-precision with sensitive layers at 4-bit to protect the most critical weight matrices from extreme quantization",
+        "Adding LoRA adapters trained on a small dataset after quantization (QLoRA-style) to compensate for quantization-induced representation errors",
+        "Increasing the batch size during inference to average out the per-sample noise introduced by the aggressive 2-bit weight quantization"
       ],
       correct: 3,
       explanation: "Increasing batch size affects throughput but does not change the model's weights or predictions — it cannot recover quality lost to quantization. The other three approaches directly address quantization error: better calibration data improves Hessian estimates in GPTQ, mixed-precision protects sensitive layers, and QLoRA fine-tunes low-rank adapters in float16 on top of quantized weights to compensate for quantization-induced errors. At 2-bit, combining multiple recovery strategies is typically necessary."
@@ -142,7 +142,7 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "Speculative decoding uses a small **draft model** to generate $K$ candidate tokens, then the large **target model** verifies them in a single forward pass. A key theoretical guarantee is:",
-      options: ["The output quality matches the draft model", "The draft model must share the same vocabulary as the target model but not vice versa", "The method only works with greedy decoding", "The output distribution is **mathematically identical** to sampling from the target model alone — the draft model only affects speed, not the distribution of generated text"],
+      options: ["The output quality matches the draft model since accepted tokens come from the draft model's distribution rather than the target's", "The draft model must share the same vocabulary as the target model but the target can have additional tokens beyond the shared set", "The method only works with greedy decoding because the acceptance criterion requires deterministic token selection at each step", "The output distribution is **mathematically identical** to sampling from the target model alone — the draft model only affects speed, not the distribution of generated text"],
       correct: 3,
       explanation: "Speculative decoding uses a rejection sampling scheme: each draft token is accepted with probability $\\min(1, \\frac{p_{\\text{target}}(x)}{p_{\\text{draft}}(x)})$. If rejected, a corrected token is sampled from a modified distribution. This guarantees the final output follows the exact target model distribution. The speedup comes from the fact that the target model can verify $K$ tokens in parallel (one forward pass), while generating them autoregressively would require $K$ passes. Typical speedups are 2-3x."
     },
@@ -161,21 +161,21 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "Continuous batching (also called iteration-level or in-flight batching) differs from static batching by:",
-      options: ["Allowing new requests to **join the batch as soon as any request finishes**, rather than waiting for all requests in the batch to complete — this eliminates idle GPU cycles from padding shorter sequences", "Using larger batch sizes", "Processing requests one at a time for lower latency", "Batching only the prefill phase, not decoding"],
+      options: ["Allowing new requests to **join the batch as soon as any request finishes**, rather than waiting for all requests in the batch to complete — this eliminates idle GPU cycles from padding shorter sequences", "Using larger batch sizes by accumulating more requests before starting any processing, trading latency for higher total throughput", "Processing requests one at a time for lower per-request latency, eliminating the overhead of batch coordination and padding", "Batching only the prefill phase while processing the decode phase sequentially, since prefill benefits more from parallelism"],
       correct: 0,
       explanation: "In static batching, all requests in a batch must complete before new ones are admitted. Since requests have variable output lengths, short-output requests finish early and their GPU resources sit idle. Continuous batching inserts new requests at each iteration, maintaining high GPU utilization. This can improve throughput by 2-5x over static batching. vLLM, TensorRT-LLM, and SGLang all implement continuous batching as a core feature."
     },
     {
       type: "mc",
       question: "Prefix caching (also called prompt caching) accelerates serving by:",
-      options: ["Caching the final output tokens for common prompts", "Caching the model weights for faster loading", "Storing the **computed KV-cache for shared prompt prefixes** (e.g., system prompts) so that multiple requests sharing the same prefix skip the redundant prefill computation", "Pre-computing all possible outputs for short prompts"],
+      options: ["Caching the final output tokens for common prompts so that repeated queries return the same precomputed response without any model execution", "Caching the model weights in faster memory tiers for rapid loading, reducing the cold-start latency when serving the first request", "Storing the **computed KV-cache for shared prompt prefixes** (e.g., system prompts) so that multiple requests sharing the same prefix skip the redundant prefill computation", "Pre-computing all possible outputs for short prompts by enumerating the most likely continuations and storing them in a lookup table"],
       correct: 2,
       explanation: "Many serving scenarios involve repeated prefixes: system prompts in chat APIs, few-shot examples, or shared document contexts. Prefix caching computes the KV-cache for the shared prefix once and reuses it across requests. For a 2K system prompt with a 70B model, this saves ~2K tokens of prefill computation per request. RadixAttention (SGLang) extends this with a radix tree to efficiently share arbitrary prefix subtrees across concurrent requests."
     },
     {
       type: "mc",
       question: "Multi-Query Attention (MQA) and Grouped-Query Attention (GQA) reduce the KV-cache size by:",
-      options: ["Using fewer transformer layers", "Only caching every other layer", "Quantizing the KV-cache to 4-bit", "Reducing the number of distinct K and V heads — MQA uses a **single** KV head shared across all query heads, while GQA uses $G$ KV head groups (where $1 < G < H$), reducing cache by a factor of $H/G$"],
+      options: ["Using fewer transformer layers in the model architecture, which proportionally reduces the number of KV entries that must be stored per token", "Only caching every other layer's KV pairs and recomputing the skipped layers on the fly during each decode step to save memory", "Quantizing the KV-cache to 4-bit precision, reducing each stored entry's footprint by 4x compared to the standard float16 representation", "Reducing the number of distinct K and V heads — MQA uses a **single** KV head shared across all query heads, while GQA uses $G$ KV head groups (where $1 < G < H$), reducing cache by a factor of $H/G$"],
       correct: 3,
       explanation: "Standard multi-head attention has $H$ distinct K,V projections. MQA collapses these to 1 shared K,V head (cache reduced by $H\\times$). GQA uses $G$ groups, each serving $H/G$ query heads (cache reduced by $H/G\\times$). For example, LLaMA-2 70B uses GQA with 8 KV heads for 64 query heads, reducing KV-cache by $8\\times$. This is critical for long-context serving: the 128K KV-cache drops from ~21 GB to ~2.6 GB."
     },
@@ -215,14 +215,14 @@ export const servingAssessment = {
     {
       type: "mc",
       question: "The prefill phase (processing the input prompt) and the decode phase (generating output tokens) have fundamentally different computational profiles:",
-      options: ["Both phases are memory-bandwidth-bound", "Prefill is memory-bound while decode is compute-bound", "Prefill is **compute-bound** (large matrix-matrix multiplications over all prompt tokens in parallel) while decode is **memory-bandwidth-bound** (matrix-vector products generating one token at a time)", "Both phases are compute-bound but decode uses more FLOPs"],
+      options: ["Both phases are memory-bandwidth-bound, since loading model weights from HBM dominates the latency regardless of the number of input tokens", "Prefill is memory-bandwidth-bound while decode is compute-bound, because generating each new token requires full recomputation of the attention matrix", "Prefill is **compute-bound** (large matrix-matrix multiplications over all prompt tokens in parallel) while decode is **memory-bandwidth-bound** (matrix-vector products generating one token at a time)", "Both phases are compute-bound but decode uses more FLOPs per token because it must attend to the entire accumulated KV-cache at each generation step"],
       correct: 2,
       explanation: "Prefill processes all $N$ prompt tokens simultaneously: the main operations are matrix-matrix multiplies $Y = XW$ where $X \\in \\mathbb{R}^{N \\times d}$. This has high arithmetic intensity ($\\sim 2N$ FLOPs/byte) and saturates GPU compute. Decode generates one token at a time: matrix-vector multiplies $y = Wx$ with arithmetic intensity $\\sim 2$ FLOPs/byte, bottlenecked by weight-loading bandwidth. This asymmetry is the key insight driving disaggregated inference architectures."
     },
     {
       type: "mc",
       question: "Disaggregated inference (as in systems like Splitwise or DistServe) separates prefill and decode into different GPU pools because:",
-      options: ["Prefill and decode require different model architectures", "It simplifies the codebase", "Decode requires more GPU memory than prefill", "Co-locating them causes **interference** — long prefills block decode steps (increasing time-to-first-token), and decode's low utilization wastes compute-optimized GPUs; separating them allows hardware-specific optimization for each phase"],
+      options: ["Prefill and decode require different model architectures, with prefill using an encoder and decode using a separate autoregressive decoder", "It simplifies the codebase by isolating the two code paths, making each independently testable and deployable without cross-phase interactions", "Decode requires significantly more GPU memory than prefill due to the growing KV-cache, so it needs dedicated high-memory GPUs while prefill can use cheaper ones", "Co-locating them causes **interference** — long prefills block decode steps (increasing time-to-first-token), and decode's low utilization wastes compute-optimized GPUs; separating them allows hardware-specific optimization for each phase"],
       correct: 3,
       explanation: "When prefill and decode share GPUs, a long prefill (e.g., 100K context) stalls all concurrent decode iterations, creating latency spikes. Disaggregation assigns prefill to compute-optimized GPUs (maximizing FLOPs) and decode to bandwidth-optimized or cheaper GPUs (where memory bandwidth is the bottleneck). The KV-cache is transferred between pools after prefill. This can reduce P99 time-to-first-token by 2-5x while improving overall throughput."
     },
@@ -230,10 +230,10 @@ export const servingAssessment = {
       type: "mc",
       question: "When serving multiple LoRA adapters from a single base model, the primary challenge is:",
       options: [
-        "LoRA adapters are too large to fit in GPU memory",
+        "LoRA adapters are too large to fit in GPU memory alongside the base model, since each adapter's low-rank matrices add substantial overhead when serving many adapters",
         "Requests using different adapters cannot be efficiently batched together because each requires a **different low-rank weight delta** $\\Delta W = BA$ — naive batching requires separate GEMM calls per adapter, destroying throughput",
-        "LoRA adapters change the model's vocabulary",
-        "Each adapter requires a separate KV-cache"
+        "LoRA adapters change the model's vocabulary by adding task-specific tokens, creating incompatible tokenizations across requests using different adapters in the same batch",
+        "Each adapter requires a separate KV-cache because the modified attention weights produce different key-value representations that cannot be shared across adapter variants"
       ],
       correct: 1,
       explanation: "The base model computation $y = Wx$ is shared, but each LoRA adapter adds a different $\\Delta W_i x = B_i A_i x$. In a batch with $K$ different adapters, naive implementation requires $K$ separate GEMM operations for the LoRA components. Solutions include: S-LoRA's custom CUDA kernels for batched irregular GEMMs, Punica's SGMV (segmented gather matrix-vector) kernel, and padding/grouping strategies that batch requests by adapter. The KV-cache is shared since the base attention structure is identical."
@@ -241,7 +241,7 @@ export const servingAssessment = {
     {
       type: "mc",
       question: "The NVIDIA H100 SXM offers ~3.35 TB/s HBM3 bandwidth vs the A100 SXM's ~2.0 TB/s HBM2e. For **decode-phase** serving (memory-bandwidth-bound), switching from A100 to H100 provides approximately:",
-      options: ["~1.67x speedup — decode is bandwidth-bound, so the improvement tracks the bandwidth ratio $3.35/2.0 \\approx 1.67$, not the compute ratio", "~4x speedup due to the H100's higher FP16 FLOPS (990 TFLOPS vs 312 TFLOPS)", "No improvement — the models are identical", "~10x speedup from the Transformer Engine"],
+      options: ["~1.67x speedup — decode is bandwidth-bound, so the improvement tracks the bandwidth ratio $3.35/2.0 \\approx 1.67$, not the compute ratio", "~4x speedup due to the H100's higher FP16 FLOPS (990 TFLOPS vs 312 TFLOPS), which directly translates to faster matrix-vector products", "No improvement — the decode bottleneck is the same on both GPUs since the model weights and KV-cache sizes are hardware-independent", "~10x speedup from the Transformer Engine's specialized hardware blocks that are specifically designed for autoregressive token generation"],
       correct: 0,
       explanation: "Since decode is bottlenecked by memory bandwidth (loading model weights for matrix-vector products), the speedup is determined by the HBM bandwidth ratio, not the FLOPS ratio. The H100's ~3.35 TB/s vs A100's ~2.0 TB/s gives ~1.67x decode throughput. The H100's massive compute advantage (3.2x in FP16, even more with FP8) primarily benefits the compute-bound prefill phase. This is why hardware selection for inference depends critically on the workload mix."
     },
