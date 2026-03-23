@@ -261,9 +261,9 @@ export const entropyHard = {
       type: "mc",
       question: "With label smoothing $\\alpha = 0.1$ and vocabulary size $K = 50000$, what is the approximate optimal logit gap between the correct and incorrect classes?",
       options: [
-        "$\\log(\\alpha \\cdot K) = \\log(0.1 \\times 50000) \\approx 8.5$",
+        "$\\log(\\alpha \\cdot K) = \\log(0.1 \\times 50000) = \\log(5000) \\approx 8.5$",
         "$\\log((1-\\alpha) \\cdot K / \\alpha) = \\log(0.9 \\times 50000 / 0.1) = \\log(450000) \\approx 13.0$",
-        "$\\log(K) = \\log(50000) \\approx 10.8$",
+        "$\\log(K) = \\log(50000) \\approx 10.8$, independent of $\\alpha$",
         "$\\log((1-\\alpha)/\\alpha) = \\log(0.9 / 0.1) = \\log(9) \\approx 2.2$"
       ],
       correct: 1,

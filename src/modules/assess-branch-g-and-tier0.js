@@ -237,9 +237,9 @@ export const hardwareAwareAssessment = {
       question: "On an NVIDIA A100 GPU, SRAM (shared memory per SM) is approximately 192 KB, while HBM capacity is 80 GB with 2 TB/s bandwidth. Why does FlashAttention's use of SRAM provide such a large speedup despite SRAM being much smaller?",
       options: [
         "SRAM has approximately 19 TB/s aggregate bandwidth across all SMs, roughly 10x more than HBM, so tiling computations to reuse data in SRAM dramatically reduces the memory bottleneck for bandwidth-bound operations like attention",
-        "SRAM uses a fundamentally different data format that allows 4x compression",
-        "SRAM allows the GPU to skip the softmax computation entirely",
-        "SRAM is only faster because it avoids the overhead of virtual memory translation"
+        "SRAM uses a fundamentally different fixed-point data format that allows 4x compression of attention scores compared to HBM's floating-point representation, reducing the total data volume that must be processed per attention head",
+        "SRAM allows the GPU to bypass the softmax normalization by using a hardware-accelerated approximate exponential unit that directly computes attention weights without the costly division and exponentiation steps needed in HBM-based implementations",
+        "SRAM is only faster because it avoids the TLB (Translation Lookaside Buffer) misses and virtual memory page faults that occur during HBM accesses, reducing the per-access latency without changing the total number of bytes transferred"
       ],
       correct: 0,
       explanation: "A100 has 108 SMs, each with 192 KB of shared memory, totaling about 20 MB of SRAM with aggregate bandwidth around 19 TB/s (each SM can access its SRAM at ~180 GB/s). HBM has 2 TB/s bandwidth but is shared across all operations. By tiling Q, K, V blocks into SRAM, FlashAttention ensures that the expensive dot products and softmax computations read from fast SRAM rather than slow HBM. The key is data reuse: each block of K/V loaded into SRAM is used for all computations against the corresponding Q block before moving to the next tile."
@@ -248,10 +248,10 @@ export const hardwareAwareAssessment = {
       type: "mc",
       question: "Triton is a Python-based language for writing GPU kernels. What is its primary advantage over writing CUDA kernels directly for ML researchers?",
       options: [
-        "Triton kernels run faster than hand-optimized CUDA because Triton uses a superior compilation strategy",
+        "Triton kernels run faster than hand-optimized CUDA because Triton's MLIR-based compiler applies superoptimization passes that exhaustively search the space of instruction orderings, finding schedules that human engineers miss even with expert-level knowledge of GPU microarchitecture",
         "Triton operates at the block level rather than the thread level: the programmer specifies operations on blocks (tiles) of data, and the Triton compiler handles thread scheduling, shared memory management, and memory coalescing automatically, dramatically reducing the expertise needed to write efficient GPU code",
-        "Triton is a pure Python library that interprets kernels at runtime without compilation",
-        "Triton only works on AMD GPUs and is needed because CUDA is NVIDIA-exclusive"
+        "Triton is a pure Python library that interprets kernel definitions at runtime without any compilation step, using NumPy-style dispatch to route block-level operations to pre-built GPU primitives that are bundled with the Triton package for each supported architecture",
+        "Triton only works on AMD GPUs via the ROCm stack and exists because CUDA is exclusive to NVIDIA hardware, providing a necessary alternative for researchers who need to write custom kernels on AMD Instinct accelerators without access to NVIDIA's proprietary toolchain"
       ],
       correct: 1,
       explanation: "CUDA programming requires managing threads within warps, explicit shared memory allocation and synchronization via `__syncthreads()`, memory coalescing patterns, and occupancy optimization — demanding deep hardware expertise. Triton abstracts this: the programmer writes code that operates on `tl.load()` / `tl.store()` blocks of data with `tl.dot()` for matrix operations, and the compiler automatically handles the thread-level decomposition, SRAM allocation, and memory access optimization. This makes writing fused kernels (e.g., fused attention, fused LayerNorm + activation) accessible to ML researchers."
