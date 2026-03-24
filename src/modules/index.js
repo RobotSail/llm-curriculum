@@ -17,7 +17,26 @@ import { quantizationAssessment, decodingAssessment, servingAssessment, compress
 import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
 import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
-import { muonOptimizerLearning, onlineRlLlmLearning, rlSubnetworksLearning, muonVsAdamLearning } from './muon-rl-placeholders';
+
+// Focused first-principles modules
+import { forwardKLLearning, reverseKLLearning } from './focused-kl-divergence';
+import { adamAdamwLearning } from './focused-adam-optimizer';
+import { muonOptimizerFundamentals } from './muon-optimizer-fundamentals';
+import { policyGradientsLearning } from './focused-policy-gradients';
+import { ppoMechanicsLearning } from './focused-ppo';
+import { onOffPolicyLearning } from './focused-on-off-policy';
+
+// TBD placeholder modules
+import {
+  matrixNormsLearning,
+  steepestDescentNormsLearning,
+  newtonSchulzLearning,
+  plasticityForgettingLearning,
+  muonAtScaleLearning,
+  muonVsAdamLearning,
+  rlSubnetworksLearning,
+  onlineRlLlmLearning,
+} from './muon-rl-placeholders';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -29,29 +48,32 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [linAlgEasy, linAlgMedium, linAlgHard],
-  "0.3": [optimizationAssessment, muonOptimizerLearning],
+  "0.1": [linAlgEasy, linAlgMedium, linAlgHard, matrixNormsLearning],
+  "0.3": [optimizationAssessment, adamAdamwLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
     // 1. Foundations — gauge starting level
     probabilityFoundationsAssessment,
-    // 2. Entropy & cross-entropy — the core of LLM training
+    // 2. KL divergence from first principles
+    forwardKLLearning,
+    reverseKLLearning,
+    // 3. Entropy & cross-entropy — the core of LLM training
     entropyEasy,
     entropyAssessment,
-    // 3. Divergences — KL, JS, f-divergences
+    // 4. Divergences — KL, JS, f-divergences
     easyModule,
     divergencesAssessment,
-    // 4. Intermediate — IS variance, GANs, MI
+    // 5. Intermediate — IS variance, GANs, MI
     entropyMedium,
     mediumModule,
-    // 5. Bayesian & sampling methods
+    // 6. Bayesian & sampling methods
     bayesianAssessment,
     samplingAssessment,
-    // 6. Advanced — variational bounds, label smoothing, calibration
+    // 7. Advanced — variational bounds, label smoothing, calibration
     entropyHard,
     hardModule,
     appliedInfoTheoryAssessment,
-    // 7. Optional deep theory
+    // 8. Optional deep theory
     ...markOptional(exponentialFamilyAssessment),
     ...markOptional(concentrationAssessment),
   ],
@@ -67,7 +89,7 @@ export const MODULES = {
   // Branch A — Post-training & alignment
   "A.1": [sftAssessment],
   "A.2": [rewardModelingAssessment],
-  "A.3": [rlhfAssessment, onlineRlLlmLearning, rlSubnetworksLearning],
+  "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning, plasticityForgettingLearning, onlineRlLlmLearning, rlSubnetworksLearning],
   "A.4": [directAlignmentAssessment],
   "A.5": [frontierAlignmentAssessment],
 
@@ -75,7 +97,7 @@ export const MODULES = {
   "B.1": [scalingLawsAssessment],
   "B.2": [architectureAssessment],
   "B.3": [dataCentricAssessment],
-  "B.4": [trainingDynamicsAssessment, muonVsAdamLearning],
+  "B.4": [trainingDynamicsAssessment, muonVsAdamLearning, muonAtScaleLearning],
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment

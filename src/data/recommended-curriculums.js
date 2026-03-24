@@ -18,116 +18,144 @@ export const RECOMMENDED_CURRICULUMS = [
   {
     id: "muon-rl",
     title: "Muon Optimizer in RL for LLMs",
-    description: "A focused study path for understanding the Muon optimizer and its application in reinforcement learning fine-tuning of large language models. Covers the mathematical foundations (spectral methods, divergences), core ML concepts (transformers, pretraining, RLHF), and specialized topics (Muon internals, online RL plasticity, subnetwork analysis).",
+    description: "A focused, first-principles study path for understanding the Muon optimizer and its application in reinforcement learning fine-tuning of large language models. Builds up from matrix norms and KL divergence through optimizer internals and RL mechanics to the cutting-edge research on Muon vs AdamW in RL settings.",
     color: "#8B5CF6",
     items: [
-      // === Phase 1: Mathematical Foundations ===
+      // === Phase 1: Linear Algebra Foundations ===
+      {
+        moduleId: "0.1-norms-learning-easy",
+        phase: "Linear Algebra Foundations",
+        note: "Matrix norms (Frobenius, spectral, nuclear) define what 'small update' means for an optimizer. Muon uses spectral norm; Adam implicitly uses element-wise norms.",
+        tbd: true
+      },
       {
         moduleId: "0.1-easy",
-        phase: "Mathematical Foundations",
-        note: "Eigenvalues, SVD, and spectral norms are the language of Muon's update rule — it performs steepest descent under the spectral norm."
+        phase: "Linear Algebra Foundations",
+        note: "SVD, eigenvalues, and spectral decomposition — the language of Muon's update rule and the basis for understanding singular value dynamics."
       },
       {
         moduleId: "0.1-medium",
-        phase: "Mathematical Foundations",
-        note: "Matrix calculus and low-rank structure. Muon's Newton-Schulz iteration operates on gradient matrices; understanding Jacobians and the Eckart-Young theorem helps."
+        phase: "Linear Algebra Foundations",
+        note: "Matrix calculus and low-rank structure. Muon's Newton-Schulz iteration operates on gradient matrices; Jacobians and Eckart-Young theorem provide context."
+      },
+
+      // === Phase 2: Information Theory for RL ===
+      {
+        moduleId: "0.2-forward-kl-learning-easy",
+        phase: "Information Theory for RL",
+        note: "Forward KL divergence — mode-covering behavior. Standard pretraining (cross-entropy) minimizes forward KL. Understanding this direction is prerequisite for reverse KL."
       },
       {
-        moduleId: "0.1-hard",
-        phase: "Mathematical Foundations",
-        note: "Advanced linear algebra rounds out the foundation for understanding spectral methods in optimization."
-      },
-      {
-        moduleId: "0.3-assess",
-        phase: "Mathematical Foundations",
-        note: "Assess your understanding of optimization theory — Adam, SGD, momentum, second-order methods. This is the baseline before diving into Muon."
-      },
-      {
-        moduleId: "0.2-entropy-easy",
-        phase: "Mathematical Foundations",
-        note: "Entropy and cross-entropy underpin LLM training losses and the KL divergence terms in RL objectives."
-      },
-      {
-        moduleId: "0.2-easy",
-        phase: "Mathematical Foundations",
-        note: "KL divergence asymmetry and mode-covering vs mode-seeking behavior directly affect RLHF training — understanding f-divergences is critical."
+        moduleId: "0.2-reverse-kl-learning-easy",
+        phase: "Information Theory for RL",
+        note: "Reverse KL divergence — mode-seeking behavior. The RLHF KL penalty is reverse KL. This module covers why it prevents reward hacking and how β controls the constraint."
       },
       {
         moduleId: "0.2-assess-divergences",
-        phase: "Mathematical Foundations",
-        note: "Test your divergence knowledge. Forward vs reverse KL appears in every RLHF paper."
+        phase: "Information Theory for RL",
+        note: "Test your understanding of KL divergence, JS divergence, and f-divergences. These appear throughout RL fine-tuning objectives."
       },
 
-      // === Phase 2: Core LLM Knowledge ===
+      // === Phase 3: Optimization Prerequisites ===
       {
-        moduleId: "1.1-assess",
-        phase: "Core LLM Knowledge",
-        note: "Transformer architecture knowledge is essential — RL fine-tuning and Muon both operate on transformer weight matrices."
+        moduleId: "0.3-adam-learning-easy",
+        phase: "Optimization Prerequisites",
+        note: "Adam & AdamW from first principles: momentum, adaptive learning rates, weight decay. You need to deeply understand Adam before you can appreciate what Muon does differently."
       },
       {
-        moduleId: "1.3-assess",
-        phase: "Core LLM Knowledge",
-        note: "Pretraining dynamics context: how models learn during pretraining sets the stage for understanding what RL fine-tuning changes."
+        moduleId: "0.3-assess",
+        phase: "Optimization Prerequisites",
+        note: "Assess your optimization theory baseline — SGD, momentum, second-order methods, convergence. Identify gaps before diving into Muon."
       },
       {
-        moduleId: "B.1-assess",
-        phase: "Core LLM Knowledge",
-        note: "Scaling laws matter because Muon's scalability claims need to be understood in the context of compute-optimal training."
+        moduleId: "0.3-steepest-descent-learning-medium",
+        phase: "Optimization Prerequisites",
+        note: "Steepest descent under different norms: Frobenius → gradient descent, spectral → Muon, element-wise ℓ∞ → SignSGD/Adam. This is the conceptual bridge to Muon.",
+        tbd: true
       },
       {
-        moduleId: "B.4-assess",
-        phase: "Core LLM Knowledge",
-        note: "Training stability and dynamics: loss landscapes, gradient flow, and how optimizer choice affects convergence."
+        moduleId: "0.3-newton-schulz-learning-medium",
+        phase: "Optimization Prerequisites",
+        note: "Newton-Schulz iteration — the computational trick that makes Muon practical. Approximate matrix orthogonalization using only matrix multiplications.",
+        tbd: true
       },
 
-      // === Phase 3: Muon Optimizer Deep Dive ===
+      // === Phase 4: The Muon Optimizer ===
       {
         moduleId: "0.3-muon-learning-easy",
-        phase: "Muon Optimizer Deep Dive",
-        note: "Muon fundamentals: Newton-Schulz iteration, spectral steepest descent, relationship to Shampoo/SOAP.",
-        tbd: true
+        phase: "The Muon Optimizer",
+        note: "Muon fundamentals: spectral steepest descent, Newton-Schulz orthogonalization, relationship to Shampoo/SOAP, per-layer normalization, memory and compute costs."
       },
       {
         moduleId: "B.4-muon-vs-adam-learning-hard",
-        phase: "Muon Optimizer Deep Dive",
-        note: "Deep comparison of Muon vs AdamW: spectral properties, tail-end associative memory learning, and when each optimizer wins.",
+        phase: "The Muon Optimizer",
+        note: "Deep comparison of Muon vs AdamW: singular value dynamics, tail-end associative memory learning, and when each optimizer wins.",
+        tbd: true
+      },
+      {
+        moduleId: "B.4-muon-scale-learning-hard",
+        phase: "The Muon Optimizer",
+        note: "Muon at scale: distributed training all-reduce patterns, tensor parallelism interaction, scaling curves vs AdamW at matched compute.",
         tbd: true
       },
 
-      // === Phase 4: RL Fine-Tuning ===
+      // === Phase 5: RL Fine-Tuning Mechanics ===
+      {
+        moduleId: "A.3-policy-gradients-learning-easy",
+        phase: "RL Fine-Tuning Mechanics",
+        note: "Policy gradients from first principles: REINFORCE, the log-probability trick, baselines, variance reduction. The foundation for understanding PPO."
+      },
+      {
+        moduleId: "A.3-ppo-learning-medium",
+        phase: "RL Fine-Tuning Mechanics",
+        note: "PPO mechanics: trust regions, the clipped surrogate objective, the LLM training loop, and how clipping interacts with optimizer behavior."
+      },
       {
         moduleId: "A.2-assess",
-        phase: "RL Fine-Tuning",
-        note: "Reward modeling is the foundation of RLHF — understanding reward model training is prerequisite for RL policy optimization."
+        phase: "RL Fine-Tuning Mechanics",
+        note: "Reward modeling assessment — understanding how reward models are trained and their failure modes is prerequisite for RLHF."
       },
       {
         moduleId: "A.3-assess",
-        phase: "RL Fine-Tuning",
-        note: "Core RLHF and policy optimization: PPO, KL penalties, reward hacking — the setting where Muon is being applied."
+        phase: "RL Fine-Tuning Mechanics",
+        note: "Full RLHF assessment: PPO, KL penalties, reward hacking, alignment. Gauge your readiness before the advanced RL topics."
+      },
+
+      // === Phase 6: On-Policy vs Off-Policy & Forgetting ===
+      {
+        moduleId: "A.3-on-off-policy-learning-medium",
+        phase: "On-Policy vs Off-Policy & Forgetting",
+        note: "The on-policy vs off-policy distinction — the single most important concept for understanding why online RL and DPO behave so differently."
+      },
+      {
+        moduleId: "A.3-plasticity-learning-medium",
+        phase: "On-Policy vs Off-Policy & Forgetting",
+        note: "Plasticity and catastrophic forgetting: feature rank collapse, dead units, weight norm growth. Why fine-tuning degrades pretrained capabilities.",
+        tbd: true
       },
       {
         moduleId: "A.3-online-rl-learning-medium",
-        phase: "RL Fine-Tuning",
-        note: "Online RL for LLMs: why on-policy methods forget less (RL's Razor), plasticity preservation, and implications for optimizer selection.",
+        phase: "On-Policy vs Off-Policy & Forgetting",
+        note: "RL's Razor: why online RL forgets less. Self-consistency of on-policy data, the off-policy feedback loop, and interaction with optimizer choice.",
         tbd: true
       },
       {
         moduleId: "A.3-rl-subnets-learning-medium",
-        phase: "RL Fine-Tuning",
-        note: "How RL fine-tuning targets small subnetworks in LLMs — sparse update patterns and what this means for Muon vs Adam.",
+        phase: "On-Policy vs Off-Policy & Forgetting",
+        note: "RL fine-tuning modifies sparse subnetworks — 3-10% of parameters carry 90%+ of weight change. Implications for optimizer and PEFT method selection.",
         tbd: true
       },
 
-      // === Phase 5: Scaling & Infrastructure ===
+      // === Phase 7: Infrastructure ===
       {
         moduleId: "1.6-assess",
-        phase: "Scaling & Infrastructure",
-        note: "Distributed training fundamentals: Muon requires all-reduce of full gradient matrices, making distributed strategy important."
+        phase: "Infrastructure",
+        note: "Distributed training fundamentals: Muon requires all-reduce of full gradient matrices before orthogonalization, making distributed strategy important."
       },
       {
         moduleId: "G.2-assess",
-        phase: "Scaling & Infrastructure",
-        note: "Memory-efficient training: Muon's memory footprint differs from Adam's — understanding gradient checkpointing and mixed precision matters."
+        phase: "Infrastructure",
+        note: "Memory-efficient training: Muon's reduced optimizer state vs Adam's two-buffer overhead. Gradient checkpointing and mixed-precision considerations."
       },
     ]
   },
