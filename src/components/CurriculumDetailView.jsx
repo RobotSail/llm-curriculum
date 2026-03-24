@@ -28,24 +28,24 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
   }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1600,display:'flex',justifyContent:'center',alignItems:'flex-start',overflow:'auto'}}>
-      <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)'}}/>
-      <div style={{position:'relative',maxWidth:640,width:'100%',margin:'48px 16px',paddingBottom:'48px'}}>
+    <div style={{position:'fixed',inset:0,zIndex:2000,display:'flex',justifyContent:'center',alignItems:'flex-start'}}>
+      <div onClick={onClose} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.4)'}}/>
+      <div style={{position:'relative',background:'var(--color-background-primary)',borderRadius:'var(--border-radius-lg)',maxWidth:600,width:'100%',margin:'48px 16px',maxHeight:'calc(100vh - 96px)',overflow:'auto',border:'0.5px solid var(--color-border-tertiary)',padding:'24px'}}>
         {/* Header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-            <div style={{width:10,height:10,borderRadius:'50%',background:curriculum.color,flexShrink:0,marginTop:3}}/>
-            <h2 style={{fontSize:18,fontWeight:600,margin:0,color:'var(--color-text-primary)'}}>{curriculum.title}</h2>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{width:8,height:8,borderRadius:'50%',background:curriculum.color,flexShrink:0,marginTop:3}}/>
+            <h2 style={{fontSize:16,fontWeight:600,margin:0,color:'var(--color-text-primary)'}}>{curriculum.title}</h2>
           </div>
-          <button onClick={onClose} style={{background:'transparent',border:'none',fontSize:22,cursor:'pointer',color:'var(--color-text-tertiary)',fontFamily:'inherit',padding:'0 4px',flexShrink:0}}>&times;</button>
+          <button onClick={onClose} style={{background:'transparent',border:'none',fontSize:20,cursor:'pointer',color:'var(--color-text-tertiary)',fontFamily:'inherit',padding:'0 4px',flexShrink:0}}>&times;</button>
         </div>
 
-        <p style={{fontSize:12,color:'var(--color-text-secondary)',lineHeight:1.5,marginBottom:'16px',marginLeft:20}}>
+        <p style={{fontSize:11,color:'var(--color-text-tertiary)',lineHeight:1.5,marginBottom:'16px',marginLeft:16}}>
           {curriculum.description}
         </p>
 
         {/* Progress bar */}
-        <div style={{marginLeft:20,marginBottom:'24px'}}>
+        <div style={{marginBottom:'20px'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
             <span style={{fontSize:12,color:'var(--color-text-secondary)'}}>
               {completedCount} of {items.length} modules completed
@@ -59,11 +59,11 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
 
         {/* Module list grouped by phase */}
         {phases.map((phase, pi) => (
-          <div key={pi} style={{marginBottom:'20px'}}>
-            <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:curriculum.color,marginBottom:'10px',marginLeft:20}}>
+          <div key={pi} style={{marginBottom:'16px'}}>
+            <div style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:curriculum.color,marginBottom:'8px'}}>
               {phase.name}
             </div>
-            {phase.items.map((item, idx) => {
+            {phase.items.map((item) => {
               const mod = lookup[item.moduleId];
               const isTbd = item.tbd || !mod;
               const isCompleted = !isTbd && progress[item.moduleId]?.completed;
@@ -77,17 +77,16 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
                     if (!isTbd && mod) onOpenModule(mod);
                   }}
                   style={{
-                    display:'flex',gap:'12px',
+                    display:'flex',gap:'10px',
                     cursor: isTbd ? 'default' : 'pointer',
                     opacity: isTbd ? 0.5 : 1,
-                    marginLeft:20,
                   }}
                 >
                   {/* Step indicator + connecting line */}
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:24,flexShrink:0}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:22,flexShrink:0}}>
                     <div style={{
-                      width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
-                      fontSize:11,fontWeight:600,flexShrink:0,
+                      width:20,height:20,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:10,fontWeight:600,flexShrink:0,
                       background: isCompleted ? curriculum.color : 'var(--color-background-secondary)',
                       color: isCompleted ? 'white' : 'var(--color-text-tertiary)',
                       border: isCompleted ? 'none' : '1.5px solid var(--color-border-tertiary)',
@@ -95,17 +94,15 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
                       {isCompleted ? '\u2713' : globalIdx + 1}
                     </div>
                     {!isLast && (
-                      <div style={{width:1.5,flex:1,minHeight:12,background:'var(--color-border-tertiary)'}}/>
+                      <div style={{width:1.5,flex:1,minHeight:8,background:'var(--color-border-tertiary)'}}/>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div style={{
-                    flex:1,paddingBottom: isLast ? 0 : '12px',minWidth:0,
-                  }}>
+                  <div style={{flex:1,paddingBottom: isLast ? 0 : '8px',minWidth:0}}>
                     <div style={{
-                      padding:'10px 14px',borderRadius:'var(--border-radius-md)',
-                      background:'var(--color-background-primary)',
+                      padding:'8px 12px',borderRadius:'var(--border-radius-md)',
+                      background:'var(--color-background-secondary)',
                       border: isCompleted
                         ? `1px solid ${curriculum.color}44`
                         : '0.5px solid var(--color-border-tertiary)',
@@ -114,17 +111,17 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
                     onMouseEnter={e => { if (!isTbd) e.currentTarget.style.borderColor = curriculum.color + '88'; }}
                     onMouseLeave={e => { if (!isTbd) e.currentTarget.style.borderColor = isCompleted ? curriculum.color + '44' : 'var(--color-border-tertiary)'; }}
                     >
-                      <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap',marginBottom: item.note ? 4 : 0}}>
-                        <span style={{fontSize:13,fontWeight:500,color:'var(--color-text-primary)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px',flexWrap:'wrap',marginBottom: item.note ? 3 : 0}}>
+                        <span style={{fontSize:12,fontWeight:500,color:'var(--color-text-primary)'}}>
                           {mod ? mod.title : (item.tbd ? item.moduleId.replace(/-/g, ' ') : item.moduleId)}
                         </span>
                         {isTbd && (
-                          <span style={{fontSize:9,fontWeight:600,padding:'1px 6px',borderRadius:3,background:'#6B728018',color:'#6B7280',textTransform:'uppercase',letterSpacing:'0.04em'}}>
+                          <span style={{fontSize:9,fontWeight:600,padding:'1px 5px',borderRadius:3,background:'#6B728018',color:'#6B7280',textTransform:'uppercase',letterSpacing:'0.04em'}}>
                             Coming Soon
                           </span>
                         )}
                         {mod && (
-                          <span style={{fontSize:9,fontWeight:600,padding:'1px 6px',borderRadius:3,
+                          <span style={{fontSize:9,fontWeight:600,padding:'1px 5px',borderRadius:3,
                             background: mod.moduleType === 'learning' ? '#378ADD18' : '#8B5CF618',
                             color: mod.moduleType === 'learning' ? '#378ADD' : '#8B5CF6',
                             textTransform:'uppercase',letterSpacing:'0.04em'
@@ -133,7 +130,7 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
                           </span>
                         )}
                         {mod && mod.difficulty && (
-                          <span style={{fontSize:9,fontWeight:600,padding:'1px 6px',borderRadius:3,
+                          <span style={{fontSize:9,fontWeight:600,padding:'1px 5px',borderRadius:3,
                             background: DIFF_COLORS[mod.difficulty] + '18',
                             color: DIFF_COLORS[mod.difficulty],
                             textTransform:'uppercase',letterSpacing:'0.04em'
@@ -151,7 +148,7 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
                         )}
                       </div>
                       {item.note && (
-                        <MathText as="div" style={{fontSize:11,color:'var(--color-text-tertiary)',lineHeight:1.5}}>
+                        <MathText as="div" style={{fontSize:11,color:'var(--color-text-tertiary)',lineHeight:1.4}}>
                           {item.note}
                         </MathText>
                       )}
