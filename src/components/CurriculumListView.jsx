@@ -7,9 +7,11 @@ export default function CurriculumListView({ onClose, onSelect }) {
   const progress = useMemo(() => getModuleProgress(), []);
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:2000,display:'flex',justifyContent:'center',alignItems:'flex-start'}}>
-      <div onClick={onClose} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.4)'}}/>
-      <div style={{position:'relative',background:'var(--color-background-primary)',borderRadius:'var(--border-radius-lg)',maxWidth:600,width:'100%',margin:'48px 16px',maxHeight:'calc(100vh - 96px)',overflow:'auto',border:'0.5px solid var(--color-border-tertiary)',padding:'24px'}}>
+    <div style={{
+      position: 'fixed', inset: 0, background: 'var(--color-background-primary)',
+      zIndex: 1000, overflowY: 'auto',
+    }}>
+      <div style={{maxWidth:560,margin:'0 auto',padding:'2rem 1rem'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
           <h2 style={{fontSize:16,fontWeight:600,margin:0,color:'var(--color-text-primary)'}}>Recommended Curriculums</h2>
           <button onClick={onClose} style={{background:'transparent',border:'none',fontSize:20,cursor:'pointer',color:'var(--color-text-tertiary)',fontFamily:'inherit',padding:'0 4px'}}>&times;</button>

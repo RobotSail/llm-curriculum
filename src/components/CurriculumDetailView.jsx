@@ -28,9 +28,11 @@ export default function CurriculumDetailView({ curriculum, onClose, onOpenModule
   }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:2000,display:'flex',justifyContent:'center',alignItems:'flex-start'}}>
-      <div onClick={onClose} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.4)'}}/>
-      <div style={{position:'relative',background:'var(--color-background-primary)',borderRadius:'var(--border-radius-lg)',maxWidth:600,width:'100%',margin:'48px 16px',maxHeight:'calc(100vh - 96px)',overflow:'auto',border:'0.5px solid var(--color-border-tertiary)',padding:'24px'}}>
+    <div style={{
+      position: 'fixed', inset: 0, background: 'var(--color-background-primary)',
+      zIndex: 1000, overflowY: 'auto',
+    }}>
+      <div style={{maxWidth:560,margin:'0 auto',padding:'2rem 1rem'}}>
         {/* Header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
