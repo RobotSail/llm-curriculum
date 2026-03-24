@@ -4,6 +4,8 @@ import WarmupView from './components/WarmupView';
 import ReviewView from './components/ReviewView';
 import MathText from './components/MathText';
 import { MODULES } from './modules';
+import CurriculumListView from './components/CurriculumListView';
+import CurriculumDetailView from './components/CurriculumDetailView';
 
 const LAST_VISIT_KEY = 'llm-curriculum-last-visit';
 
@@ -741,6 +743,8 @@ export default function App() {
   });
   const [showGaps, setShowGaps] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [showCurriculums, setShowCurriculums] = useState(false);
+  const [selectedCurriculum, setSelectedCurriculum] = useState(null);
   const [gapsVersion, setGapsVersion] = useState(0);
   const [mistakesVersion, setMistakesVersion] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -899,6 +903,24 @@ export default function App() {
         onClose={() => { setActiveModule(null); setGapsVersion(v => v + 1); setMistakesVersion(v => v + 1); }}
       />
     )}
+    {showCurriculums && !selectedCurriculum && (
+      <CurriculumListView
+        onClose={() => setShowCurriculums(false)}
+        onSelect={(c) => setSelectedCurriculum(c)}
+      />
+    )}
+    {selectedCurriculum && (
+      <CurriculumDetailView
+        curriculum={selectedCurriculum}
+        onClose={() => { setSelectedCurriculum(null); setShowCurriculums(false); }}
+        onOpenModule={(mod) => {
+          const sectionId = mod.sectionId;
+          const prefix = sectionId.match(/^[A-Z]/) ? sectionId[0] : sectionId.split('.')[0];
+          const tier = CURRICULUM.find(t => t.sections.some(s => s.id === sectionId));
+          setActiveModule({ module: mod, tierColor: tier ? tier.color : '#378ADD' });
+        }}
+      />
+    )}
     {showGaps && (
       <div style={{position:'fixed',inset:0,zIndex:2000,display:'flex',justifyContent:'center',alignItems:'flex-start'}}>
         <div onClick={() => setShowGaps(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.4)'}}/>
@@ -1009,6 +1031,13 @@ export default function App() {
             }}>{l}</button>
           ))}
         </div>
+        <button onClick={() => setShowCurriculums(true)} style={{
+          fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
+          border:'1px solid #8B5CF644',background:'#8B5CF608',
+          color:'#8B5CF6',cursor:'pointer',fontFamily:'inherit',
+        }}>
+          Curriculums
+        </button>
         <button onClick={() => setShowWarmup(true)} style={{
           fontSize:'12px',padding:'4px 12px',borderRadius:'var(--border-radius-md)',
           border:'1px solid #378ADD44',background:'#378ADD08',

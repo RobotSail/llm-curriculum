@@ -17,6 +17,7 @@ import { quantizationAssessment, decodingAssessment, servingAssessment, compress
 import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
 import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
+import { muonOptimizerLearning, onlineRlLlmLearning, rlSubnetworksLearning, muonVsAdamLearning } from './muon-rl-placeholders';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -29,7 +30,7 @@ function markOptional(...mods) {
 export const MODULES = {
   // Tier 0 — Prerequisites
   "0.1": [linAlgEasy, linAlgMedium, linAlgHard],
-  "0.3": [optimizationAssessment],
+  "0.3": [optimizationAssessment, muonOptimizerLearning],
   "0.4": [systemsAssessment],
   "0.2": [
     // 1. Foundations — gauge starting level
@@ -66,7 +67,7 @@ export const MODULES = {
   // Branch A — Post-training & alignment
   "A.1": [sftAssessment],
   "A.2": [rewardModelingAssessment],
-  "A.3": [rlhfAssessment],
+  "A.3": [rlhfAssessment, onlineRlLlmLearning, rlSubnetworksLearning],
   "A.4": [directAlignmentAssessment],
   "A.5": [frontierAlignmentAssessment],
 
@@ -74,7 +75,7 @@ export const MODULES = {
   "B.1": [scalingLawsAssessment],
   "B.2": [architectureAssessment],
   "B.3": [dataCentricAssessment],
-  "B.4": [trainingDynamicsAssessment],
+  "B.4": [trainingDynamicsAssessment, muonVsAdamLearning],
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment
