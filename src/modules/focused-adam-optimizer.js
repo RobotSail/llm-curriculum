@@ -53,12 +53,12 @@ export const adamLearning = {
       type: "mc",
       question: "With $\\beta_2 = 0.999$, approximately how many training steps does it take for the second moment bias correction factor $1/(1 - \\beta_2^t)$ to be within 10% of 1?",
       options: [
-        "About 10 steps",
-        "About 100 steps",
         "About 1,000 steps",
+        "About 100 steps",
+        "About 10 steps",
         "About 10,000 steps"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "We need $1/(1 - 0.999^t) < 1.1$, which means $0.999^t < 1/11 \\approx 0.09$. Taking logs: $t \\cdot \\ln(0.999) < \\ln(0.09)$, so $t > \\ln(0.09)/\\ln(0.999) \\approx -2.41 / -0.001 \\approx 2400$. More approximately, the effective window is $1/(1-0.999) = 1000$ steps, and the correction stabilizes around that scale. ~1,000 steps is the right order of magnitude."
     },
     {
@@ -72,10 +72,10 @@ export const adamLearning = {
       options: [
         "$[1, 1, 1, 1]$ — Adam equalizes all singular values since $\\text{sign}$ has uniform magnitude",
         "$[100, 50, 1, 0.01]$ — Adam preserves the original singular value structure",
-        "They depend on the specific entries of $G$, not just its singular values, because Adam operates element-wise",
-        "$[10, 7.1, 1, 0.1]$ — Adam takes the square root of each singular value"
+        "$[10, 7.1, 1, 0.1]$ — Adam takes the square root of each singular value",
+        "They depend on the specific entries of $G$, not just its singular values, because Adam operates element-wise"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "This is the key insight. Adam's element-wise $\\text{sign}(G_{ij})$ produces a matrix of $\\pm 1$ entries, but the singular values of a sign matrix depend on the **pattern** of signs, not on the original singular values. The sign matrix's spectral structure is essentially uncontrolled — it depends on which entries of $G$ are positive vs negative, which has no simple relationship to $G$'s SVD. This is fundamentally different from Muon, which explicitly controls the spectral structure."
     },
     {

@@ -53,11 +53,11 @@ export const forwardKLLearning = {
       question: "A language model $q$ is trained by minimizing forward KL against the true data distribution $p$. Which failure mode is forward KL most likely to produce?",
       options: [
         "The model repeats the same high-quality sentence over and over",
-        "The model generates diverse but sometimes incoherent or low-quality text",
         "The model refuses to generate any output at all",
-        "The model generates only the single most common sentence in the training data"
+        "The model generates only the single most common sentence in the training data",
+        "The model generates diverse but sometimes incoherent or low-quality text"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Forward KL's mode-covering behavior means the model tries to assign probability to everything the true distribution covers. This leads to high diversity but also means $q$ places mass on low-probability regions between modes — generating text that is varied but sometimes incoherent. Repetitive or single-output behavior would indicate mode-seeking (reverse KL)."
     },
     {

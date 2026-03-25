@@ -45,11 +45,11 @@ export const sftMechanicsLearning = {
       question: "SFT minimizes the forward KL divergence $D_{\\text{KL}}(p_{\\text{data}} \\| p_\\theta)$. If the SFT training data contains two distinct response styles — concise technical answers and verbose conversational answers — what behavior does the forward KL objective encourage?",
       options: [
         "The model selects whichever style appears more frequently in the training data and completely ignores the minority style",
-        "The model places probability mass on both styles, potentially generating responses that are an awkward blend of concise and verbose tendencies",
         "The model assigns equal probability to exactly two modes and samples cleanly from one or the other at each generation",
-        "The model collapses to the shorter responses because cross-entropy loss penalizes longer sequences more heavily"
+        "The model collapses to the shorter responses because cross-entropy loss penalizes longer sequences more heavily",
+        "The model places probability mass on both styles, potentially generating responses that are an awkward blend of concise and verbose tendencies"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Forward KL is mode-covering: $D_{\\text{KL}}(p_{\\text{data}} \\| p_\\theta)$ penalizes the model for assigning zero probability anywhere $p_{\\text{data}}$ has mass. This forces the model to spread probability across all modes in the data. With two styles present, the model doesn't cleanly separate them — it covers both, producing outputs that can blend or hedge between styles. This is why curating consistent SFT data is important, and why preference-based methods (which use reverse KL, a mode-seeking objective) can produce more focused outputs."
     },
     // Step 5: Loss masking — completion only
@@ -82,12 +82,12 @@ export const sftMechanicsLearning = {
       type: "mc",
       question: "In a multi-turn SFT training example with 3 user messages and 3 assistant responses, which tokens should have their labels masked (set to ignore)?",
       options: [
-        "Only the system prompt is masked; all user and assistant tokens contribute to the loss since multi-turn coherence requires training on the full conversation",
         "All user message tokens and the system prompt are masked; all three assistant responses contribute to the loss",
+        "Only the system prompt is masked; all user and assistant tokens contribute to the loss since multi-turn coherence requires training on the full conversation",
         "Only the first two assistant responses are masked; the model trains only on the final response to avoid learning from potentially suboptimal earlier turns",
         "All tokens are trained with equal weight — masking in multi-turn conversations causes the model to lose conversational context"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The loss mask should cover all non-assistant tokens: the system prompt, all user messages, and all special/role tokens. All three assistant responses contribute to the loss — the model needs to learn to generate appropriate responses at every turn in the conversation, not just the final one. Training only on the last response would waste the learning signal from earlier turns and could lead to inconsistent multi-turn behavior."
     },
     // Step 9: Catastrophic forgetting
@@ -102,11 +102,11 @@ export const sftMechanicsLearning = {
       question: "An SFT run uses a learning rate of $3 \\times 10^{-4}$ (the same as pretraining) and trains for 10 epochs on 5,000 examples. The model quickly learns to follow instructions but loses its code generation ability. What is the most likely cause and fix?",
       options: [
         "The dataset is too small — increasing to 50,000 examples would prevent forgetting by providing more diverse training signal",
-        "The learning rate is too high and the number of epochs too large for SFT, causing excessive weight perturbation that overwrites pretrained capabilities. Reducing to $2 \\times 10^{-5}$ for 2 epochs would preserve more pretrained knowledge",
         "Code generation was never a robust capability of the pretrained model — it only appeared to work due to memorized examples that happened to overlap with evaluation benchmarks",
-        "The model architecture needs to be modified with adapter layers before SFT — full fine-tuning always causes catastrophic forgetting regardless of hyperparameters"
+        "The model architecture needs to be modified with adapter layers before SFT — full fine-tuning always causes catastrophic forgetting regardless of hyperparameters",
+        "The learning rate is too high and the number of epochs too large for SFT, causing excessive weight perturbation that overwrites pretrained capabilities. Reducing to $2 \\times 10^{-5}$ for 2 epochs would preserve more pretrained knowledge"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "SFT learning rates are typically 10-100$\\times$ smaller than pretraining rates ($1\\text{-}5 \\times 10^{-5}$ vs. $10^{-3}\\text{-}10^{-4}$), and training usually lasts 1-3 epochs. Using $3 \\times 10^{-4}$ for 10 epochs is far too aggressive — the large weight updates rapidly overwrite the pretrained representations, including code generation capabilities. Reducing the learning rate and epochs shrinks the perturbation to the pretrained weights, preserving more of the original capabilities while still teaching the instruction-following format."
     },
     // Step 11: Data quality dominates

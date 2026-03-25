@@ -62,11 +62,11 @@ export const selfAttentionLearning = {
       question: "Token $i$ has attention weights $\\alpha_{i,1} = 0.02, \\alpha_{i,2} = 0.91, \\alpha_{i,3} = 0.03, \\alpha_{i,4} = 0.04$. What is the output $o_i$?",
       options: [
         "Exactly $v_2$, since token 2 has the highest attention weight and the softmax approximates argmax",
-        "Approximately $v_2$ with small contributions from $v_1, v_3, v_4$ — specifically $o_i = 0.02 v_1 + 0.91 v_2 + 0.03 v_3 + 0.04 v_4$",
         "The average of all four value vectors, since softmax ensures equal contribution from all positions regardless of the attention scores",
-        "A nonlinear transformation of $v_2$ determined by the attention weight magnitude 0.91"
+        "A nonlinear transformation of $v_2$ determined by the attention weight magnitude 0.91",
+        "Approximately $v_2$ with small contributions from $v_1, v_3, v_4$ — specifically $o_i = 0.02 v_1 + 0.91 v_2 + 0.03 v_3 + 0.04 v_4$"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The output is always a weighted sum: $o_i = \\sum_j \\alpha_{ij} v_j$. With $\\alpha_{i,2} = 0.91$, token 2 dominates but the other tokens still contribute. The operation is purely linear in the values — the attention weights determine the convex combination. If the weights were exactly $[0, 1, 0, 0]$ then $o_i = v_2$ exactly, but softmax never produces exact zeros (though they can be numerically negligible)."
     },
     // Step 7: The sqrt(d_k) scaling
@@ -80,12 +80,12 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "A researcher removes the $\\sqrt{d_k}$ scaling from attention in a model with $d_k = 128$. During training, they observe that attention weights quickly become very peaked (near one-hot). What is the most direct consequence for learning?",
       options: [
-        "The model trains faster because hard attention creates cleaner gradient signals with less noise from irrelevant positions",
-        "Training becomes unstable because the loss function becomes non-differentiable when attention weights are exactly one-hot",
         "Gradients through the softmax vanish because $\\frac{\\partial \\alpha_i}{\\partial s_j} \\approx 0$ when attention weights are near 0 or 1, making the attention pattern unable to update",
+        "Training becomes unstable because the loss function becomes non-differentiable when attention weights are exactly one-hot",
+        "The model trains faster because hard attention creates cleaner gradient signals with less noise from irrelevant positions",
         "The model uses more memory because peaked attention weights cannot be compressed as efficiently during mixed-precision training"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "The softmax Jacobian $\\frac{\\partial \\alpha_i}{\\partial s_j} = \\alpha_i(\\delta_{ij} - \\alpha_j)$ approaches zero when any $\\alpha_i$ is near 0 or 1. If $\\alpha_2 \\approx 1$ and all others $\\approx 0$, then $\\partial \\alpha_2 / \\partial s_j \\approx 1 \\cdot (0) = 0$ for $j=2$, and $\\approx 0$ for $j \\neq 2$. The attention pattern becomes frozen — gradients cannot flow through softmax to adjust which tokens attend where. With $d_k = 128$, unscaled dot products have std $\\approx 11.3$, pushing softmax deep into saturation."
     },
     // Step 9: Causal masking for autoregressive models
@@ -100,11 +100,11 @@ export const selfAttentionLearning = {
       question: "During training, a causal language model processes a sequence of $n$ tokens. The causal mask makes the attention matrix lower-triangular. How many next-token predictions does the model make in a single forward pass?",
       options: [
         "Just 1 — the model only predicts the token after the last position, since all other positions are used as context",
-        "$n - 1$ — each position $t$ predicts $y_{t+1}$ using the causal context $y_1, \\ldots, y_t$, except the last position which has no target",
         "$n$ — every position predicts the next token, including position $n$ which predicts a special end-of-sequence token",
-        "$n^2 / 2$ — each entry in the lower-triangular attention matrix corresponds to one prediction"
+        "$n^2 / 2$ — each entry in the lower-triangular attention matrix corresponds to one prediction",
+        "$n - 1$ — each position $t$ predicts $y_{t+1}$ using the causal context $y_1, \\ldots, y_t$, except the last position which has no target"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With teacher forcing, position $t$ receives the ground-truth prefix $y_1, \\ldots, y_t$ (enforced by the causal mask) and predicts $y_{t+1}$. This gives $n - 1$ predictions: position 1 predicts $y_2$, position 2 predicts $y_3$, ..., position $n-1$ predicts $y_n$. Position $n$ has no next token to predict. This is why causal LMs are efficient to train — a single forward pass produces $n-1$ training signals, unlike an RNN that would need $n-1$ sequential forward passes."
     },
     // Step 11: Attention complexity

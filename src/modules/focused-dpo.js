@@ -101,10 +101,10 @@ export const dpoLearning = {
       options: [
         "The gradient magnitude is at its maximum because the model is very confident, and DPO continues to reinforce confident correct predictions",
         "The gradient is moderately large at $(1 - \\sigma(5)) \\approx 0.007$, providing steady but diminishing learning signal",
-        "The gradient is near zero at $(1 - \\sigma(5)) \\approx 0.007$, so this pair contributes almost no learning signal — DPO focuses on pairs the model still gets wrong",
-        "The gradient flips sign because the model is overconfident, and DPO applies a regularization penalty to prevent the implicit reward margin from growing beyond a threshold"
+        "The gradient flips sign because the model is overconfident, and DPO applies a regularization penalty to prevent the implicit reward margin from growing beyond a threshold",
+        "The gradient is near zero at $(1 - \\sigma(5)) \\approx 0.007$, so this pair contributes almost no learning signal — DPO focuses on pairs the model still gets wrong"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "$\\sigma(5) \\approx 0.993$, so the weighting is $1 - 0.993 = 0.007$. The gradient for this pair is effectively zero — the model has already learned this preference, so DPO moves on. This is an elegant property: learning is self-paced without any explicit curriculum design. In contrast, a naive MSE loss on preference margins would still produce gradients on correctly-ranked pairs, wasting capacity. However, this property can also be a weakness: DPO can become too confident on easy pairs early in training, ignoring harder pairs."
     },
     // Step 11: DPO vs PPO-based RLHF
@@ -139,10 +139,10 @@ export const dpoLearning = {
       options: [
         "The 50K preference pairs are insufficient for a 70B model — DPO requires at least 500K pairs for models above 10B parameters to achieve statistical convergence",
         "DPO's gradient computation is $O(n^3)$ in sequence length due to the log-probability ratio, making it computationally prohibitive for long responses typical of 70B models",
-        "Memory: both $\\pi_\\theta$ and $\\pi_{\\text{ref}}$ must be in GPU memory simultaneously for the forward pass — a 70B model requires $\\sim$140 GB per copy (FP16), totaling $\\sim$280 GB for model weights alone before optimizer states and activations",
-        "The 70B model's vocabulary is too large for the softmax computation in the implicit reward, requiring specialized sparse attention patterns to compute log-probabilities efficiently"
+        "The 70B model's vocabulary is too large for the softmax computation in the implicit reward, requiring specialized sparse attention patterns to compute log-probabilities efficiently",
+        "Memory: both $\\pi_\\theta$ and $\\pi_{\\text{ref}}$ must be in GPU memory simultaneously for the forward pass — a 70B model requires $\\sim$140 GB per copy (FP16), totaling $\\sim$280 GB for model weights alone before optimizer states and activations"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "DPO requires forward passes through both $\\pi_\\theta$ and $\\pi_{\\text{ref}}$ on the same batch to compute the log-probability ratio. For a 70B model in FP16: each model is $\\sim$140 GB. Both together: $\\sim$280 GB. Plus optimizer states for $\\pi_\\theta$ ($\\sim$840 GB with Adam). With 8 A100s (640 GB HBM total), this requires FSDP/ZeRO-3 to shard both models across GPUs, and techniques like LoRA or quantizing $\\pi_{\\text{ref}}$ to reduce memory further. Some implementations compute $\\pi_{\\text{ref}}$ log-probs offline and cache them, eliminating the need to load $\\pi_{\\text{ref}}$ during training."
     }
   ]

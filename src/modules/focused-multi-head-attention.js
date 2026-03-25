@@ -61,12 +61,12 @@ export const multiHeadAttentionLearning = {
       type: "mc",
       question: "An induction head implements the pattern: if \"...AB...A\" has appeared, predict \"B\" next. This requires composing two operations across layers. Which decomposition is correct?",
       options: [
-        "Head 1 in an early layer copies the token embedding of each position to the next position; Head 2 in a later layer uses this copied information to find where the current token appeared before and retrieve what followed it",
         "A single head in one layer performs both operations simultaneously by using the query to match \"A\" tokens and the value to retrieve \"B\" tokens in a single attention step",
         "Head 1 attends to all previous occurrences of the current token; Head 2 attends to the token following each match and averages their embeddings to predict the most likely continuation",
-        "The induction pattern is hardcoded in the positional embeddings rather than learned by attention heads, which is why it generalizes to unseen positions"
+        "The induction pattern is hardcoded in the positional embeddings rather than learned by attention heads, which is why it generalizes to unseen positions",
+        "Head 1 in an early layer copies the token embedding of each position to the next position; Head 2 in a later layer uses this copied information to find where the current token appeared before and retrieve what followed it"
       ],
-      correct: 0,
+      correct: 3,
       explanation: "Induction heads require cross-layer composition (Olsson et al., 2022). In layer $l$, a 'previous token head' copies each token's identity to the next position's residual stream. In layer $l' > l$, the induction head at position $t$ queries for tokens matching $x_t$ (finding position $s$ where \"A\" previously appeared), but reads from the residual stream which now contains information shifted by one position, effectively retrieving the token that followed \"A\" (i.e., \"B\"). This two-step composition is why induction requires depth."
     },
     // Step 7: KV cache and inference

@@ -61,11 +61,11 @@ export const bpeLearning = {
       question: "A BPE merge table contains these merges in order: #1: (t, h) → \"th\", #2: (th, e) → \"the\", #3: (i, n) → \"in\", #4: (in, g) → \"ing\". What is the tokenization of \"thing\"?",
       options: [
         "[\"thing\"] — the full word is a single token because all necessary merges are present",
-        "[\"th\", \"ing\"] — merge #1 produces \"th\", then merges #3 and #4 produce \"ing\"",
         "[\"the\", \"ing\"] — merge #2 greedily consumes \"the\" first, but \"ing\" doesn't exist yet at that point",
-        "[\"t\", \"h\", \"i\", \"n\", \"g\"] — none of the merges apply because \"thing\" wasn't in the training corpus"
+        "[\"t\", \"h\", \"i\", \"n\", \"g\"] — none of the merges apply because \"thing\" wasn't in the training corpus",
+        "[\"th\", \"ing\"] — merge #1 produces \"th\", then merges #3 and #4 produce \"ing\""
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Starting from [t, h, i, n, g]: Merge #1 (t, h) applies → [th, i, n, g]. Merge #2 (th, e) does NOT apply because the next character after \"th\" is \"i\", not \"e\". Merge #3 (i, n) applies → [th, in, g]. Merge #4 (in, g) applies → [th, ing]. No more merges apply. Result: [\"th\", \"ing\"]. Note that merge #2 tried to fire but couldn't — the merge table is applied in order, but each merge only fires when its exact pair is adjacent in the current sequence. BPE doesn't look ahead or backtrack."
     },
     // Step 7: Info — BPE as compression
@@ -98,12 +98,12 @@ export const bpeLearning = {
       type: "mc",
       question: "A 7B parameter model uses a vocabulary of 256K tokens with $d_{\\text{model}} = 4096$. If the input and output embedding matrices are NOT tied (separate parameters), approximately what fraction of the model's parameters are in the embedding layers?",
       options: [
-        "About 1% — embedding parameters are negligible at this model scale",
         "About 30% — input ($256K \\times 4096 \\approx 1.05B$) plus output ($\\approx 1.05B$) totals ~2.1B out of 7B",
+        "About 1% — embedding parameters are negligible at this model scale",
         "About 7% — only the input embedding matters since the output head reuses input embeddings in modern architectures",
         "About 50% — embedding parameters always dominate in transformer models regardless of vocabulary size"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "With untied embeddings: input embedding = $256{,}000 \\times 4{,}096 \\approx 1.05B$ parameters, output (LM head) = another $\\approx 1.05B$. Total embedding parameters $\\approx 2.1B$, which is $2.1/7.0 = 30\\%$ of the model. This is wasteful — most of those 256K tokens are rare, so their embeddings get few gradient updates. By contrast, LLaMA's 32K vocabulary with the same $d = 4096$ uses only $\\sim 260M$ embedding parameters ($\\sim 3.7\\%$). This illustrates why vocabulary size must be chosen relative to model size: a 256K vocabulary might be appropriate for a 70B model but is disproportionate for a 7B model."
     },
     // Step 11: Info — Handling unseen words
@@ -137,11 +137,11 @@ export const bpeLearning = {
       question: "In byte-level BPE, the Chinese character '中' is encoded in UTF-8 as three bytes: [0xE4, 0xB8, 0xAD]. If no BPE merges have been learned for this byte sequence, how is '中' tokenized?",
       options: [
         "As a single $\\langle\\text{UNK}\\rangle$ token — the character is outside the vocabulary",
-        "As three separate byte tokens — each byte is a valid vocabulary entry in byte-level BPE",
         "As one token — individual Unicode characters are always atomic in byte-level BPE regardless of their UTF-8 length",
-        "The tokenizer silently drops the character because non-ASCII bytes are filtered during preprocessing"
+        "The tokenizer silently drops the character because non-ASCII bytes are filtered during preprocessing",
+        "As three separate byte tokens — each byte is a valid vocabulary entry in byte-level BPE"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "In byte-level BPE, the base vocabulary is all 256 byte values. Each byte — including 0xE4, 0xB8, and 0xAD — is a valid token. Without a learned merge for this sequence, '中' becomes three tokens. If Chinese text is common in the training corpus, BPE will eventually learn to merge these three bytes into a single token (or at least merge two of them). This is why tokenizers trained on English-heavy corpora have poor compression for CJK languages: the byte-level merges for CJK byte patterns were never learned (or learned late, at low priority), so each character consumes 2-3 tokens instead of 1."
     }
   ]
