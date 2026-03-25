@@ -48,6 +48,8 @@ import { residualStreamsLearning } from './focused-residual-streams';
 import { dataParallelismLearning } from './focused-data-parallelism';
 import { dpoLearning } from './focused-dpo';
 import { nextTokenPredictionLearning } from './focused-next-token-prediction';
+import { sftMechanicsLearning } from './focused-sft-mechanics';
+import { rewardModelingLearning } from './focused-reward-modeling';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -102,8 +104,8 @@ export const MODULES = {
   "1.6": [dataParallelismLearning, distributedTrainingAssessment],
 
   // Branch A — Post-training & alignment
-  "A.1": [sftAssessment],
-  "A.2": [rewardModelingAssessment],
+  "A.1": [sftMechanicsLearning, sftAssessment],
+  "A.2": [rewardModelingLearning, rewardModelingAssessment],
   "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning],
   "A.4": [dpoLearning, directAlignmentAssessment],
   "A.5": [frontierAlignmentAssessment],
