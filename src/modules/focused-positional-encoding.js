@@ -23,12 +23,12 @@ export const positionalEncodingLearning = {
       type: "mc",
       question: "A transformer without any positional encoding processes the inputs \"dog bites man\" and \"man bites dog\". What would happen?",
       options: [
-        "The model would produce different outputs because the embedding vectors for \"dog\", \"bites\", and \"man\" are different, giving the attention mechanism enough signal to distinguish the two",
         "The model would produce identical output representations at each position (after accounting for the permutation), because attention scores depend only on content, not position",
+        "The model would produce different outputs because the embedding vectors for \"dog\", \"bites\", and \"man\" are different, giving the attention mechanism enough signal to distinguish the two",
         "The model would crash or produce NaN values because the attention mechanism requires position information to compute valid softmax probabilities",
         "The model would produce different outputs because the causal mask breaks the permutation symmetry, forcing a left-to-right ordering"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Without positional encoding, the attention operation is purely content-based. \"dog bites man\" and \"man bites dog\" are permutations of the same set of tokens, so the outputs at each position would be identical (after re-ordering to match the permutation). The model literally cannot distinguish subject from object. Option D is partially right — causal masking does break full permutation symmetry — but the model still cannot tell the difference between positions that see the same set of preceding tokens with different orderings."
     },
     // Step 3: Sinusoidal encodings
@@ -43,11 +43,11 @@ export const positionalEncodingLearning = {
       question: "Sinusoidal encodings use frequencies that span several orders of magnitude (wavelengths from $2\\pi$ to $\\sim 10000 \\cdot 2\\pi$). Why is this range important?",
       options: [
         "High-frequency components encode the exact position of each token, while low-frequency components encode which document in the batch the token belongs to",
-        "The multi-scale frequency spectrum allows the model to represent both fine-grained local position differences (nearby tokens) and coarse-grained global position (where in the sequence), analogous to a binary number system with different bit significances",
+        "High frequencies help the model learn syntax (which operates locally) while low frequencies help with semantics (which operates over long distances), creating a natural separation of linguistic concerns",
         "All frequencies are needed to make each position's encoding unique via the uniqueness theorem for trigonometric polynomials, but the specific frequency values don't matter",
-        "High frequencies help the model learn syntax (which operates locally) while low frequencies help with semantics (which operates over long distances), creating a natural separation of linguistic concerns"
+        "The multi-scale frequency spectrum allows the model to represent both fine-grained local position differences (nearby tokens) and coarse-grained global position (where in the sequence), analogous to a binary number system with different bit significances"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The multi-frequency design works like a binary position encoding with smooth transitions. High-frequency dimensions change rapidly between adjacent positions, letting the model distinguish tokens 1 apart. Low-frequency dimensions change slowly, letting the model determine roughly \"how far into the sequence\" a token is. This is analogous to the digits of a number: the ones digit (high frequency) changes every step, the tens digit (lower frequency) changes every 10 steps, etc. Without low frequencies, distant positions would appear identical; without high frequencies, nearby positions would be indistinguishable."
     },
     // Step 5: Learned absolute embeddings
@@ -80,12 +80,12 @@ export const positionalEncodingLearning = {
       type: "mc",
       question: "ALiBi (Press et al., 2022) adds a fixed bias $-\\alpha \\cdot |m - n|$ to the attention logit between positions $m$ and $n$, where $\\alpha > 0$ is a per-head constant. What is the effect of this bias on the attention distribution?",
       options: [
-        "It makes all attention weights exactly equal by canceling out content-based similarity scores, forcing uniform attention regardless of the query-key dot product",
         "It creates a soft distance penalty that exponentially decays attention to distant tokens after softmax, encouraging each position to attend more to nearby tokens with a head-specific decay rate",
+        "It makes all attention weights exactly equal by canceling out content-based similarity scores, forcing uniform attention regardless of the query-key dot product",
         "It inverts the typical attention pattern so that distant tokens receive higher attention than nearby tokens, forcing the model to specialize in long-range dependencies",
         "It clips the attention to a fixed window of size $1/\\alpha$, making tokens beyond that window receive exactly zero attention weight"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The linear penalty $-\\alpha|m-n|$ in the logit becomes an exponential decay $e^{-\\alpha|m-n|}$ after softmax (since softmax exponentiates its inputs). Different heads use different $\\alpha$ values, so some heads have sharp local attention (large $\\alpha$, fast decay) and others have broad global attention (small $\\alpha$, slow decay). This is a simple inductive bias: nearby context is usually more relevant, but the model can override it through strong content-based scores. The fixed (non-learned) nature of ALiBi makes it naturally extrapolate to longer sequences."
     },
     // Step 9: RoPE — rotary embeddings
@@ -120,11 +120,11 @@ export const positionalEncodingLearning = {
       options: [
         "Learned absolute embeddings with $T_{\\max} = 128K$ — the extra embedding parameters are negligible relative to the model size, and positions will be well-trained from the 8K data",
         "Sinusoidal encodings — their mathematical structure guarantees perfect extrapolation to any length, as the sine and cosine functions are defined for all positive integers",
-        "RoPE with a plan to extend context after pretraining via $\\theta$-base scaling (e.g., NTK-aware or YaRN), since RoPE's relative position representation provides a foundation for length extension while training on 8K sequences",
-        "No positional encoding at all — the causal mask alone provides sufficient position information for autoregressive models, and omitting position encodings eliminates the length generalization problem entirely"
+        "No positional encoding at all — the causal mask alone provides sufficient position information for autoregressive models, and omitting position encodings eliminates the length generalization problem entirely",
+        "RoPE with a plan to extend context after pretraining via $\\theta$-base scaling (e.g., NTK-aware or YaRN), since RoPE's relative position representation provides a foundation for length extension while training on 8K sequences"
       ],
-      correct: 2,
-      explanation: "RoPE is the right choice because: (1) it encodes relative position, so the model learns patterns that transfer across lengths; (2) context extension techniques like NTK-aware scaling (adjusting the $\\theta$ base to spread the same rotation range over more positions) or YaRN allow post-training extension from 8K to 128K with minimal fine-tuning. Learned absolute embeddings (option A) would have positions 8K-128K completely untrained. Sinusoidal (option B) extrapolates in principle but underperforms in practice. No encoding (option D) severely limits the model since the causal mask only provides a partial ordering, not a metric of distance."
+      correct: 3,
+      explanation: "RoPE is the right choice because: (1) it encodes relative position, so the model learns patterns that transfer across lengths; (2) context extension techniques like NTK-aware scaling (adjusting the $\\theta$ base to spread the same rotation range over more positions) or YaRN allow post-training extension from 8K to 128K with minimal fine-tuning. Learned absolute embeddings (option A) would have positions 8K-128K completely untrained. Sinusoidal (option B) extrapolates in principle but underperforms in practice. No encoding (option C) severely limits the model since the causal mask only provides a partial ordering, not a metric of distance."
     }
   ]
 };

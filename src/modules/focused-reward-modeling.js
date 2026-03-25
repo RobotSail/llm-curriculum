@@ -24,12 +24,12 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "Why is human preference data collected as pairwise comparisons (\"response A is better than response B\") rather than absolute ratings (\"response A gets 4 out of 5\")?",
       options: [
-        "Pairwise comparisons produce more training data per annotation because each comparison generates two data points instead of one",
-        "Absolute ratings are too computationally expensive to convert into a loss function that neural networks can optimize",
         "Pairwise comparisons are more reliable — humans show much higher inter-annotator agreement when comparing two responses than when assigning absolute scores on a scale",
+        "Absolute ratings are too computationally expensive to convert into a loss function that neural networks can optimize",
+        "Pairwise comparisons produce more training data per annotation because each comparison generates two data points instead of one",
         "Neural network reward models can only accept binary labels, so absolute ratings would need to be discretized anyway"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Calibration is the key problem with absolute ratings: one annotator's 4/5 is another's 3/5. Different annotators use scales differently, and even the same annotator's scale drifts over time. Pairwise comparisons are much more consistent — \"which is better?\" is a simpler judgment that produces higher inter-annotator agreement. This reliability is crucial because the reward model is only as good as its training signal. The Bradley-Terry model converts these reliable pairwise judgments into learned scalar scores."
     },
     // Step 3: Bradley-Terry model
@@ -64,10 +64,10 @@ export const rewardModelingLearning = {
       options: [
         "Near zero ($\\approx 0.02$), because the sigmoid saturates for large inputs and produces vanishing gradients",
         "Exactly $0.5$, because the sigmoid always outputs $0.5$ when the model is uncertain",
-        "Near $0.82$, because $\\sigma(1.5) \\approx 0.82$ — the model gets a strong corrective gradient since it has the ranking wrong",
-        "Exactly $1.0$, because any incorrect ranking produces the maximum possible gradient signal"
+        "Exactly $1.0$, because any incorrect ranking produces the maximum possible gradient signal",
+        "Near $0.82$, because $\\sigma(1.5) \\approx 0.82$ — the model gets a strong corrective gradient since it has the ranking wrong"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "The error signal is $\\sigma(r_l - r_w) = \\sigma(2.0 - 0.5) = \\sigma(1.5) \\approx 0.82$. Since the model ranks the pair incorrectly (rejected response has higher reward), the error signal is large — close to 1 — producing a strong gradient that pushes $r(y_w)$ up and $r(y_l)$ down. If the model had the ranking correct with $r(y_w) \\gg r(y_l)$, then $\\sigma(r_l - r_w)$ would be close to 0 and the gradient would be small. This natural curriculum effect is a key property of the loss."
     },
     // Step 7: RM architecture
@@ -81,12 +81,12 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "A reward model extracts the hidden state $h_T \\in \\mathbb{R}^{4096}$ at the last token position and applies a linear head $r = w^\\top h_T + b$. How many learnable parameters does the scalar head itself have?",
       options: [
-        "$4096^2 + 4096 = 16,781,312$ — a full $d \\times d$ matrix is needed to transform the hidden state before the final projection",
         "$4096 + 1 = 4097$ — one weight per hidden dimension plus a bias term, since the head is a single linear layer to a scalar",
+        "$4096^2 + 4096 = 16,781,312$ — a full $d \\times d$ matrix is needed to transform the hidden state before the final projection",
         "$2 \\times 4096 = 8192$ — separate weight vectors for the preferred and rejected responses, since the model must score both",
         "$4096 \\times V$ where $V$ is the vocabulary size — the head must project to token probabilities before converting to a scalar"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The scalar head is a linear map from $\\mathbb{R}^{4096}$ to $\\mathbb{R}^1$: $r = w^\\top h_T + b$ with $w \\in \\mathbb{R}^{4096}$ and $b \\in \\mathbb{R}$. That's $4096 + 1 = 4097$ parameters. The same head is used for both $y_w$ and $y_l$ — each gets scored independently in a separate forward pass through the same model with the same parameters. The vast majority of the RM's parameters are in the transformer backbone, not the head."
     },
     // Step 9: Reward hacking
@@ -101,11 +101,11 @@ export const rewardModelingLearning = {
       question: "Gao et al. (2023) found that as KL divergence from the reference policy increases during RLHF training, the proxy reward (RM score) increases monotonically but the true reward (human judgment) eventually decreases. What does this imply about the optimal training strategy?",
       options: [
         "Train until the proxy reward plateaus, since the plateau indicates the reward model has been fully optimized and the policy has converged to optimal behavior",
-        "There exists an optimal KL budget beyond which further optimization degrades true quality — the KL penalty $\\beta$ should be set to stop optimization near this point",
+        "This divergence is an artifact of the evaluation methodology — in practice, higher RM scores always correspond to better human judgments",
         "The reward model should be periodically retrained on the current policy's outputs to prevent the proxy and true rewards from diverging",
-        "This divergence is an artifact of the evaluation methodology — in practice, higher RM scores always correspond to better human judgments"
+        "There exists an optimal KL budget beyond which further optimization degrades true quality — the KL penalty $\\beta$ should be set to stop optimization near this point"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The proxy-true reward divergence means there's a sweet spot: enough optimization to improve quality, but not so much that the policy starts exploiting RM artifacts. The KL penalty $\\beta$ in the RLHF objective directly controls how far the policy can stray from the reference. Setting $\\beta$ appropriately stops optimization near the peak of true reward. Too small a $\\beta$ allows overoptimization past the peak; too large a $\\beta$ stops optimization before reaching the peak. This is why $\\beta$ is one of the most important hyperparameters in RLHF."
     },
     // Step 11: KL penalty as optimization budget
@@ -138,12 +138,12 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "A preference dataset contains 10,000 comparison pairs. On 2,000 of these, the 5 annotators split 3-2 (narrow majority). On the remaining 8,000, annotators agree 4-1 or 5-0. How should the narrow-majority pairs be handled during RM training?",
       options: [
-        "Include them with full weight — any label from a majority vote is equally valid, and removing data always hurts model performance",
-        "Use them exclusively for training, since disagreement indicates these are the hardest and most informative examples",
         "Down-weight or remove them — the narrow margin suggests genuine ambiguity, and forcing a confident binary label on ambiguous pairs teaches the RM spurious preferences",
+        "Use them exclusively for training, since disagreement indicates these are the hardest and most informative examples",
+        "Include them with full weight — any label from a majority vote is equally valid, and removing data always hurts model performance",
         "Assign them the opposite label from the majority vote, since narrow majorities are statistically likely to be wrong due to sampling noise"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "When annotators split 3-2, the \"preferred\" response was barely preferred — this often reflects genuine ambiguity rather than clear quality difference. Training the RM to confidently distinguish these near-equivalent responses teaches it arbitrary preferences that don't generalize. Common approaches: remove these pairs entirely, or down-weight them so they contribute less to the loss. The high-agreement pairs (4-1 or 5-0) provide clearer signal and should dominate training. This improves RM reliability at the cost of a smaller effective dataset — a worthwhile tradeoff."
     }
   ]
