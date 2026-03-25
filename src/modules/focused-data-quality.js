@@ -90,11 +90,11 @@ export const dataQualityLearning = {
       question: "A training corpus has 10B documents. You want to remove near-duplicates using MinHash + LSH. Naively comparing all pairs would require $\\binom{10B}{2} \\approx 5 \\times 10^{19}$ comparisons. What makes MinHash + LSH practical at this scale?",
       options: [
         "MinHash compresses each document to a fixed-size signature, reducing memory but still requiring all pairwise comparisons between signatures",
-        "LSH randomly samples a small fraction of document pairs to compare, trading recall for speed through statistical approximation",
         "LSH bands the MinHash signatures so similar documents hash to the same bucket with high probability, reducing the comparison space from $O(n^2)$ to approximately $O(n)$",
+        "LSH randomly samples a small fraction of document pairs to compare, trading recall for speed through statistical approximation",
         "MinHash eliminates the need for pairwise comparisons entirely by computing a single global hash that clusters all duplicates together"
       ],
-      correct: 2,
+      correct: 1,
       explanation: "The key insight of LSH is that it uses banded hashing to ensure similar items (high Jaccard similarity) collide in at least one band with high probability, while dissimilar items rarely collide. This means you only compare documents within the same bucket — not all pairs. The expected number of comparisons drops from $O(n^2)$ to approximately $O(n)$ (each document is compared to a small number of bucket-mates). MinHash alone only provides compact signatures; LSH provides the efficient retrieval of similar pairs."
     },
     {
@@ -108,10 +108,10 @@ export const dataQualityLearning = {
       options: [
         "Code data is inherently more information-dense per token, so the model processes more useful bits per training step when the code fraction increases",
         "The web text fraction was too high and contained math-specific noise that interfered with learning — reducing it removed the interference",
-        "Code's structured syntax with explicit logic, variable tracking, and compositional operations trains general reasoning capabilities that transfer to mathematical and linguistic tasks",
-        "The math benchmarks contain code-like formatting that the model recognizes better after seeing more code during training"
+        "The math benchmarks contain code-like formatting that the model recognizes better after seeing more code during training",
+        "Code's structured syntax with explicit logic, variable tracking, and compositional operations trains general reasoning capabilities that transfer to mathematical and linguistic tasks"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Code requires tracking variable state, following explicit logical flow, and composing operations — skills that transfer to mathematical and general reasoning. This has been demonstrated empirically across multiple model families: code in pretraining improves performance even on purely natural-language reasoning tasks. The effect is not about formatting familiarity or noise reduction, but about learning transferable computational thinking patterns."
     },
     {

@@ -40,10 +40,10 @@ export const benchmarkDesignLearning = {
       options: [
         "Yes — perplexity is a universal metric that allows direct comparison regardless of tokenizer differences",
         "Yes — but only if both models were trained on the same data, since training data affects perplexity more than tokenizer choice",
-        "No — different tokenizers produce different token sequences from the same text, making raw perplexity values incomparable; per-character or per-byte perplexity would be needed for fair comparison",
-        "No — the model with the larger vocabulary always has higher perplexity because it must predict from a larger set, so Model B is actually better after normalization"
+        "No — the model with the larger vocabulary always has higher perplexity because it must predict from a larger set, so Model B is actually better after normalization",
+        "No — different tokenizers produce different token sequences from the same text, making raw perplexity values incomparable; per-character or per-byte perplexity would be needed for fair comparison"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Different tokenizers decompose the same text into different numbers of tokens. A 64K vocabulary may tokenize \"unfortunately\" as one token while a 32K vocabulary splits it into \"un\" + \"fortunate\" + \"ly\". Perplexity is per-token, so the models are predicting different quantities. To compare fairly, normalize by character or byte count: compute bits-per-character (BPC) or bits-per-byte (BPB). The larger vocabulary does NOT automatically have higher perplexity — it depends on the model quality."
     },
     {
@@ -74,10 +74,10 @@ export const benchmarkDesignLearning = {
       options: [
         "Model B is genuinely better — zero-shot evaluation is the fairest comparison because it requires no prompt engineering tricks",
         "Model A is genuinely better — chain-of-thought scores reflect true capability, and the 82% vs 78% gap shows Model A has stronger reasoning that zero-shot evaluation fails to elicit",
-        "The ranking depends on the use case — if users will prompt carefully, Model A is better; the zero-shot ranking reflects out-of-the-box usability while chain-of-thought reflects peak capability",
-        "Neither comparison is valid — the 17-point gap for Model A suggests its chain-of-thought scores are inflated by prompt overfitting rather than genuine reasoning"
+        "Neither comparison is valid — the 17-point gap for Model A suggests its chain-of-thought scores are inflated by prompt overfitting rather than genuine reasoning",
+        "The ranking depends on the use case — if users will prompt carefully, Model A is better; the zero-shot ranking reflects out-of-the-box usability while chain-of-thought reflects peak capability"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Both rankings are valid but measure different things. Zero-shot measures out-of-the-box usability — how well the model performs with minimal user effort. Chain-of-thought measures peak elicited capability. Model A has higher ceiling but lower floor. The right comparison depends on the deployment context: an API serving expert prompters should use chain-of-thought rankings; a consumer product should weight zero-shot performance. A 17-point CoT improvement is within normal range and doesn't indicate overfitting."
     },
     {
@@ -106,12 +106,12 @@ export const benchmarkDesignLearning = {
       type: "mc",
       question: "An LLM judge evaluates pairs of responses. In 70% of cases where it disagrees with humans, the judge preferred the longer response while humans preferred the shorter one. How should the evaluation protocol be modified?",
       options: [
-        "Replace the LLM judge with a smaller, faster model that has less bias toward verbosity due to simpler internal representations",
         "Add explicit instructions to the judge to penalize length, with calibration: evaluate pairs of known-quality responses at different lengths to tune the penalty",
+        "Replace the LLM judge with a smaller, faster model that has less bias toward verbosity due to simpler internal representations",
         "Discard all judgments where the responses differ in length by more than 20%, since the judge cannot reliably compare responses of different lengths",
         "Switch to human evaluation entirely, since LLM judges are fundamentally unreliable when response lengths differ"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The most practical fix is prompt engineering: instruct the judge to focus on accuracy and relevance rather than completeness, and calibrate using pairs where the shorter response is known to be better. This addresses the verbosity bias directly without discarding data or abandoning automated evaluation. Smaller models often have worse judgment overall. Discarding length-mismatched pairs wastes most of the data. And human evaluation, while ideal, is too expensive for routine iteration."
     },
     {
