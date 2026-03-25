@@ -43,6 +43,7 @@ import { onOffPolicyLearning } from './focused-on-off-policy';
 import { selfAttentionLearning } from './focused-self-attention';
 import { multiHeadAttentionLearning } from './focused-multi-head-attention';
 import { bpeLearning } from './focused-bpe';
+import { nextTokenPredictionLearning } from './focused-next-token-prediction';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -91,7 +92,7 @@ export const MODULES = {
   // Tier 1 — Foundational core
   "1.1": [selfAttentionLearning, multiHeadAttentionLearning, transformerAssessment],
   "1.2": [bpeLearning, tokenizationAssessment],
-  "1.3": [pretrainingAssessment],
+  "1.3": [nextTokenPredictionLearning, pretrainingAssessment],
   "1.4": [dataAssessment],
   "1.5": [evaluationAssessment],
   "1.6": [distributedTrainingAssessment],
