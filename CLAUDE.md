@@ -4,21 +4,68 @@ Interactive learning app for mastering topics required for frontier LLM research
 
 ## Content Architecture
 
-All content follows a strict three-part structure per section:
+Content is organized in a strict hierarchy. Each level has clear rules about what it contains and how it relates to the levels above and below it.
 
-### 1. Learning Modules (`moduleType: "learning"`)
-- Teach concepts through alternating info steps and inline quiz questions
+### Hierarchy: Subject → Chapter (optional) → Topic → Module
+
+#### Subject
+A subject is a broad field of study (e.g., "Probability & Information Theory", "Reinforcement Learning", "Linear Algebra"). Subjects are the top-level groupings in the curriculum.
+
+#### Chapter (optional)
+A subject can be divided into **chapters** (also called subtopics) that group related topics together. For example, within Probability & Information Theory:
+- "Divergences" chapter → KL divergence, Jensen-Shannon divergence, f-divergences
+- "Entropy Measures" chapter → entropy, perplexity, cross-entropy, mutual information
+
+Chapters are optional — a subject with few topics can use a flat list instead. **Every chapter must end with a test** (see below).
+
+#### Topic (atomic unit)
+A **topic** is the atomic unit of learning. It represents a single, named concept that the student either has or has not learned. Topics are the leaves of the content tree.
+
+**The single-concept rule**: A topic must cover exactly ONE concept. The name test: if a topic title contains a conjunction ("and", "&", "vs"), it likely contains multiple topics and must be split. Examples:
+- **Good**: "KL Divergence", "PPO Clipping", "Newton-Schulz Iteration"
+- **Bad**: "KL Divergence and Cross-Entropy" → split into "KL Divergence" and "Cross-Entropy"
+- **Bad**: "Adam & Weight Decay" → split into "Adam Optimizer" and "Weight Decay Regularization"
+- **Exception**: "Forward vs Reverse KL" is acceptable when the topic IS the comparison itself (the concept being taught is the relationship between two things the student already knows individually)
+
+A topic consists of:
+- **One or more learning modules** that teach the concept
+- **One or more quiz/test modules** that verify understanding
+
+Content within a topic must be **self-contained** — it should not try to teach other topics inline. It may reference prerequisites ("recall that KL divergence is...") but should not derive or explain them from scratch.
+
+#### Module
+A module is a single interactive unit within a topic. Every module has a `moduleType`:
+
+**Learning modules** (`moduleType: "learning"`):
+- Teach the topic through alternating info steps and inline quiz questions
 - Info steps explain a concept; MC steps immediately test comprehension
 - Each module: 10-15 steps, 15-25 minutes, one difficulty track (easy/medium/hard)
-- A section typically has 3 learning modules (easy, medium, hard) covering the same topic area at increasing depth
+- A topic may have multiple learning modules at different difficulties covering the same concept at increasing depth
 
-### 2. Tests (`moduleType: "test"`)
+**Test modules** (`moduleType: "test"`):
 - Standalone MC assessments with NO info steps (one brief intro step is acceptable)
-- 10 questions per test, covering the section's full topic breadth
+- 10 questions per test, covering the topic's or chapter's full breadth
 - Questions range from conceptual to applied within the test
 - Used to measure readiness and feed the daily warmup question pool
 
-### New content must be one of these types. Every section should have at least one test. Learning modules are added when a section needs teaching content.
+### Test Requirements
+
+Tests are mandatory at specific levels of the hierarchy:
+
+1. **Every topic** should have at least one test module to verify the student learned the concept
+2. **Every chapter** (if chapters are used) must end with a **chapter test** that integrates across the chapter's topics — students should need to combine knowledge from multiple topics to answer questions
+3. **Every curriculum / recommended study path** must end with a **capstone test** that is genuinely challenging and integrative
+
+### Capstone & Chapter Test Standards
+
+Chapter-ending and curriculum-ending tests are held to a **higher standard** than per-topic quizzes:
+- Questions must **tie multiple topics together** — e.g., "Given a PPO setup with KL penalty β and a reward model with known failure modes, what happens when..."
+- Questions should require **multi-step reasoning**, not single-fact recall
+- Like good physics exams: give a scenario, require the student to apply several concepts to reach the answer
+- The test should be **difficult to pass without genuine understanding** — pattern-matching or partial knowledge should not suffice
+- All Question Quality Standards (below) apply with extra strictness
+
+### New content must be one of these types (learning or test). Every topic should have at least one test. Learning modules are added when a topic needs teaching content.
 
 ## Module Data Format
 
@@ -96,13 +143,16 @@ These rules prevent questions from being "hackable" by pattern-matching rather t
 ```
 src/modules/
   index.js                    # Module registry — ALL modules registered here
-  [topic-name].js             # Module files, one per topic area or section group
+  focused-[topic-name].js     # Single-topic module file (preferred pattern)
+  assess-[scope].js           # Chapter or capstone test files
+  [legacy-name].js            # Older multi-topic files (avoid creating new ones)
 ```
 
 ### Naming Conventions
-- Learning module files: descriptive topic name (e.g., `entropy-cross-entropy-mi.js`)
-- Test/assessment files: `assess-[scope].js` (e.g., `assess-branch-a.js`)
-- Export names: camelCase, descriptive (e.g., `entropyEasy`, `rlhfAssessment`)
+- **Single-topic files** (preferred): `focused-[topic].js` (e.g., `focused-kl-divergence.js`, `focused-ppo.js`)
+- **Chapter/capstone tests**: `assess-[scope].js` (e.g., `assess-branch-a.js`, `assess-divergences.js`)
+- **Export names**: camelCase, descriptive (e.g., `forwardKLLearning`, `rlhfAssessment`)
+- **One concept per file** whenever possible — avoid bundling unrelated topics into a single file
 
 ### Module Registry (`index.js`)
 - Every module must be imported and registered in the `MODULES` object
@@ -136,13 +186,15 @@ Optional modules:
 
 ## Adding New Content — Checklist
 
-1. Decide: is this a learning module or a test?
-2. Create or update the appropriate file in `src/modules/`
-3. Follow the module data format exactly (include `moduleType`)
-4. Verify question quality against all standards above
-5. Register in `src/modules/index.js`
-6. Run `npm run build` to verify no errors
-7. The Stop hook will auto-commit and push on completion
+1. **Identify the topic**: What single concept does this module teach? Apply the name test — if the title has a conjunction, split it into separate topics.
+2. **Decide the module type**: Learning module or test?
+3. **Check the hierarchy**: Does this topic belong to an existing chapter? Does the chapter already have an end-of-chapter test? If you're creating a new chapter, plan its test too.
+4. Create or update the appropriate file in `src/modules/` (prefer `focused-[topic].js` for new single-topic content)
+5. Follow the module data format exactly (include `moduleType`)
+6. Verify question quality against all standards above
+7. Register in `src/modules/index.js`
+8. Run `npm run build` to verify no errors
+9. The Stop hook will auto-commit and push on completion
 
 ## Tech Stack
 - React 18 + Vite 5
