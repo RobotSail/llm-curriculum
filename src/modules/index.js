@@ -2,7 +2,6 @@ import { svdLearning } from './focused-svd';
 import { eigendecompositionLearning } from './focused-eigendecomposition';
 import { matrixCalculusLearning } from './focused-matrix-calculus';
 import { einsumLearning } from './focused-einsum';
-import { randomMatrixTheoryLearning } from './focused-random-matrix-theory';
 import { easyModule, hardModule } from './info-theory-f-divergences';
 import { chiSquaredLearning } from './focused-chi-squared-divergence';
 import { ganObjectivesLearning } from './focused-gan-objectives';
@@ -43,6 +42,7 @@ import { ppoMechanicsLearning } from './focused-ppo';
 import { onOffPolicyLearning } from './focused-on-off-policy';
 import { selfAttentionLearning } from './focused-self-attention';
 import { multiHeadAttentionLearning } from './focused-multi-head-attention';
+import { bpeLearning } from './focused-bpe';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -54,7 +54,7 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning, ...markOptional(randomMatrixTheoryLearning)],
+  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning],
   "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
@@ -90,7 +90,7 @@ export const MODULES = {
 
   // Tier 1 — Foundational core
   "1.1": [selfAttentionLearning, multiHeadAttentionLearning, transformerAssessment],
-  "1.2": [tokenizationAssessment],
+  "1.2": [bpeLearning, tokenizationAssessment],
   "1.3": [pretrainingAssessment],
   "1.4": [dataAssessment],
   "1.5": [evaluationAssessment],
