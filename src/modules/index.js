@@ -37,18 +37,8 @@ import { muonOptimizerFundamentals } from './muon-optimizer-fundamentals';
 import { policyGradientsLearning } from './focused-policy-gradients';
 import { ppoMechanicsLearning } from './focused-ppo';
 import { onOffPolicyLearning } from './focused-on-off-policy';
-
-// TBD placeholder modules
-import {
-  matrixNormsLearning,
-  steepestDescentNormsLearning,
-  newtonSchulzLearning,
-  plasticityForgettingLearning,
-  muonAtScaleLearning,
-  muonVsAdamLearning,
-  rlSubnetworksLearning,
-  onlineRlLlmLearning,
-} from './muon-rl-placeholders';
+import { selfAttentionLearning } from './focused-self-attention';
+import { multiHeadAttentionLearning } from './focused-multi-head-attention';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -60,8 +50,8 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning, ...markOptional(randomMatrixTheoryLearning), matrixNormsLearning],
-  "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
+  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning, ...markOptional(randomMatrixTheoryLearning)],
+  "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
     // 1. Foundations — gauge starting level
@@ -95,7 +85,7 @@ export const MODULES = {
   ],
 
   // Tier 1 — Foundational core
-  "1.1": [transformerAssessment],
+  "1.1": [selfAttentionLearning, multiHeadAttentionLearning, transformerAssessment],
   "1.2": [tokenizationAssessment],
   "1.3": [pretrainingAssessment],
   "1.4": [dataAssessment],
@@ -105,7 +95,7 @@ export const MODULES = {
   // Branch A — Post-training & alignment
   "A.1": [sftAssessment],
   "A.2": [rewardModelingAssessment],
-  "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning, plasticityForgettingLearning, onlineRlLlmLearning, rlSubnetworksLearning],
+  "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning],
   "A.4": [directAlignmentAssessment],
   "A.5": [frontierAlignmentAssessment],
 
@@ -113,7 +103,7 @@ export const MODULES = {
   "B.1": [scalingLawsAssessment],
   "B.2": [architectureAssessment],
   "B.3": [dataCentricAssessment],
-  "B.4": [trainingDynamicsAssessment, muonVsAdamLearning, muonAtScaleLearning],
+  "B.4": [trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment
