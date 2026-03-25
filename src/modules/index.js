@@ -1,4 +1,4 @@
-import { easyModule as linAlgEasy, mediumModule as linAlgMedium, hardModule as linAlgHard } from './linear-algebra';
+import { matrixCalculusLearning } from './focused-matrix-calculus';
 import { easyModule, mediumModule, hardModule } from './info-theory-f-divergences';
 import { entropyEasy, entropyMedium, entropyHard } from './entropy-cross-entropy-mi';
 import { probabilityFoundationsAssessment } from './prob-assessment-foundations';
@@ -25,6 +25,10 @@ import { muonOptimizerFundamentals } from './muon-optimizer-fundamentals';
 import { policyGradientsLearning } from './focused-policy-gradients';
 import { ppoMechanicsLearning } from './focused-ppo';
 import { onOffPolicyLearning } from './focused-on-off-policy';
+import { svdLearning } from './focused-svd';
+import { eigendecompositionLearning } from './focused-eigendecomposition';
+import { einsumLearning } from './focused-einsum';
+import { randomMatrixTheoryLearning } from './focused-random-matrix-theory';
 
 // TBD placeholder modules
 import {
@@ -48,7 +52,7 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [linAlgEasy, linAlgMedium, linAlgHard, matrixNormsLearning],
+  "0.1": [svdLearning, eigendecompositionLearning, matrixCalculusLearning, einsumLearning, matrixNormsLearning, ...markOptional(randomMatrixTheoryLearning)],
   "0.3": [optimizationAssessment, adamAdamwLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
