@@ -52,6 +52,7 @@ import { sftMechanicsLearning } from './focused-sft-mechanics';
 import { rewardModelingLearning } from './focused-reward-modeling';
 import { dataQualityLearning } from './focused-data-quality';
 import { benchmarkDesignLearning } from './focused-benchmark-design';
+import { scalingLawsLearning } from './focused-scaling-laws';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -113,7 +114,7 @@ export const MODULES = {
   "A.5": [frontierAlignmentAssessment],
 
   // Branch B — Pretraining & architecture research
-  "B.1": [scalingLawsAssessment],
+  "B.1": [scalingLawsLearning, scalingLawsAssessment],
   "B.2": [architectureAssessment],
   "B.3": [dataCentricAssessment],
   "B.4": [trainingDynamicsAssessment],
