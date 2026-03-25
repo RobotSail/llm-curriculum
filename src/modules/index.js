@@ -53,6 +53,7 @@ import { rewardModelingLearning } from './focused-reward-modeling';
 import { dataQualityLearning } from './focused-data-quality';
 import { benchmarkDesignLearning } from './focused-benchmark-design';
 import { scalingLawsLearning } from './focused-scaling-laws';
+import { loraLearning } from './focused-lora';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -145,7 +146,7 @@ export const MODULES = {
   "F.4": [formalTheoryAssessment],
 
   // Branch G — Efficient training & parameter-efficient methods
-  "G.1": [peftAssessment],
+  "G.1": [loraLearning, peftAssessment],
   "G.2": [memoryEfficientAssessment],
   "G.3": [hardwareAwareAssessment],
 };
