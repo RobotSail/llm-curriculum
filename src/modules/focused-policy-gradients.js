@@ -53,11 +53,11 @@ export const policyGradientsLearning = {
       question: "A team uses REINFORCE with batch size 1 (one response per gradient step) to fine-tune a language model. Training is extremely unstable. Which change would most directly reduce gradient variance?",
       options: [
         "Reducing the learning rate by 10x to compensate for noisy gradients",
-        "Increasing the batch size to 64 and averaging the per-sample gradient estimates",
         "Using a larger language model with more parameters",
+        "Increasing the batch size to 64 and averaging the per-sample gradient estimates",
         "Switching from float32 to bfloat16 for gradient computation"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Averaging $N$ independent gradient estimates reduces variance by a factor of $N$. Going from batch 1 to 64 reduces variance by 64x. A lower learning rate doesn't reduce variance — it just shrinks the noisy steps. A larger model increases the gradient dimensionality but doesn't help per-sample noise. Precision affects rounding error, not statistical variance."
     },
     {
@@ -86,12 +86,12 @@ export const policyGradientsLearning = {
       type: "mc",
       question: "A model generates a 200-token response. A reward model gives it a high score because the final sentence (tokens 180-200) correctly answers the question, while tokens 1-179 are rambling filler. With per-sequence REINFORCE (same reward for all tokens), what happens?",
       options: [
-        "The model correctly learns to generate the answer at the end, since the final tokens get the strongest gradient signal",
         "All 200 tokens are equally reinforced, meaning the model also learns to produce the rambling filler, since it cannot distinguish which tokens caused the high reward",
+        "The model correctly learns to generate the answer at the end, since the final tokens get the strongest gradient signal",
         "The gradient is zero because the positive reward on good tokens cancels with zero reward on filler tokens",
         "Only the last token gets updated because autoregressive models only backpropagate through the final position"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Per-sequence REINFORCE applies the same reward to all tokens' log-probabilities. It cannot distinguish which tokens were responsible for the reward. So the model reinforces the entire sequence — including the 179 filler tokens. This is why credit assignment matters, and why per-token advantages (via a value function) are important for efficient RL on long sequences."
     },
     {
@@ -104,11 +104,11 @@ export const policyGradientsLearning = {
       question: "During SFT, Adam's second moment $v_t$ converges to a stable per-parameter estimate after a few hundred steps. During RL fine-tuning with the same model and optimizer settings, $v_t$ is observed to fluctuate significantly even after thousands of steps. What is the most likely cause?",
       options: [
         "The reward model introduces numerical instabilities that propagate through the gradient computation",
-        "RL generates different responses each step, so the gradient distribution is non-stationary — $v_t$ tracks a moving target rather than converging to a fixed estimate",
+        "The KL penalty term in the RL objective adds an oscillating component to the gradient",
         "RL uses smaller batch sizes than SFT, causing higher per-batch gradient variance",
-        "The KL penalty term in the RL objective adds an oscillating component to the gradient"
+        "RL generates different responses each step, so the gradient distribution is non-stationary — $v_t$ tracks a moving target rather than converging to a fixed estimate"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The key difference is that RL's data distribution changes every step (the policy generates new responses from an evolving distribution). This makes the gradient distribution non-stationary — the second moment $v_t$ is estimating a quantity that keeps changing. SFT's fixed dataset means the gradient distribution stabilizes, allowing $v_t$ to converge. This non-stationarity is inherent to on-policy RL, not a batch size or numerical issue."
     }
   ]

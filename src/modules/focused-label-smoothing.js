@@ -19,12 +19,12 @@ export const labelSmoothingLearning = {
       type: "mc",
       question: "Without label smoothing ($\\alpha = 0$), what are the optimal logits for the correct class to minimize cross-entropy with a one-hot target?",
       options: [
-        "The logit should converge to exactly $1.0$ to match the one-hot probability target",
-        "The logit should converge to $\\log K$ to balance the softmax normalizer over $K$ classes",
         "The logit should go to $+\\infty$ since driving $Q(y^*) \\to 1$ requires unbounded logits",
+        "The logit should converge to $\\log K$ to balance the softmax normalizer over $K$ classes",
+        "The logit should converge to exactly $1.0$ to match the one-hot probability target",
         "The logit should converge to the log-prior $\\log P(y^*)$ for Bayesian consistency"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "With a one-hot target, the loss is $-\\log Q(y^*)$, which is minimized by $Q(y^*) \\to 1$. Since $Q(y^*) = \\text{softmax}(z_{y^*})$, achieving $Q(y^*) = 1$ requires $z_{y^*} - z_k \\to \\infty$ for all $k \\neq y^*$. The optimal logits are unbounded — they grow without limit during training. This drives the model toward extreme confidence and encourages memorization, as the gradients never vanish regardless of how confident the model already is."
     },
     {
@@ -67,10 +67,10 @@ export const labelSmoothingLearning = {
       options: [
         "Gradients become larger because the smoothed loss has a steeper curvature near the optimum",
         "Gradients remain the same size because label smoothing only affects the target, not the loss landscape shape",
-        "Gradients become smaller and more stable because the finite logit gap prevents the loss from driving logits to extremes",
-        "Gradients oscillate between large and small as the model alternates between fitting the one-hot and uniform components"
+        "Gradients oscillate between large and small as the model alternates between fitting the one-hot and uniform components",
+        "Gradients become smaller and more stable because the finite logit gap prevents the loss from driving logits to extremes"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Without label smoothing, the loss $-\\log Q(y^*)$ produces gradients proportional to $(Q(y^*) - 1)$, which only vanishes as $Q(y^*) \\to 1$ (requiring $z \\to \\infty$). The model keeps pushing logits larger indefinitely. With label smoothing, the optimal logits are finite — once the model reaches the optimal gap, gradients from the correct-class and uniform terms approximately cancel. This stabilizes the final-layer gradients and prevents the logit-growth pathology."
     },
     {
@@ -84,10 +84,10 @@ export const labelSmoothingLearning = {
       options: [
         "The model without label smoothing — diffuse representations preserve more fine-grained information for downstream tasks",
         "The label-smoothed model — tighter clusters indicate better class separation, which always transfers well",
-        "It depends on the downstream task — tighter clusters help classification but may hurt tasks requiring within-class discrimination",
-        "Neither — representation geometry has no empirical relationship with transfer learning performance"
+        "Neither — representation geometry has no empirical relationship with transfer learning performance",
+        "It depends on the downstream task — tighter clusters help classification but may hurt tasks requiring within-class discrimination"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "This is nuanced. Label smoothing's equidistant clusters are great for classification transfer (classes are well-separated). But the tight clustering means within-class variation is compressed — fine-grained features (distinguishing breeds of dogs, subtypes of cells) may be lost. For retrieval or fine-grained recognition, the more diffuse representations might actually transfer better. Müller et al. (2019) noted that label smoothing can hurt knowledge distillation for exactly this reason: the teacher's dark knowledge (relative probabilities among incorrect classes) is suppressed."
     },
     {
@@ -99,12 +99,12 @@ export const labelSmoothingLearning = {
       type: "mc",
       question: "A team uses knowledge distillation: a large teacher model's soft outputs train a smaller student. They also apply label smoothing ($\\alpha = 0.1$) to the teacher. What effect does this have on distillation quality?",
       options: [
-        "Distillation improves because the teacher's outputs are already smoothed, giving the student better soft targets",
         "Distillation degrades because the teacher's dark knowledge — relative probabilities among wrong classes — is suppressed by label smoothing",
+        "Distillation improves because the teacher's outputs are already smoothed, giving the student better soft targets",
         "No effect because the student only uses the teacher's top-1 prediction, not the full probability distribution",
         "Distillation improves for hard examples but degrades for easy examples due to the confidence redistribution"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Knowledge distillation works by transferring the teacher's soft predictions, which encode class similarities (\"this 7 looks a bit like a 1\"). Label smoothing pushes the teacher's output toward uniform over incorrect classes, destroying this structure — all wrong classes look equally wrong. The student receives less informative targets. Müller et al. (2019) demonstrated this empirically: label-smoothed teachers produce worse distillation students than teachers trained with standard cross-entropy."
     }
   ]

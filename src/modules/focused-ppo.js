@@ -19,11 +19,11 @@ export const ppoMechanicsLearning = {
       question: "A policy gradient update increases the probability of a high-reward response from 0.1 to 0.8 in a single step. Why is this dangerous, even though the response had high reward?",
       options: [
         "The reward model's score was probably miscalibrated for such a rare response",
-        "The gradient was estimated when this response had probability 0.1 — the update is valid for small changes near 0.1, not for jumping to 0.8, and the policy's behavior in other regions is now unpredictable",
+        "The advantage estimate used a value function trained on the old policy, which is no longer applicable",
         "A probability of 0.8 for any single response means the model has collapsed to always producing that response",
-        "The advantage estimate used a value function trained on the old policy, which is no longer applicable"
+        "The gradient was estimated when this response had probability 0.1 — the update is valid for small changes near 0.1, not for jumping to 0.8, and the policy's behavior in other regions is now unpredictable"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The gradient $\\nabla_\\theta \\log \\pi_\\theta(y)$ is a local linear approximation valid near the current parameters. A step that changes a probability from 0.1 to 0.8 is far outside this linear regime. The model's behavior on all other responses may have changed in unpredictable ways. This is why trust region methods constrain step size — to keep updates within the region where our gradient estimate is reliable."
     },
     {
@@ -35,12 +35,12 @@ export const ppoMechanicsLearning = {
       type: "mc",
       question: "In the TRPO objective, the importance weight $\\pi_\\theta(y) / \\pi_{\\text{old}}(y)$ reweights advantages from the old policy to apply to the new policy. If this ratio equals 3.0 for a response, what does that mean?",
       options: [
-        "The new policy is 3x more likely to generate this response than the old policy — it is being heavily upweighted",
-        "The reward for this response is 3x the average reward in the batch",
         "The response was sampled 3 times during data collection",
+        "The reward for this response is 3x the average reward in the batch",
+        "The new policy is 3x more likely to generate this response than the old policy — it is being heavily upweighted",
         "The new policy generates responses 3x faster than the old policy"
       ],
-      correct: 0,
+      correct: 2,
       explanation: "The ratio $\\pi_\\theta(y) / \\pi_{\\text{old}}(y) = 3.0$ means the new policy assigns 3x the probability to response $y$ compared to the policy that generated it. This large ratio means the policy has changed substantially for this response — which is exactly what trust region methods try to limit, since our advantage estimate $A(y)$ was computed under $\\pi_{\\text{old}}$."
     },
     {
@@ -87,11 +87,11 @@ export const ppoMechanicsLearning = {
       question: "A team trains with PPO-RLHF using clip $\\epsilon = 0.2$ and KL coefficient $\\beta = 0.1$. After 10,000 steps, the KL divergence from $\\pi_{\\text{ref}}$ has grown to 15 nats. They decide to increase $\\beta$ to 0.5. What is the expected short-term effect?",
       options: [
         "The policy immediately snaps back to $\\pi_{\\text{ref}}$ because the penalty now dominates the reward",
-        "The policy gradually drifts back toward $\\pi_{\\text{ref}}$ as the stronger penalty outweighs the marginal reward gain from further divergence",
+        "The PPO clipping becomes ineffective because the KL gradient overwhelms the reward gradient",
         "Nothing changes because the KL penalty is evaluated against $\\pi_{\\text{old}}$, not $\\pi_{\\text{ref}}$",
-        "The PPO clipping becomes ineffective because the KL gradient overwhelms the reward gradient"
+        "The policy gradually drifts back toward $\\pi_{\\text{ref}}$ as the stronger penalty outweighs the marginal reward gain from further divergence"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Increasing $\\beta$ makes the KL penalty term larger relative to the reward. Since KL(π_θ || π_ref) = 15 nats, the penalty is now $0.5 \\times 15 = 7.5$ per sample, which may exceed the marginal reward from further divergence. The policy will gradually move back toward $\\pi_{\\text{ref}}$ as the penalty outweighs reward gains. It won't snap back instantly — gradient descent moves gradually. The clipping and KL penalty are independent constraints (clip is vs $\\pi_{\\text{old}}$, KL is vs $\\pi_{\\text{ref}}$)."
     },
     {
@@ -104,11 +104,11 @@ export const ppoMechanicsLearning = {
       question: "In PPO for LLMs, the clipping mechanism zeros out gradients for responses where $r_t$ exits $[1-\\epsilon, 1+\\epsilon]$. An optimizer that aggressively adapts per-parameter learning rates (like Adam) may respond to this sparsity by:",
       options: [
         "Reducing all learning rates uniformly because the average gradient magnitude decreases",
-        "Increasing effective learning rates for parameters that receive non-zero gradients from unclipped responses, potentially causing those parameters to be over-updated",
         "Ignoring the clipped responses entirely, which is the intended behavior with no side effects",
+        "Increasing effective learning rates for parameters that receive non-zero gradients from unclipped responses, potentially causing those parameters to be over-updated",
         "Accumulating a large momentum in the KL penalty direction since it is never clipped"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "When some samples are clipped (zero gradient), Adam's second moment $v_t$ for affected parameters decreases (fewer large gradient entries). Smaller $v_t$ means larger effective learning rate $\\alpha/(\\sqrt{v_t} + \\epsilon)$. When those parameters do receive gradients from unclipped samples in subsequent steps, the inflated learning rate can cause larger-than-intended updates. This interaction between PPO's clipping and Adam's adaptivity is a real practical concern."
     }
   ]

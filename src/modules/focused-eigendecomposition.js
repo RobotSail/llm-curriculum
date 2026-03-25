@@ -31,8 +31,8 @@ export const eigendecompositionLearning = {
     {
       type: "mc",
       question: "A matrix $A$ has eigendecomposition $A = V \\text{diag}(\\lambda) V^{-1}$. One eigenvalue is $\\lambda_3 = 0$. What does this tell you about $A$?",
-      options: ["$A$ is the zero matrix, since any zero eigenvalue forces all entries to be zero", "$A$ is singular (not invertible), because it collapses some direction to zero", "$A$ is symmetric, since zero eigenvalues only occur in symmetric matrices", "$A$ has rank $n$, since the zero eigenvalue does not affect the rank"],
-      correct: 1,
+      options: ["$A$ is the zero matrix, since any zero eigenvalue forces all entries to be zero", "$A$ has rank $n$, since the zero eigenvalue does not affect the rank", "$A$ is symmetric, since zero eigenvalues only occur in symmetric matrices", "$A$ is singular (not invertible), because it collapses some direction to zero"],
+      correct: 3,
       explanation: "An eigenvalue of 0 means $Av_3 = 0 \\cdot v_3 = 0$ — the matrix sends the eigenvector $v_3$ to the zero vector. This means $A$ has a nontrivial null space, so $A$ is singular (not invertible). In general, $A$ is invertible if and only if **all** eigenvalues are nonzero. The number of zero eigenvalues tells you the dimension of the null space."
     },
     {
@@ -43,8 +43,8 @@ export const eigendecompositionLearning = {
     {
       type: "mc",
       question: "A real symmetric matrix $A$ has eigendecomposition $A = Q \\Lambda Q^\\top$. Which statement is **always** true?",
-      options: ["The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are strictly positive", "The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are real-valued", "All eigenvalues are distinct, so the eigenvectors are linearly independent by default", "$A$ must be positive definite, since only PD matrices admit a full eigendecomposition"],
-      correct: 1,
+      options: ["The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are real-valued", "The columns of $Q$ are orthonormal and the diagonal entries of $\\Lambda$ are strictly positive", "All eigenvalues are distinct, so the eigenvectors are linearly independent by default", "$A$ must be positive definite, since only PD matrices admit a full eigendecomposition"],
+      correct: 0,
       explanation: "By the Spectral Theorem, every real symmetric matrix has real eigenvalues and an orthonormal eigenbasis — so $Q$ is orthogonal ($Q^\\top Q = I$) and $\\Lambda$ is real diagonal. Eigenvalues need not be positive or distinct; positive-definiteness is an additional condition requiring all $\\lambda_i > 0$. Any real symmetric matrix — including those with zero or negative eigenvalues — has this decomposition."
     },
     {
@@ -74,8 +74,8 @@ export const eigendecompositionLearning = {
     {
       type: "mc",
       question: "The **spectral norm** $\\|A\\|_2$ of a matrix equals:",
-      options: ["The sum of all singular values (the nuclear norm)", "The largest singular value $\\sigma_1$ of the matrix", "The square root of the sum of all squared entries (the Frobenius norm)", "The largest absolute eigenvalue of the matrix (for any matrix)"],
-      correct: 1,
+      options: ["The sum of all singular values (the nuclear norm)", "The square root of the sum of all squared entries (the Frobenius norm)", "The largest singular value $\\sigma_1$ of the matrix", "The largest absolute eigenvalue of the matrix (for any matrix)"],
+      correct: 2,
       explanation: "$\\|A\\|_2 = \\sigma_1$, the largest singular value. It equals $\\max_{\\|x\\|=1} \\|Ax\\|$, i.e., how much $A$ stretches a unit vector at most. The sum of singular values is the nuclear norm; the Frobenius norm is the root sum of squares. The largest absolute eigenvalue equals the spectral norm only for symmetric matrices — for general matrices, singular values (not eigenvalues) are the right measure of \"stretching.\""
     },
     {

@@ -19,12 +19,12 @@ export const weightDecayLearning = {
       type: "mc",
       question: "A weight $\\theta_i = 5.0$ receives zero gradient for 100 consecutive steps. With weight decay $\\lambda = 0.01$ and no gradient updates, what approximately happens to $\\theta_i$?",
       options: [
-        "$\\theta_i$ stays at 5.0 because weight decay only acts when gradients are nonzero",
         "$\\theta_i$ decays to $(1 - 0.01)^{100} \\times 5.0 \\approx 0.99^{100} \\times 5.0 \\approx 1.83$ — exponential shrinkage",
+        "$\\theta_i$ stays at 5.0 because weight decay only acts when gradients are nonzero",
         "$\\theta_i$ decays linearly to $5.0 - 100 \\times 0.01 = 4.0$",
         "$\\theta_i$ immediately jumps to zero after the first step with zero gradient"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "With zero gradient, the update is $\\theta_{t+1} = (1 - \\lambda)\\theta_t = 0.99 \\theta_t$. After 100 steps: $\\theta_{100} = 0.99^{100} \\times 5.0 \\approx 0.366 \\times 5.0 \\approx 1.83$. Weight decay acts continuously regardless of gradients — it is a multiplicative shrinkage at every step, producing exponential decay toward zero."
     },
     {
@@ -54,11 +54,11 @@ export const weightDecayLearning = {
       question: "A parameter $\\theta_i$ has consistently large task gradients, so $v_i$ is large. Another parameter $\\theta_j$ has small task gradients, so $v_j$ is small. Both have the same weight magnitude $|\\theta_i| = |\\theta_j|$. Under Adam with L2 regularization, which parameter experiences stronger effective weight decay?",
       options: [
         "$\\theta_i$ — large gradients mean more total gradient signal including the regularization term",
-        "$\\theta_j$ — its small $v_j$ amplifies the regularization gradient $\\lambda\\theta_j$ through the $1/\\sqrt{v_j}$ scaling",
+        "Neither experiences meaningful decay because Adam's momentum cancels the regularization signal over time",
         "Both experience equal weight decay because L2 adds the same $\\lambda\\theta$ regardless of gradient history",
-        "Neither experiences meaningful decay because Adam's momentum cancels the regularization signal over time"
+        "$\\theta_j$ — its small $v_j$ amplifies the regularization gradient $\\lambda\\theta_j$ through the $1/\\sqrt{v_j}$ scaling"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The effective regularization update for $\\theta_i$ is proportional to $\\lambda\\theta_i / \\sqrt{v_i}$, and similarly for $\\theta_j$. Since $v_i \\gg v_j$ but $|\\theta_i| = |\\theta_j|$, the effective decay on $\\theta_j$ is much stronger. This is backwards: $\\theta_j$ (with small gradients, likely less important) gets more regularization than $\\theta_i$ (with large gradients, where unchecked growth is most dangerous)."
     },
     {
@@ -87,12 +87,12 @@ export const weightDecayLearning = {
       type: "mc",
       question: "During cosine learning rate decay, the learning rate $\\alpha$ drops from $3 \\times 10^{-4}$ to $3 \\times 10^{-5}$ over training. With AdamW using $\\lambda = 0.1$ and decay applied as $(1 - \\alpha\\lambda)$, how does the effective per-step weight decay change?",
       options: [
-        "It stays constant at $\\lambda = 0.1$ per step because decoupled weight decay is independent of learning rate by definition",
         "It decreases by 10x — from $(1 - 3 \\times 10^{-5})$ per step to $(1 - 3 \\times 10^{-6})$ per step, tracking the learning rate schedule",
+        "It stays constant at $\\lambda = 0.1$ per step because decoupled weight decay is independent of learning rate by definition",
         "It increases by 10x because smaller learning rates mean less gradient signal to counteract the decay",
         "It oscillates with the cosine schedule because decay and learning rate are phase-coupled"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "In the standard AdamW formulation, the per-step decay is $(1 - \\alpha\\lambda)$, so it scales linearly with $\\alpha$. When $\\alpha$ drops by 10x, the per-step decay strength also drops by 10x. This coupling means late-stage training has very little effective regularization. Some practitioners prefer a formulation where decay is $(1 - \\lambda)$ independent of $\\alpha$ to maintain consistent regularization throughout training."
     },
     {
@@ -100,11 +100,11 @@ export const weightDecayLearning = {
       question: "You are training a 7B parameter model with AdamW. Layer norm parameters ($\\gamma$, $\\beta$) make up about 0.01% of total parameters. A colleague suggests applying weight decay to layer norm parameters too, arguing \"regularization everywhere is more consistent.\" What is the most likely outcome?",
       options: [
         "Significant generalization improvement because layer norm parameters are currently unregularized outliers",
-        "Negligible change or slight degradation — decaying $\\gamma$ toward zero destabilizes normalization without meaningful regularization benefit",
+        "Identical training dynamics because 0.01% of parameters cannot affect the loss measurably",
         "Training diverges because weight decay on $\\gamma$ forces activations to collapse to zero",
-        "Identical training dynamics because 0.01% of parameters cannot affect the loss measurably"
+        "Negligible change or slight degradation — decaying $\\gamma$ toward zero destabilizes normalization without meaningful regularization benefit"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Layer norm has $\\gamma$ (scale) initialized to 1 and $\\beta$ (shift) initialized to 0. Decaying $\\gamma$ toward 0 actively fights the normalization mechanism — it shrinks the normalized activations toward zero. Decaying $\\beta$ toward 0 is mostly harmless but pointless. The number of parameters is tiny (no regularization benefit), and the potential harm to training stability outweighs any theoretical consistency gain. This is why standard practice excludes norms and biases from weight decay."
     }
   ]
