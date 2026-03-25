@@ -1,4 +1,8 @@
-import { easyModule as linAlgEasy, mediumModule as linAlgMedium, hardModule as linAlgHard } from './linear-algebra';
+import { svdLearning } from './focused-svd';
+import { eigendecompositionLearning } from './focused-eigendecomposition';
+import { matrixCalculusLearning } from './focused-matrix-calculus';
+import { einsumLearning } from './focused-einsum';
+import { randomMatrixTheoryLearning } from './focused-random-matrix-theory';
 import { easyModule, hardModule } from './info-theory-f-divergences';
 import { chiSquaredLearning } from './focused-chi-squared-divergence';
 import { ganObjectivesLearning } from './focused-gan-objectives';
@@ -56,7 +60,7 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [linAlgEasy, linAlgMedium, linAlgHard, matrixNormsLearning],
+  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning, ...markOptional(randomMatrixTheoryLearning), matrixNormsLearning],
   "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
