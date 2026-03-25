@@ -54,6 +54,7 @@ import { dataQualityLearning } from './focused-data-quality';
 import { benchmarkDesignLearning } from './focused-benchmark-design';
 import { scalingLawsLearning } from './focused-scaling-laws';
 import { loraLearning } from './focused-lora';
+import { mixedPrecisionLearning } from './focused-mixed-precision';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -105,7 +106,7 @@ export const MODULES = {
   "1.3": [nextTokenPredictionLearning, pretrainingAssessment],
   "1.4": [dataQualityLearning, dataAssessment],
   "1.5": [benchmarkDesignLearning, evaluationAssessment],
-  "1.6": [dataParallelismLearning, distributedTrainingAssessment],
+  "1.6": [dataParallelismLearning, mixedPrecisionLearning, distributedTrainingAssessment],
 
   // Branch A — Post-training & alignment
   "A.1": [sftMechanicsLearning, sftAssessment],
