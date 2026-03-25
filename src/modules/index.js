@@ -1,6 +1,13 @@
 import { easyModule as linAlgEasy, mediumModule as linAlgMedium, hardModule as linAlgHard } from './linear-algebra';
-import { easyModule, mediumModule, hardModule } from './info-theory-f-divergences';
-import { entropyEasy, entropyMedium, entropyHard } from './entropy-cross-entropy-mi';
+import { easyModule, hardModule } from './info-theory-f-divergences';
+import { chiSquaredLearning } from './focused-chi-squared-divergence';
+import { ganObjectivesLearning } from './focused-gan-objectives';
+import { entropyLearning } from './focused-entropy';
+import { crossEntropyLearning } from './focused-cross-entropy';
+import { perplexityLearning } from './focused-perplexity';
+import { mutualInformationLearning } from './focused-mutual-information';
+import { labelSmoothingLearning } from './focused-label-smoothing';
+import { calibrationLearning } from './focused-calibration';
 import { probabilityFoundationsAssessment } from './prob-assessment-foundations';
 import { exponentialFamilyAssessment } from './prob-assessment-exponential-family';
 import { entropyAssessment } from './prob-assessment-entropy';
@@ -20,7 +27,8 @@ import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, opt
 
 // Focused first-principles modules
 import { forwardKLLearning, reverseKLLearning } from './focused-kl-divergence';
-import { adamAdamwLearning } from './focused-adam-optimizer';
+import { adamLearning } from './focused-adam-optimizer';
+import { weightDecayLearning } from './focused-weight-decay';
 import { muonOptimizerFundamentals } from './muon-optimizer-fundamentals';
 import { policyGradientsLearning } from './focused-policy-gradients';
 import { ppoMechanicsLearning } from './focused-ppo';
@@ -49,7 +57,7 @@ function markOptional(...mods) {
 export const MODULES = {
   // Tier 0 — Prerequisites
   "0.1": [linAlgEasy, linAlgMedium, linAlgHard, matrixNormsLearning],
-  "0.3": [optimizationAssessment, adamAdamwLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
+  "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, steepestDescentNormsLearning, newtonSchulzLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
     // 1. Foundations — gauge starting level
@@ -57,20 +65,24 @@ export const MODULES = {
     // 2. KL divergence from first principles
     forwardKLLearning,
     reverseKLLearning,
-    // 3. Entropy & cross-entropy — the core of LLM training
-    entropyEasy,
+    // 3. Entropy, cross-entropy, perplexity — the core of LLM training
+    entropyLearning,
+    crossEntropyLearning,
+    perplexityLearning,
     entropyAssessment,
     // 4. Divergences — KL, JS, f-divergences
     easyModule,
     divergencesAssessment,
-    // 5. Intermediate — IS variance, GANs, MI
-    entropyMedium,
-    mediumModule,
+    // 5. Intermediate — MI, chi-squared/IS, GANs
+    mutualInformationLearning,
+    chiSquaredLearning,
+    ganObjectivesLearning,
     // 6. Bayesian & sampling methods
     bayesianAssessment,
     samplingAssessment,
-    // 7. Advanced — variational bounds, label smoothing, calibration
-    entropyHard,
+    // 7. Advanced — label smoothing, calibration, variational bounds
+    labelSmoothingLearning,
+    calibrationLearning,
     hardModule,
     appliedInfoTheoryAssessment,
     // 8. Optional deep theory

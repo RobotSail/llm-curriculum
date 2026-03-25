@@ -1,10 +1,11 @@
-// Focused module: Adam & AdamW from first principles.
-// Covers momentum, adaptive learning rates, weight decay, and per-element limitations.
+// Focused module: Adam optimizer from first principles.
+// Covers momentum, adaptive learning rates, bias correction, memory footprint,
+// and the fundamental per-element limitation that motivates matrix-aware optimizers.
 
-export const adamAdamwLearning = {
+export const adamLearning = {
   id: "0.3-adam-learning-easy",
   sectionId: "0.3",
-  title: "Adam & AdamW from First Principles",
+  title: "Adam Optimizer: First Principles",
   moduleType: "learning",
   difficulty: "easy",
   estimatedMinutes: 20,
@@ -59,23 +60,6 @@ export const adamAdamwLearning = {
       ],
       correct: 2,
       explanation: "We need $1/(1 - 0.999^t) < 1.1$, which means $0.999^t < 1/11 \\approx 0.09$. Taking logs: $t \\cdot \\ln(0.999) < \\ln(0.09)$, so $t > \\ln(0.09)/\\ln(0.999) \\approx -2.41 / -0.001 \\approx 2400$. More approximately, the effective window is $1/(1-0.999) = 1000$ steps, and the correction stabilizes around that scale. ~1,000 steps is the right order of magnitude."
-    },
-    {
-      type: "info",
-      title: "Weight Decay vs L2 Regularization",
-      content: "L2 regularization adds $\\frac{\\lambda}{2}\\|\\theta\\|^2$ to the loss, which modifies the gradient: $g_t \\leftarrow g_t + \\lambda \\theta_t$. With SGD, this is equivalent to **decoupled weight decay**: $\\theta_{t+1} = (1 - \\alpha\\lambda)\\theta_t - \\alpha g_t$.\n\nBut with Adam, L2 regularization is NOT the same as weight decay. When the regularization gradient $\\lambda\\theta$ passes through Adam's adaptive scaling, large-weight parameters get their decay **dampened** (because their $v_t$ is large) and small-weight parameters get their decay **amplified**. This defeats the purpose.\n\n**AdamW** fixes this by applying weight decay directly to the parameters, **outside** Adam's adaptive mechanism:\n\n$$\\theta_{t+1} = (1 - \\alpha\\lambda)\\theta_t - \\alpha \\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t} + \\epsilon}$$\n\nThe decay $(1 - \\alpha\\lambda)\\theta_t$ is applied uniformly to all parameters, unaffected by the gradient history. This is the standard optimizer for LLM training."
-    },
-    {
-      type: "mc",
-      question: "A team accidentally uses Adam with L2 regularization instead of AdamW with decoupled weight decay. A parameter $\\theta_i$ has consistently large gradients, so its $v_i$ is large. Compared to AdamW, what happens to this parameter's weight decay?",
-      options: [
-        "The decay is stronger because large $v_i$ amplifies the regularization gradient",
-        "The decay is weaker because Adam's $1/\\sqrt{v_i}$ scaling shrinks the regularization gradient along with the task gradient",
-        "The decay is identical because weight decay and L2 regularization are mathematically equivalent for all optimizers",
-        "The decay oscillates between stronger and weaker depending on the sign of the gradient"
-      ],
-      correct: 1,
-      explanation: "With L2 regularization through Adam, the regularization gradient $\\lambda\\theta_i$ is divided by $\\sqrt{v_i} + \\epsilon$ just like the task gradient. When $v_i$ is large (from consistently large task gradients), this division shrinks the effective weight decay. AdamW avoids this by applying decay directly to $\\theta_i$ before the adaptive step, ensuring uniform decay regardless of gradient history."
     },
     {
       type: "info",
