@@ -46,6 +46,7 @@ import { bpeLearning } from './focused-bpe';
 import { positionalEncodingLearning } from './focused-positional-encoding';
 import { residualStreamsLearning } from './focused-residual-streams';
 import { dataParallelismLearning } from './focused-data-parallelism';
+import { dpoLearning } from './focused-dpo';
 import { nextTokenPredictionLearning } from './focused-next-token-prediction';
 
 // Modules with optional: true are deep-theory / tangential content.
@@ -104,7 +105,7 @@ export const MODULES = {
   "A.1": [sftAssessment],
   "A.2": [rewardModelingAssessment],
   "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning],
-  "A.4": [directAlignmentAssessment],
+  "A.4": [dpoLearning, directAlignmentAssessment],
   "A.5": [frontierAlignmentAssessment],
 
   // Branch B — Pretraining & architecture research
