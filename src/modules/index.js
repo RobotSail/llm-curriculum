@@ -45,6 +45,7 @@ import { multiHeadAttentionLearning } from './focused-multi-head-attention';
 import { bpeLearning } from './focused-bpe';
 import { positionalEncodingLearning } from './focused-positional-encoding';
 import { residualStreamsLearning } from './focused-residual-streams';
+import { dataParallelismLearning } from './focused-data-parallelism';
 import { nextTokenPredictionLearning } from './focused-next-token-prediction';
 
 // Modules with optional: true are deep-theory / tangential content.
@@ -97,7 +98,7 @@ export const MODULES = {
   "1.3": [nextTokenPredictionLearning, pretrainingAssessment],
   "1.4": [dataAssessment],
   "1.5": [evaluationAssessment],
-  "1.6": [distributedTrainingAssessment],
+  "1.6": [dataParallelismLearning, distributedTrainingAssessment],
 
   // Branch A — Post-training & alignment
   "A.1": [sftAssessment],
