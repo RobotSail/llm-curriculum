@@ -1,0 +1,93 @@
+// Assessment: Pretraining Objectives & Dynamics (Section 1.3)
+// 10 MC questions, no info steps. Pure assessment module.
+
+export const pretrainingAssessment = {
+  id: "1.3-assess",
+  sectionId: "1.3",
+  title: "Assessment: Pretraining Objectives & Dynamics",
+  difficulty: "easy",
+  estimatedMinutes: 12,
+  moduleType: "test",
+  steps: [
+    {
+      type: "mc",
+      question: "The autoregressive language modeling objective maximizes $\\sum_{t=1}^{T} \\log P(x_t \\mid x_{<t}; \\theta)$. **Teacher forcing** means that during training:",
+      options: ["The model's own predictions from the previous step are fed as input to the next step, allowing it to learn from its mistakes through a self-correcting curriculum that gradually reduces the error rate over training", "A separate pretrained \"teacher\" model provides soft probability labels for knowledge distillation, and the student model is trained to match the teacher's full output distribution rather than the hard ground-truth tokens", "The ground-truth token $x_{t-1}$ is always provided as input when predicting $x_t$, regardless of what the model would have predicted — creating a train/inference mismatch called exposure bias", "The learning rate is forced to follow a predetermined schedule (warmup then decay) rather than adapting to the loss landscape, ensuring consistent gradient magnitudes across the teacher-forced training steps"],
+      correct: 2,
+      explanation: "During training, the model always sees the true previous tokens $x_{<t}$ (teacher forcing), but at inference it must consume its own potentially incorrect predictions. This creates **exposure bias**: the model never learns to recover from its own errors during training. In practice, LLMs are robust to this because (1) at scale, the model's predictions are usually correct, and (2) techniques like nucleus sampling avoid low-probability regions. Teacher forcing enables efficient parallelized training via causal masking — all positions can be computed in a single forward pass."
+    },
+    {
+      type: "mc",
+      question: "Chinchilla scaling laws (Hoffmann et al., 2022) suggest that for compute-optimal training, data tokens $D$ and parameters $N$ should scale roughly as $D \\approx 20N$. A 7B parameter model trained on 300B tokens — is this compute-optimal?",
+      options: ["Yes — $300B / 7B \\approx 43$, which exceeds the 20:1 ratio, meaning the model is slightly over-trained on data relative to the Chinchilla optimum but still within the compute-efficient frontier", "Yes — Chinchilla scaling laws only apply to models above 50B parameters; below that threshold, the optimal data-to-parameter ratio is much higher and 300B tokens for 7B parameters is well-justified", "No — the model needs far more data; the Chinchilla ratio suggests $D \\approx 20N = 140T$ tokens, meaning 300B is orders of magnitude too few for a model of this size to reach its full potential", "No — Chinchilla says $D \\approx 20N = 140B$ tokens is optimal, so 300B tokens means this model is significantly over-trained relative to compute-optimal allocation; those FLOPs would be better spent on a larger model with fewer tokens"],
+      correct: 3,
+      explanation: "Chinchilla-optimal for 7B params: $D \\approx 20 \\times 7B = 140B$ tokens. Training on 300B tokens means the compute budget spent on extra tokens ($300B - 140B = 160B$ extra tokens $\\times$ 6 $\\times$ 7B FLOPs/token) could instead have been used to train a ~13B model on 140B tokens for better performance. However, LLaMA (Touvron et al., 2023) deliberately over-trained on data because inference cost depends only on model size — a smaller, over-trained model is cheaper to deploy. This led to the \"LLaMA regime\" insight: Chinchilla-optimal isn't deployment-optimal."
+    },
+    {
+      type: "mc",
+      question: "**Grokking** (Power et al., 2022) is the phenomenon where a model first memorizes training data (achieving near-zero training loss while test loss remains high), then suddenly generalizes long after training loss has plateaued. What is the current best explanation?",
+      options: [
+        "The model runs out of capacity to memorize individual training examples, forcing it to discover general patterns that compress the data more efficiently than rote storage",
+        "Weight decay gradually penalizes the high-norm memorization solution, eventually making the lower-norm generalizing solution more favorable — grokking is a competition between two loss basins mediated by regularization",
+        "The learning rate schedule causes a sudden phase transition in the loss landscape, abruptly shifting the optimization trajectory from a memorization basin to a generalization basin",
+        "Gradient noise from SGD randomly discovers the generalizing solution through a diffusion-like process that stochastically explores the loss landscape until a low-loss region is found"
+      ],
+      correct: 1,
+      explanation: "The memorizing solution typically has higher weight norm than the generalizing solution. Without weight decay, the model stays in the memorization basin indefinitely. Weight decay slowly shrinks the weights, increasing the effective loss of the memorization solution until the generalizing basin becomes favorable. The \"delay\" in grokking corresponds to the time for weight decay to erode the memorization solution enough. Nanda et al. (2023) showed this mechanistically: models learn interpretable algorithms (e.g., modular arithmetic circuits) during grokking, and these circuits have lower weight norm than the memorization solution."
+    },
+    {
+      type: "mc",
+      question: "Learning rate warmup (linearly increasing LR from ~0 to peak over the first ~1-2% of training) is standard practice. What happens if you skip warmup and start at the peak learning rate?",
+      options: ["Early gradient updates are too large because the model's loss landscape is poorly conditioned at random initialization — Adam's variance estimates are also unreliable with few samples, producing oversized steps that can cause irreversible divergence", "Training is slightly slower in the first few hundred steps but converges to the same final loss, because the optimizer's adaptive moments quickly calibrate regardless of the initial learning rate value", "The model immediately converges to a narrow local minimum near the random initialization, getting trapped before exploring the loss landscape and resulting in systematically worse final performance", "Warmup is only necessary for SGD with momentum; Adam-based optimizers have built-in bias correction that automatically handles the initialization transient and do not require any warmup schedule"],
+      correct: 0,
+      explanation: "Two factors make high initial LR dangerous: (1) At initialization, the loss landscape is highly curved and poorly conditioned — large steps overshoot. (2) Adam divides by $\\sqrt{\\hat{v}_t}$, the running estimate of squared gradients. With few steps, $\\hat{v}_t$ is a poor estimate, and the bias correction factor $1/(1-\\beta_2^t)$ amplifies early updates. Together, these cause enormous effective step sizes. Warmup gives Adam time to calibrate its moment estimates and lets the model find a smoother region of the loss landscape before taking full-sized steps."
+    },
+    {
+      type: "mc",
+      question: "The **cosine learning rate schedule** decays the LR as $\\eta_t = \\eta_{\\min} + \\frac{1}{2}(\\eta_{\\max} - \\eta_{\\min})(1 + \\cos(\\pi t / T))$. Compared to linear decay, why has cosine become standard for LLM pretraining?",
+      options: ["Cosine decay is mathematically optimal for convex optimization problems, and since the late-training loss landscape is approximately convex near the minimum, this optimality transfers to the neural network setting", "Cosine decay uses less total compute than linear decay because the lower average learning rate reduces the number of gradient computations needed to reach convergence, saving roughly 15-20% of training FLOPs", "Cosine maintains a higher LR for longer during mid-training (slower initial decay), allowing continued exploration, then aggressively anneals at the end for fine convergence — the slow-fast decay profile empirically gives better final loss than linear", "Cosine decay is functionally equivalent to linear decay in terms of final model quality but is easier to implement correctly in distributed settings because it avoids discrete scheduling boundaries that can cause synchronization issues"],
+      correct: 2,
+      explanation: "Cosine decay's concave shape means the LR stays near $\\eta_{\\max}$ for roughly the first third of training, then drops steeply. This gives the model more time at high LR to escape poor basins and explore the loss landscape before committing to a solution. Linear decay reduces LR at a constant rate, which may reduce it too quickly in mid-training. Empirically, Loshchilov & Hutter (2016) showed cosine outperforms linear decay, and variants like cosine with warm restarts (SGDR) further improve performance by periodically resetting the LR."
+    },
+    {
+      type: "mc",
+      question: "The **linear scaling rule** states that when increasing batch size by a factor of $k$, the learning rate should also be scaled by $k$. What is the theoretical justification?",
+      options: ["Larger batches produce gradient vectors with larger magnitude because they sum over more samples, so a proportionally larger LR is needed to normalize the gradient back to the same effective step size as the smaller batch", "The linear scaling rule is a heuristic with no theoretical basis — it happens to work empirically across many architectures but has no formal justification from optimization theory or gradient statistics", "Larger batches require more epochs to converge because each epoch sees fewer weight updates, and a higher learning rate compensates by covering more distance in weight space per individual gradient step", "A $k\\times$ larger batch produces a gradient estimate with $k\\times$ less variance, which is equivalent to taking $k$ steps with the original batch — matching this requires $k\\times$ the LR per step to cover the same distance in weight space"],
+      correct: 3,
+      explanation: "With batch size $B$, one step moves weights by $\\eta \\cdot \\frac{1}{B}\\sum_{i=1}^{B} \\nabla_i$. With batch size $kB$, one step moves by $\\eta' \\cdot \\frac{1}{kB}\\sum_{i=1}^{kB} \\nabla_i$. If we want one large-batch step to equal $k$ small-batch steps (in expectation), we need $\\eta' = k\\eta$. This holds in the linear regime where the loss is approximately quadratic. Goyal et al. (2017) validated this up to batch sizes of 8K for ResNets. For very large batches, the linear regime breaks down and $\\sqrt{k}$ scaling or LARS/LAMB optimizers are needed."
+    },
+    {
+      type: "mc",
+      question: "During LLM pretraining, **loss spikes** — sudden sharp increases in training loss — are a common failure mode. Which of the following is the most common root cause and mitigation?",
+      options: [
+        "Data corruption in a specific batch where malformed or truncated documents produce invalid token sequences; mitigated by comprehensive data validation and checksumming during the preprocessing pipeline",
+        "Gradient explosion due to outlier sequences or rare token combinations that produce extreme activations, amplified by the multiplicative nature of deep networks — mitigated by gradient clipping (typically to max norm 1.0) and sometimes by skipping the offending batch",
+        "Learning rate being too low during mid-training, causing the model to get stuck in a shallow basin and then suddenly escape when stochastic noise accumulates enough energy to cross the barrier",
+        "CPU-GPU synchronization errors in distributed training where gradient all-reduce operations return stale or corrupted values; mitigated by switching from asynchronous to fully synchronous SGD with barrier synchronization"
+      ],
+      correct: 1,
+      explanation: "Loss spikes typically occur when a batch contains sequences that produce unusually large activations (e.g., repetitive tokens, unusual Unicode, or adversarial-like patterns). In a deep network, large activations cascade multiplicatively through layers, producing enormous gradients. Gradient clipping (capping $\\|g\\|$ at a threshold, typically 1.0) truncates these spikes. Some training runs also implement spike detection and batch skipping. The PaLM paper (Chowdhery et al., 2022) documents restarting training from earlier checkpoints after persistent spikes, sometimes re-ordering the data to skip problematic batches."
+    },
+    {
+      type: "mc",
+      question: "GPT-style models initialize the weights of residual-path projections (the output projections of attention and FFN) with a scaling factor of $\\frac{1}{\\sqrt{2L}}$ where $L$ is the number of layers. Why?",
+      options: ["Each of the $2L$ residual contributions (one from attention, one from FFN per layer) adds variance to the residual stream — scaling by $\\frac{1}{\\sqrt{2L}}$ keeps the total variance at initialization approximately constant regardless of depth, preventing signal explosion in deep networks", "It makes the model output exactly zero at initialization by ensuring all residual-path projections produce zero vectors, which stabilizes the first gradient step by making the initial loss equal to the uniform distribution baseline", "It ensures all layers contribute equally to the final output at convergence by constraining the Frobenius norm of each layer's output projection, acting as an implicit form of layer-wise weight normalization throughout training", "It compensates for the variance reduction caused by LayerNorm at each layer — since LayerNorm normalizes to unit variance, the residual additions would otherwise shrink the signal, and the $\\frac{1}{\\sqrt{2L}}$ scaling counteracts this"],
+      correct: 0,
+      explanation: "The residual stream accumulates outputs from $2L$ sub-layers (attention + FFN per layer). If each sub-layer adds independent noise with variance $\\sigma^2$, the total variance after $2L$ additions is $2L\\sigma^2$, which grows with depth. Initializing output projections with std $\\propto 1/\\sqrt{2L}$ makes each contribution's variance $\\sigma^2/(2L)$, so the total remains $\\sigma^2$ regardless of $L$. This is critical for training stability: without it, activations in a 96-layer model would have $\\sim 14\\times$ the standard deviation of a 1-layer model at initialization. GPT-2 introduced this; it's sometimes called the \"residual scaling\" trick."
+    },
+    {
+      type: "mc",
+      question: "**Emergence** in LLMs refers to capabilities that appear abruptly as model scale increases — near-random performance below a threshold, then sharp improvement above it. Which recent finding has complicated the narrative around emergence?",
+      options: ["Emerged capabilities are always predictable from smaller models using power-law extrapolation of scaling curves, meaning there is no true discontinuity and all observed jumps are simply predictable threshold crossings", "Emergence only occurs in models with more than 100B parameters because the critical density of learned features needed to compose novel capabilities requires a minimum model capacity threshold", "Schaeffer et al. (2023) showed that many \"emergent\" abilities are artifacts of using discontinuous evaluation metrics (like exact-match accuracy) — when measured with continuous metrics (like token-level log-likelihood), performance improves smoothly and predictably with scale, not abruptly", "Emergence is caused by phase transitions in the weight matrices analogous to physical phase transitions in statistical mechanics, where the loss landscape undergoes a symmetry-breaking reorganization at critical model sizes"],
+      correct: 2,
+      explanation: "Schaeffer et al. (2023) demonstrated that apparent emergence is often a measurement artifact. Exact-match accuracy is a step function of model capability — a model that gets 90% of characters right in an answer still scores 0 on exact-match. As scale increases, per-token accuracy improves smoothly, and at some point crosses the threshold where entire answers are correct, causing exact-match to jump suddenly. Using continuous metrics like Brier score or per-token cross-entropy, the improvement is gradual and predictable from scaling laws. This doesn't mean all emergent behaviors are artifacts, but many reported cases are."
+    },
+    {
+      type: "mc",
+      question: "A pretraining run uses AdamW with $\\beta_1 = 0.9$, $\\beta_2 = 0.95$, weight decay $\\lambda = 0.1$, batch size 4M tokens, cosine LR schedule with peak $3 \\times 10^{-4}$, and gradient clipping at 1.0. The training loss suddenly becomes NaN at step 50,000. Which diagnostic would you check FIRST?",
+      options: ["Whether the vocabulary size is correct and matches the embedding table dimensions, since a mismatch would cause out-of-bounds indexing that produces garbage values propagating through the forward pass as NaN", "Whether the tokenizer produced unknown tokens in the problematic batch, which would map to an untrained embedding vector whose random values could amplify through the network and produce numerical overflow", "Whether the cosine schedule has decayed the LR too aggressively by step 50K, potentially pushing it below the minimum representable FP16 value and causing the optimizer to produce denormalized updates that cascade into NaN", "The gradient norm history just before the NaN — a sudden spike above the clipping threshold, combined with checking for Inf/NaN in the most recent batch's activations and whether $\\beta_2 = 0.95$ (lower than typical 0.999) causes Adam's second moment to adapt too slowly to sudden gradient changes"],
+      correct: 3,
+      explanation: "NaN loss almost always traces back to numerical overflow in activations or gradients. The diagnostic chain: (1) Check gradient norm logs — was there a spike at step 49,999-50,000 that exceeded clip threshold? (2) Check for Inf/NaN in specific layers' activations (often the embedding or final logits). (3) Note that $\\beta_2 = 0.95$ (as used in LLaMA) makes Adam's second moment estimate more responsive but also more volatile — a sudden large gradient can cause the denominator $\\sqrt{v_t}$ to be small if previous gradients were small, leading to an enormous update. The fix: roll back to a checkpoint before the spike, optionally skip the offending batch, or add loss scaling."
+    }
+  ]
+};
