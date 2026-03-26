@@ -17,43 +17,43 @@ export const quantizationAssessment = {
     {
       type: "mc",
       question: "In post-training quantization (PTQ), weights are quantized **after** training is complete. Quantization-aware training (QAT) instead:",
-      options: ["Trains a separate smaller model from scratch at the target precision, bypassing the pretrained weights entirely", "Quantizes only the optimizer states rather than the model weights, reducing memory without affecting inference precision", "Simulates quantization effects during training via straight-through estimators so the model learns to be robust to reduced precision", "Uses lower learning rates to compensate for precision loss, allowing the model to converge despite the quantization noise"],
-      correct: 2,
+      options: ["Trains a separate smaller model from scratch at the target precision, bypassing the pretrained weights entirely", "Simulates quantization effects during training via straight-through estimators so the model learns to be robust to reduced precision", "Quantizes only the optimizer states rather than the model weights, reducing memory without affecting inference precision", "Uses lower learning rates to compensate for precision loss, allowing the model to converge despite the quantization noise"],
+      correct: 1,
       explanation: "QAT inserts fake-quantization nodes during training that round weights/activations to the target precision in the forward pass but pass gradients through unmodified (straight-through estimator). The model thus learns weight configurations that are robust to quantization noise. QAT typically recovers 0.5-1.0 perplexity points over PTQ but requires a full training run, making it far more expensive."
     },
     {
       type: "mc",
       question: "Activation quantization is generally harder than weight quantization because:",
-      options: ["Activations use more memory than weights in aggregate, so quantization errors accumulate over more values and cause greater total degradation", "The backward pass requires full-precision activations for accurate gradient computation, making any activation quantization incompatible with training", "Activations are always stored in float64 by the framework, so quantizing them requires changing the entire compute pipeline rather than just the storage format", "Activations exhibit **outlier features** — a small number of hidden dimensions have magnitudes 10-100x larger than the rest, making uniform quantization waste most of its range on a few extreme values"],
-      correct: 3,
+      options: ["Activations use more memory than weights in aggregate, so quantization errors accumulate over more values and cause greater total degradation", "The backward pass requires full-precision activations for accurate gradient computation, making any activation quantization incompatible with training", "Activations exhibit **outlier features** — a small number of hidden dimensions have magnitudes 10-100x larger than the rest, making uniform quantization waste most of its range on a few extreme values", "Activations are always stored in float64 by the framework, so quantizing them requires changing the entire compute pipeline rather than just the storage format"],
+      correct: 2,
       explanation: "Research (e.g., LLM.int8(), SmoothQuant) showed that transformer activations contain persistent outlier dimensions with magnitudes far exceeding the typical range. A uniform INT8 grid spanning $[-100, 100]$ to accommodate outliers wastes precision for the majority of values clustered near $[-1, 1]$. SmoothQuant addresses this by mathematically migrating the quantization difficulty from activations to weights via per-channel scaling: $Y = (X \\cdot \\text{diag}(s)^{-1}) \\cdot (\\text{diag}(s) \\cdot W)$."
     },
     {
       type: "mc",
       question: "GPTQ is a popular weight quantization method. Its core strategy is:",
-      options: ["Training from scratch with quantized weights and a modified loss function that accounts for the reduced precision of each weight matrix", "Quantizing weights **column by column**, using the inverse Hessian to optimally adjust remaining weights to compensate for each column's quantization error", "Quantizing all weights simultaneously with k-means clustering to find the optimal set of centroids for each target bit width", "Pruning weights below a threshold first and then quantizing the surviving weights, combining sparsity with reduced precision"],
-      correct: 1,
+      options: ["Training from scratch with quantized weights and a modified loss function that accounts for the reduced precision of each weight matrix", "Pruning weights below a threshold first and then quantizing the surviving weights, combining sparsity with reduced precision", "Quantizing all weights simultaneously with k-means clustering to find the optimal set of centroids for each target bit width", "Quantizing weights **column by column**, using the inverse Hessian to optimally adjust remaining weights to compensate for each column's quantization error"],
+      correct: 3,
       explanation: "GPTQ extends the Optimal Brain Quantization framework. It processes weight columns sequentially: after quantizing one column, it uses the inverse Hessian $H^{-1}$ of the layer's reconstruction loss to compute the optimal update to all not-yet-quantized columns, minimizing $\\|WX - \\hat{W}X\\|^2$. This Hessian-guided error compensation is what makes GPTQ achieve much better quality than naive round-to-nearest at 4-bit and below."
     },
     {
       type: "mc",
       question: "AWQ (Activation-Aware Weight Quantization) differs from GPTQ by focusing on:",
-      options: ["Identifying the small fraction of **salient weight channels** (those corresponding to large activation magnitudes) and protecting them with per-channel scaling before quantization, rather than using Hessian-based error compensation", "Quantizing activations instead of weights, since activation quantization provides larger memory savings due to the dynamic nature of activation tensors", "Using 8-bit instead of 4-bit quantization for the most sensitive weight matrices, with a learned routing mechanism to determine which layers need higher precision", "Training a separate quantization network that learns to map full-precision weights to their optimal quantized representations through end-to-end optimization"],
-      correct: 0,
+      options: ["Training a separate quantization network that learns to map full-precision weights to their optimal quantized representations through end-to-end optimization", "Quantizing activations instead of weights, since activation quantization provides larger memory savings due to the dynamic nature of activation tensors", "Using 8-bit instead of 4-bit quantization for the most sensitive weight matrices, with a learned routing mechanism to determine which layers need higher precision", "Identifying the small fraction of **salient weight channels** (those corresponding to large activation magnitudes) and protecting them with per-channel scaling before quantization, rather than using Hessian-based error compensation"],
+      correct: 3,
       explanation: "AWQ observes that only ~1% of weight channels are critical — those connected to activation outlier features. Rather than expensive Hessian computation, AWQ finds per-channel scaling factors $s$ that protect salient channels: it scales weights by $s$ and inversely scales activations, shifting the quantization difficulty away from important channels. This is simpler than GPTQ and often matches or exceeds its quality with faster quantization time."
     },
     {
       type: "mc",
       question: "A model uses mixed-precision quantization: some layers at 4-bit, others at 8-bit. The decision of which layers get higher precision is typically based on:",
-      options: ["Layer index — earlier layers always need more precision because they establish the representations that all subsequent layers depend on", "Parameter count — larger layers get lower precision to achieve greater total memory savings from quantizing their larger weight matrices", "**Per-layer sensitivity analysis** — layers where quantization causes larger increases in output error or perplexity are assigned higher precision, often measured via Hessian trace, Fisher information, or direct calibration loss", "Random assignment with a fixed ratio of 4-bit to 8-bit layers, relying on the law of large numbers to average out per-layer quantization errors"],
-      correct: 2,
+      options: ["**Per-layer sensitivity analysis** — layers where quantization causes larger increases in output error or perplexity are assigned higher precision, often measured via Hessian trace, Fisher information, or direct calibration loss", "Parameter count — larger layers get lower precision to achieve greater total memory savings from quantizing their larger weight matrices", "Layer index — earlier layers always need more precision because they establish the representations that all subsequent layers depend on", "Random assignment with a fixed ratio of 4-bit to 8-bit layers, relying on the law of large numbers to average out per-layer quantization errors"],
+      correct: 0,
       explanation: "Mixed-precision strategies measure each layer's sensitivity to quantization error, typically by quantizing one layer at a time and measuring the impact on calibration loss. Layers with high Hessian trace ($\\text{tr}(H)$) or large Fisher information are more sensitive. Empirically, attention projection layers and the first/last layers tend to be more sensitive. This yields a constrained optimization: minimize total quality loss subject to a target average bit-width."
     },
     {
       type: "mc",
       question: "SqueezeLLM achieves high-quality ultra-low-bit quantization by combining:",
-      options: ["Knowledge distillation with pruning, training a smaller student network that mimics the quantized teacher's behavior while inheriting its sparsity pattern", "Dynamic quantization at inference time that adapts the bit width per-token based on the activation magnitudes observed during each forward pass", "Layer fusion and operator merging that combine adjacent linear layers into single operations, reducing the number of quantization boundaries in the compute graph", "Dense-and-sparse decomposition: a low-bit dense representation for the bulk of weights plus a **sparse matrix** storing outlier weights at full precision, keeping the sensitive values exact"],
-      correct: 3,
+      options: ["Knowledge distillation with pruning, training a smaller student network that mimics the quantized teacher's behavior while inheriting its sparsity pattern", "Dense-and-sparse decomposition: a low-bit dense representation for the bulk of weights plus a **sparse matrix** storing outlier weights at full precision, keeping the sensitive values exact", "Layer fusion and operator merging that combine adjacent linear layers into single operations, reducing the number of quantization boundaries in the compute graph", "Dynamic quantization at inference time that adapts the bit width per-token based on the activation magnitudes observed during each forward pass"],
+      correct: 1,
       explanation: "SqueezeLLM decomposes each weight matrix into a dense low-bit component plus a sparse full-precision component for outlier weights. The key insight is that weight sensitivity follows a heavy-tailed distribution — a small number of weights disproportionately affect output quality. By storing these in a sparse matrix (which adds minimal memory overhead due to sparsity), the dense component can be aggressively quantized to 3 or even 2 bits with minimal degradation."
     },
     {
@@ -61,18 +61,18 @@ export const quantizationAssessment = {
       question: "BitNet b1.58 uses ternary weights $\\{-1, 0, +1\\}$, meaning each weight requires $\\log_2(3) \\approx 1.58$ bits. Compared to standard float16 models of the same size, BitNet claims:",
       options: [
         "Identical accuracy with 10x faster inference at all model sizes, due to replacing floating-point multiplications with simple additions and subtractions",
-        "Matching perplexity at the same parameter count starting from ~3B parameters, with matrix multiplications reduced to additions since $w \\in \\{-1, 0, 1\\}$ eliminates the need for floating-point multiply hardware",
+        "Worse accuracy at all scales but 100x memory savings, making it useful only for deployment on extremely memory-constrained edge devices",
         "Better accuracy than float16 models because ternary weights act as strong regularization that prevents overfitting to noise in the training data",
-        "Worse accuracy at all scales but 100x memory savings, making it useful only for deployment on extremely memory-constrained edge devices"
+        "Matching perplexity at the same parameter count starting from ~3B parameters, with matrix multiplications reduced to additions since $w \\in \\{-1, 0, 1\\}$ eliminates the need for floating-point multiply hardware"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With ternary weights, the matrix-vector product $y = Wx$ becomes pure additions and subtractions (multiply by 1, -1, or skip for 0). This eliminates the most expensive operation in inference — floating-point multiplication — and enables dramatically simpler hardware. BitNet b1.58 reports matching LLaMA-equivalent perplexity starting around 3B parameters, suggesting that extreme quantization is viable if applied from the start of training (QAT-style) rather than post-hoc."
     },
     {
       type: "mc",
       question: "A 7B parameter model with float16 weights occupies 14 GB. After GPTQ 4-bit quantization with group size 128, the model size is approximately:",
-      options: ["~3.9 GB — each group of 128 weights shares a float16 scale and zero-point, adding overhead: $14 \\times \\frac{4}{16} + \\frac{7 \\times 10^9}{128} \\times 4\\text{ bytes} \\approx 3.5 + 0.22$ GB", "1.75 GB — exactly $14 \\times (4/16)$ with no overhead, since group-wise scale and zero-point parameters are stored implicitly in the quantization grid itself", "7 GB — quantization halves the storage by sharing weights across pairs of layers, but each weight still requires a full-precision activation map stored alongside", "14 GB — the quantized model stores both the 4-bit weights and a full-precision copy used for dequantization during each forward pass, doubling the storage"],
-      correct: 0,
+      options: ["7 GB — quantization halves the storage by sharing weights across pairs of layers, but each weight still requires a full-precision activation map stored alongside", "1.75 GB — exactly $14 \\times (4/16)$ with no overhead, since group-wise scale and zero-point parameters are stored implicitly in the quantization grid itself", "~3.9 GB — each group of 128 weights shares a float16 scale and zero-point, adding overhead: $14 \\times \\frac{4}{16} + \\frac{7 \\times 10^9}{128} \\times 4\\text{ bytes} \\approx 3.5 + 0.22$ GB", "14 GB — the quantized model stores both the 4-bit weights and a full-precision copy used for dequantization during each forward pass, doubling the storage"],
+      correct: 2,
       explanation: "4-bit quantization reduces the weight payload to $14 \\times (4/16) = 3.5$ GB. However, each group of 128 weights requires a float16 scale and zero-point (4 bytes per group). With $\\frac{7 \\times 10^9}{128} \\approx 54.7\\text{M}$ groups, that adds $\\sim$219 MB of overhead. Total $\\approx 3.7$-$3.9$ GB depending on metadata. Smaller group sizes improve quality but increase overhead; group size 128 is the standard trade-off."
     },
     {
@@ -86,12 +86,12 @@ export const quantizationAssessment = {
       type: "mc",
       question: "A researcher quantizes a 70B model to 2-bit weights and observes catastrophic perplexity degradation. Which approach is LEAST likely to help recover quality?",
       options: [
-        "Using a larger and more diverse calibration dataset for GPTQ to improve the Hessian estimates used during weight quantization",
+        "Increasing the batch size during inference to average out the per-sample noise introduced by the aggressive 2-bit weight quantization",
         "Switching to mixed-precision with sensitive layers at 4-bit to protect the most critical weight matrices from extreme quantization",
         "Adding LoRA adapters trained on a small dataset after quantization (QLoRA-style) to compensate for quantization-induced representation errors",
-        "Increasing the batch size during inference to average out the per-sample noise introduced by the aggressive 2-bit weight quantization"
+        "Using a larger and more diverse calibration dataset for GPTQ to improve the Hessian estimates used during weight quantization"
       ],
-      correct: 3,
+      correct: 0,
       explanation: "Increasing batch size affects throughput but does not change the model's weights or predictions — it cannot recover quality lost to quantization. The other three approaches directly address quantization error: better calibration data improves Hessian estimates in GPTQ, mixed-precision protects sensitive layers, and QLoRA fine-tunes low-rank adapters in float16 on top of quantized weights to compensate for quantization-induced errors. At 2-bit, combining multiple recovery strategies is typically necessary."
     }
   ]
@@ -123,8 +123,8 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "For a 70B parameter model (80 layers, 64 heads, $d_h = 128$) serving a single request at 128K context in float16, the KV-cache alone requires approximately:",
-      options: ["~20 GB — computed as $2 \\times 80 \\times 64 \\times 128 \\times 128000 \\times 2$ bytes $\\approx 20.97$ GB", "~5 GB — computed as $2 \\times 80 \\times 128 \\times 128000 \\times 2$ bytes, using only $d_h$ rather than $H \\times d_h$", "~1.3 GB — computed as $80 \\times 128 \\times 128000 \\times 2$ bytes, caching only the keys without the values", "~80 GB — computed as $2 \\times 80 \\times 64 \\times 128 \\times 128000 \\times 8$ bytes, using float32 per entry"],
-      correct: 0,
+      options: ["~1.3 GB — computed as $80 \\times 128 \\times 128000 \\times 2$ bytes, caching only the keys without the values", "~5 GB — computed as $2 \\times 80 \\times 128 \\times 128000 \\times 2$ bytes, using only $d_h$ rather than $H \\times d_h$", "~20 GB — computed as $2 \\times 80 \\times 64 \\times 128 \\times 128000 \\times 2$ bytes $\\approx 20.97$ GB", "~80 GB — computed as $2 \\times 80 \\times 64 \\times 128 \\times 128000 \\times 8$ bytes, using float32 per entry"],
+      correct: 2,
       explanation: "KV-cache $= 2 \\times 80 \\times 64 \\times 128 \\times 128000 \\times 2 = 2 \\times 80 \\times 8192 \\times 128000 \\times 2$ bytes. Breaking it down: $80 \\times 8192 = 655360$ (per-layer KV dim), $\\times 128000 \\times 2 \\times 2 = 335,544,320,000$ bytes $\\approx 20.97$ GB. This means a single 128K-context request on a 70B model needs ~21 GB just for the KV-cache, in addition to the ~140 GB for model weights. This is why KV-cache optimization is critical."
     },
     {
@@ -142,8 +142,8 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "Speculative decoding uses a small **draft model** to generate $K$ candidate tokens, then the large **target model** verifies them in a single forward pass. A key theoretical guarantee is:",
-      options: ["The output quality matches the draft model since accepted tokens come from the draft model's distribution rather than the target's", "The draft model must share the same vocabulary as the target model but the target can have additional tokens beyond the shared set", "The method only works with greedy decoding because the acceptance criterion requires deterministic token selection at each step", "The output distribution is **mathematically identical** to sampling from the target model alone — the draft model only affects speed, not the distribution of generated text"],
-      correct: 3,
+      options: ["The output distribution is **mathematically identical** to sampling from the target model alone — the draft model only affects speed, not the distribution of generated text", "The draft model must share the same vocabulary as the target model but the target can have additional tokens beyond the shared set", "The method only works with greedy decoding because the acceptance criterion requires deterministic token selection at each step", "The output quality matches the draft model since accepted tokens come from the draft model's distribution rather than the target's"],
+      correct: 0,
       explanation: "Speculative decoding uses a rejection sampling scheme: each draft token is accepted with probability $\\min(1, \\frac{p_{\\text{target}}(x)}{p_{\\text{draft}}(x)})$. If rejected, a corrected token is sampled from a modified distribution. This guarantees the final output follows the exact target model distribution. The speedup comes from the fact that the target model can verify $K$ tokens in parallel (one forward pass), while generating them autoregressively would require $K$ passes. Typical speedups are 2-3x."
     },
     {
@@ -151,11 +151,11 @@ export const decodingAssessment = {
       question: "In speculative decoding, the acceptance rate depends on the alignment between draft and target distributions. If the draft model proposes tokens with probability $q(x)$ and the target assigns $p(x)$, the expected acceptance rate is:",
       options: [
         "$1 - \\text{KL}(p \\| q)$ — one minus the KL divergence from the target to the draft distribution",
-        "$\\sum_x \\min(p(x), q(x))$ — the total variation overlap between the two distributions",
+        "$\\exp(-\\text{JS}(p, q))$ — the exponentiated negative Jensen-Shannon divergence between the two",
         "$\\frac{p(x)}{q(x)}$ averaged over $q$ — the expected likelihood ratio under the draft distribution",
-        "$\\exp(-\\text{JS}(p, q))$ — the exponentiated negative Jensen-Shannon divergence between the two"
+        "$\\sum_x \\min(p(x), q(x))$ — the total variation overlap between the two distributions"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Each token is accepted with probability $\\min(1, p(x)/q(x))$, and the overall acceptance rate (averaged over $x \\sim q$) is $\\sum_x q(x) \\min(1, p(x)/q(x)) = \\sum_x \\min(q(x), p(x))$. This is the total variation overlap. When $p \\approx q$, acceptance is near 100% and speculative decoding achieves maximum speedup. When they diverge, more tokens are rejected and the benefit decreases. This is why the draft model should approximate the target well."
     },
     {
@@ -168,15 +168,15 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "Prefix caching (also called prompt caching) accelerates serving by:",
-      options: ["Caching the final output tokens for common prompts so that repeated queries return the same precomputed response without any model execution", "Caching the model weights in faster memory tiers for rapid loading, reducing the cold-start latency when serving the first request", "Storing the **computed KV-cache for shared prompt prefixes** (e.g., system prompts) so that multiple requests sharing the same prefix skip the redundant prefill computation", "Pre-computing all possible outputs for short prompts by enumerating the most likely continuations and storing them in a lookup table"],
-      correct: 2,
+      options: ["Storing the **computed KV-cache for shared prompt prefixes** (e.g., system prompts) so that multiple requests sharing the same prefix skip the redundant prefill computation", "Caching the model weights in faster memory tiers for rapid loading, reducing the cold-start latency when serving the first request", "Caching the final output tokens for common prompts so that repeated queries return the same precomputed response without any model execution", "Pre-computing all possible outputs for short prompts by enumerating the most likely continuations and storing them in a lookup table"],
+      correct: 0,
       explanation: "Many serving scenarios involve repeated prefixes: system prompts in chat APIs, few-shot examples, or shared document contexts. Prefix caching computes the KV-cache for the shared prefix once and reuses it across requests. For a 2K system prompt with a 70B model, this saves ~2K tokens of prefill computation per request. RadixAttention (SGLang) extends this with a radix tree to efficiently share arbitrary prefix subtrees across concurrent requests."
     },
     {
       type: "mc",
       question: "Multi-Query Attention (MQA) and Grouped-Query Attention (GQA) reduce the KV-cache size by:",
-      options: ["Using fewer transformer layers in the model architecture, which proportionally reduces the number of KV entries that must be stored per token", "Only caching every other layer's KV pairs and recomputing the skipped layers on the fly during each decode step to save memory", "Quantizing the KV-cache to 4-bit precision, reducing each stored entry's footprint by 4x compared to the standard float16 representation", "Reducing the number of distinct K and V heads — MQA uses a **single** KV head shared across all query heads, while GQA uses $G$ KV head groups (where $1 < G < H$), reducing cache by a factor of $H/G$"],
-      correct: 3,
+      options: ["Using fewer transformer layers in the model architecture, which proportionally reduces the number of KV entries that must be stored per token", "Reducing the number of distinct K and V heads — MQA uses a **single** KV head shared across all query heads, while GQA uses $G$ KV head groups (where $1 < G < H$), reducing cache by a factor of $H/G$", "Quantizing the KV-cache to 4-bit precision, reducing each stored entry's footprint by 4x compared to the standard float16 representation", "Only caching every other layer's KV pairs and recomputing the skipped layers on the fly during each decode step to save memory"],
+      correct: 1,
       explanation: "Standard multi-head attention has $H$ distinct K,V projections. MQA collapses these to 1 shared K,V head (cache reduced by $H\\times$). GQA uses $G$ groups, each serving $H/G$ query heads (cache reduced by $H/G\\times$). For example, LLaMA-2 70B uses GQA with 8 KV heads for 64 query heads, reducing KV-cache by $8\\times$. This is critical for long-context serving: the 128K KV-cache drops from ~21 GB to ~2.6 GB."
     },
     {
@@ -194,8 +194,8 @@ export const decodingAssessment = {
     {
       type: "mc",
       question: "A serving system processes a batch of 32 sequences, each generating one token per step. Compared to serving a single sequence, the token generation throughput (tokens/second across all sequences) approximately:",
-      options: ["Increases by ~32x because matrix-vector products become matrix-matrix products, better utilizing compute; per-sequence latency stays roughly constant until compute saturation", "Stays the same — the GPU processes sequences strictly sequentially, so batching only affects queue wait time without increasing the token generation rate", "Increases by exactly 32x but with 32x higher per-sequence latency, since the GPU must cycle through all 32 sequences in round-robin before returning to each one", "Decreases due to memory contention — the 32 KV-caches compete for HBM bandwidth, reducing the effective memory throughput available for each sequence's decode step"],
-      correct: 0,
+      options: ["Decreases due to memory contention — the 32 KV-caches compete for HBM bandwidth, reducing the effective memory throughput available for each sequence's decode step", "Stays the same — the GPU processes sequences strictly sequentially, so batching only affects queue wait time without increasing the token generation rate", "Increases by exactly 32x but with 32x higher per-sequence latency, since the GPU must cycle through all 32 sequences in round-robin before returning to each one", "Increases by ~32x because matrix-vector products become matrix-matrix products, better utilizing compute; per-sequence latency stays roughly constant until compute saturation"],
+      correct: 3,
       explanation: "Batching converts $Wx$ (matrix-vector, bandwidth-bound) into $WX$ (matrix-matrix, compute-bound), increasing arithmetic intensity from ~2 to $\\sim 2B$ FLOPs/byte where $B$ is batch size. Since decode steps are bandwidth-bound, adding sequences is nearly free until the GPU's compute becomes the bottleneck. A batch of 32 thus achieves ~32x throughput with minimal per-sequence latency increase. The crossover to compute-bound depends on model size and GPU specs — typically around batch size 64-256."
     }
   ]
@@ -222,34 +222,34 @@ export const servingAssessment = {
     {
       type: "mc",
       question: "Disaggregated inference (as in systems like Splitwise or DistServe) separates prefill and decode into different GPU pools because:",
-      options: ["Prefill and decode require different model architectures, with prefill using an encoder and decode using a separate autoregressive decoder", "It simplifies the codebase by isolating the two code paths, making each independently testable and deployable without cross-phase interactions", "Decode requires significantly more GPU memory than prefill due to the growing KV-cache, so it needs dedicated high-memory GPUs while prefill can use cheaper ones", "Co-locating them causes **interference** — long prefills block decode steps (increasing time-to-first-token), and decode's low utilization wastes compute-optimized GPUs; separating them allows hardware-specific optimization for each phase"],
-      correct: 3,
+      options: ["Prefill and decode require different model architectures, with prefill using an encoder and decode using a separate autoregressive decoder", "Co-locating them causes **interference** — long prefills block decode steps (increasing time-to-first-token), and decode's low utilization wastes compute-optimized GPUs; separating them allows hardware-specific optimization for each phase", "Decode requires significantly more GPU memory than prefill due to the growing KV-cache, so it needs dedicated high-memory GPUs while prefill can use cheaper ones", "It simplifies the codebase by isolating the two code paths, making each independently testable and deployable without cross-phase interactions"],
+      correct: 1,
       explanation: "When prefill and decode share GPUs, a long prefill (e.g., 100K context) stalls all concurrent decode iterations, creating latency spikes. Disaggregation assigns prefill to compute-optimized GPUs (maximizing FLOPs) and decode to bandwidth-optimized or cheaper GPUs (where memory bandwidth is the bottleneck). The KV-cache is transferred between pools after prefill. This can reduce P99 time-to-first-token by 2-5x while improving overall throughput."
     },
     {
       type: "mc",
       question: "When serving multiple LoRA adapters from a single base model, the primary challenge is:",
       options: [
-        "LoRA adapters are too large to fit in GPU memory alongside the base model, since each adapter's low-rank matrices add substantial overhead when serving many adapters",
         "Requests using different adapters cannot be efficiently batched together because each requires a **different low-rank weight delta** $\\Delta W = BA$ — naive batching requires separate GEMM calls per adapter, destroying throughput",
+        "LoRA adapters are too large to fit in GPU memory alongside the base model, since each adapter's low-rank matrices add substantial overhead when serving many adapters",
         "LoRA adapters change the model's vocabulary by adding task-specific tokens, creating incompatible tokenizations across requests using different adapters in the same batch",
         "Each adapter requires a separate KV-cache because the modified attention weights produce different key-value representations that cannot be shared across adapter variants"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The base model computation $y = Wx$ is shared, but each LoRA adapter adds a different $\\Delta W_i x = B_i A_i x$. In a batch with $K$ different adapters, naive implementation requires $K$ separate GEMM operations for the LoRA components. Solutions include: S-LoRA's custom CUDA kernels for batched irregular GEMMs, Punica's SGMV (segmented gather matrix-vector) kernel, and padding/grouping strategies that batch requests by adapter. The KV-cache is shared since the base attention structure is identical."
     },
     {
       type: "mc",
       question: "The NVIDIA H100 SXM offers ~3.35 TB/s HBM3 bandwidth vs the A100 SXM's ~2.0 TB/s HBM2e. For **decode-phase** serving (memory-bandwidth-bound), switching from A100 to H100 provides approximately:",
-      options: ["~1.67x speedup — decode is bandwidth-bound, so the improvement tracks the bandwidth ratio $3.35/2.0 \\approx 1.67$, not the compute ratio", "~4x speedup due to the H100's higher FP16 FLOPS (990 TFLOPS vs 312 TFLOPS), which directly translates to faster matrix-vector products", "No improvement — the decode bottleneck is the same on both GPUs since the model weights and KV-cache sizes are hardware-independent", "~10x speedup from the Transformer Engine's specialized hardware blocks that are specifically designed for autoregressive token generation"],
-      correct: 0,
+      options: ["No improvement — the decode bottleneck is the same on both GPUs since the model weights and KV-cache sizes are hardware-independent", "~4x speedup due to the H100's higher FP16 FLOPS (990 TFLOPS vs 312 TFLOPS), which directly translates to faster matrix-vector products", "~1.67x speedup — decode is bandwidth-bound, so the improvement tracks the bandwidth ratio $3.35/2.0 \\approx 1.67$, not the compute ratio", "~10x speedup from the Transformer Engine's specialized hardware blocks that are specifically designed for autoregressive token generation"],
+      correct: 2,
       explanation: "Since decode is bottlenecked by memory bandwidth (loading model weights for matrix-vector products), the speedup is determined by the HBM bandwidth ratio, not the FLOPS ratio. The H100's ~3.35 TB/s vs A100's ~2.0 TB/s gives ~1.67x decode throughput. The H100's massive compute advantage (3.2x in FP16, even more with FP8) primarily benefits the compute-bound prefill phase. This is why hardware selection for inference depends critically on the workload mix."
     },
     {
       type: "mc",
       question: "vLLM, TensorRT-LLM, and SGLang represent three major open-source serving frameworks. A distinguishing feature of SGLang is:",
-      options: ["It was the first to implement continuous batching, which all other frameworks later adopted as a standard feature for efficient request scheduling", "It only supports NVIDIA GPUs but achieves higher utilization than competing frameworks through custom CUDA kernel optimizations for each GPU generation", "**RadixAttention** — a radix tree-based KV-cache sharing mechanism that enables efficient prefix caching across requests with arbitrary shared prefixes, plus a frontend language for programming complex LLM pipelines", "It uses a proprietary model format that enables cross-framework weight sharing and allows seamless migration between different serving backends"],
-      correct: 2,
+      options: ["**RadixAttention** — a radix tree-based KV-cache sharing mechanism that enables efficient prefix caching across requests with arbitrary shared prefixes, plus a frontend language for programming complex LLM pipelines", "It only supports NVIDIA GPUs but achieves higher utilization than competing frameworks through custom CUDA kernel optimizations for each GPU generation", "It was the first to implement continuous batching, which all other frameworks later adopted as a standard feature for efficient request scheduling", "It uses a proprietary model format that enables cross-framework weight sharing and allows seamless migration between different serving backends"],
+      correct: 0,
       explanation: "SGLang introduced RadixAttention, which organizes the KV-cache as a radix tree indexed by token sequences. This allows automatic, fine-grained cache sharing: if requests share any prefix (not just a pre-defined system prompt), the common KV-cache entries are reused. Combined with SGLang's frontend DSL for expressing multi-call LLM programs (e.g., tree-of-thought, multi-turn), this enables cache-aware scheduling that can reduce redundant prefill computation by 5-10x in structured generation workloads."
     },
     {
@@ -263,26 +263,26 @@ export const servingAssessment = {
       type: "mc",
       question: "Time-to-first-token (TTFT) and time-per-output-token (TPOT) are the two primary latency metrics for LLM serving. Increasing the batch size typically:",
       options: [
-        "Decreases both TTFT and TPOT — larger batches amortize fixed overhead across more requests, reducing latency for both the initial response and subsequent tokens",
         "Increases TTFT (longer queue wait and prefill contention) while TPOT stays roughly constant until compute saturation — throughput improves at the cost of latency",
+        "Decreases both TTFT and TPOT — larger batches amortize fixed overhead across more requests, reducing latency for both the initial response and subsequent tokens",
         "Has no effect on either metric — batch size only affects total power consumption without changing the per-request latency characteristics of the serving system",
         "Decreases TTFT but increases TPOT — batching accelerates the compute-bound prefill phase through better GPU utilization but slows the bandwidth-bound decode phase"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Larger batches improve throughput (tokens/second across all sequences) by better utilizing GPU compute. However, TTFT increases because: (1) requests may wait in a queue, and (2) ongoing prefills for other requests in the batch cause contention. TPOT remains relatively stable because decode is bandwidth-bound and adding sequences is nearly free until compute saturation. The SLA-optimal batch size balances the throughput-latency trade-off for the specific workload's latency requirements."
     },
     {
       type: "mc",
       question: "FP8 inference (available on H100 and later GPUs) provides a benefit over FP16 primarily by:",
-      options: ["**Doubling the effective memory bandwidth** (8-bit values are half the size of 16-bit, so 2x more values loaded per second) and doubling the compute throughput (2x more FP8 ops per cycle), benefiting both prefill and decode phases", "Reducing model accuracy in a controlled trade-off that saves power by lowering the voltage required for each floating-point operation, without changing throughput or memory usage", "Enabling larger vocabulary sizes by compressing the embedding table to fit more token representations within the same GPU memory footprint, doubling the maximum vocabulary", "Reducing the number of required transformer layers by increasing per-layer expressiveness, since FP8's quantization noise acts as implicit regularization that compresses representations"],
-      correct: 0,
+      options: ["Reducing model accuracy in a controlled trade-off that saves power by lowering the voltage required for each floating-point operation, without changing throughput or memory usage", "**Doubling the effective memory bandwidth** (8-bit values are half the size of 16-bit, so 2x more values loaded per second) and doubling the compute throughput (2x more FP8 ops per cycle), benefiting both prefill and decode phases", "Enabling larger vocabulary sizes by compressing the embedding table to fit more token representations within the same GPU memory footprint, doubling the maximum vocabulary", "Reducing the number of required transformer layers by increasing per-layer expressiveness, since FP8's quantization noise acts as implicit regularization that compresses representations"],
+      correct: 1,
       explanation: "FP8 halves the bytes per parameter: a 70B model occupies ~70 GB instead of ~140 GB, and the effective bandwidth for weight loading doubles. The H100's Transformer Engine provides 1979 TFLOPS in FP8 vs 990 in FP16. For decode (bandwidth-bound), FP8 nearly doubles throughput. For prefill (compute-bound), FP8 doubles peak FLOPS. Combined, FP8 can provide 1.5-1.9x end-to-end throughput improvement with minimal quality loss when properly calibrated."
     },
     {
       type: "mc",
       question: "Chunked prefill is an optimization that breaks the prefill phase of a long prompt into smaller chunks. The main benefit is:",
-      options: ["Reducing the total compute for prefill by processing overlapping chunks that share intermediate attention computations, lowering the overall FLOP count for long prompts", "Enabling longer context lengths than the model's maximum position embedding supports, by processing chunks that each fit within the position limit independently", "Preventing a single long prefill from **monopolizing the GPU** for hundreds of milliseconds — by interleaving prefill chunks with decode steps from other requests, it reduces latency spikes", "Reducing KV-cache memory usage by discarding intermediate chunk states after processing, so only the final chunk's key-value pairs are retained in the cache"],
-      correct: 2,
+      options: ["Reducing the total compute for prefill by processing overlapping chunks that share intermediate attention computations, lowering the overall FLOP count for long prompts", "Preventing a single long prefill from **monopolizing the GPU** for hundreds of milliseconds — by interleaving prefill chunks with decode steps from other requests, it reduces latency spikes", "Enabling longer context lengths than the model's maximum position embedding supports, by processing chunks that each fit within the position limit independently", "Reducing KV-cache memory usage by discarding intermediate chunk states after processing, so only the final chunk's key-value pairs are retained in the cache"],
+      correct: 1,
       explanation: "A 100K-token prefill on a 70B model can take several seconds, during which no decode steps execute for other requests. Chunked prefill splits this into e.g., 512-token chunks, interleaving decode iterations between chunks. This caps the maximum time any decode step is delayed to the time for one prefill chunk. The total prefill time increases slightly (due to repeated kernel launches), but the P99 TPOT for concurrent requests improves dramatically — essential for meeting SLA targets."
     },
     {
@@ -321,22 +321,22 @@ export const compressionAssessment = {
     {
       type: "mc",
       question: "Logit matching distillation minimizes $\\text{KL}(p_{\\text{teacher}} \\| p_{\\text{student}})$ over the output distribution. Feature matching distillation instead:",
-      options: ["Aligns **intermediate layer representations** between teacher and student — e.g., minimizing $\\|f_{\\text{teacher}}^{(l)} - g(f_{\\text{student}}^{(k)})\\|^2$ where $g$ is a learned projection to handle dimension mismatches", "Matches only the final prediction but uses a squared error loss instead of KL divergence, which changes the gradient dynamics to favor high-confidence predictions", "Uses reinforcement learning to train the student, with the teacher's predictions serving as the reward signal that guides the student's policy optimization", "Matches the gradient norms of teacher and student at each layer, ensuring that the student's optimization dynamics mirror the teacher's training trajectory"],
-      correct: 0,
+      options: ["Uses reinforcement learning to train the student, with the teacher's predictions serving as the reward signal that guides the student's policy optimization", "Matches only the final prediction but uses a squared error loss instead of KL divergence, which changes the gradient dynamics to favor high-confidence predictions", "Aligns **intermediate layer representations** between teacher and student — e.g., minimizing $\\|f_{\\text{teacher}}^{(l)} - g(f_{\\text{student}}^{(k)})\\|^2$ where $g$ is a learned projection to handle dimension mismatches", "Matches the gradient norms of teacher and student at each layer, ensuring that the student's optimization dynamics mirror the teacher's training trajectory"],
+      correct: 2,
       explanation: "Feature matching (FitNets, PKD) adds losses that align intermediate representations. Since teacher and student may have different hidden dimensions, a learned linear projection $g$ maps student features to teacher feature space. This provides richer supervision than output-only matching: the student learns not just what to predict but how to represent. For LLM distillation, this can include matching attention patterns, hidden states at specific layers, or the output of feed-forward blocks."
     },
     {
       type: "mc",
       question: "On-policy distillation (used in models like Gemma and some LLaMA variants) differs from standard offline distillation by:",
-      options: ["Using a smaller teacher model that more closely matches the student's capacity, providing a more achievable learning target than a large teacher", "Training without any teacher signal during the generation phase, relying solely on the student's own self-supervised objective for the output sequences", "Having the **student generate its own outputs**, then using the teacher to score/correct them — this avoids the train-test distribution mismatch where the student is trained on teacher-generated text but must generate its own text at inference", "Using only hard labels from the teacher instead of soft probability distributions, which removes the temperature hyperparameter and simplifies the loss computation"],
-      correct: 2,
+      options: ["Using a smaller teacher model that more closely matches the student's capacity, providing a more achievable learning target than a large teacher", "Having the **student generate its own outputs**, then using the teacher to score/correct them — this avoids the train-test distribution mismatch where the student is trained on teacher-generated text but must generate its own text at inference", "Training without any teacher signal during the generation phase, relying solely on the student's own self-supervised objective for the output sequences", "Using only hard labels from the teacher instead of soft probability distributions, which removes the temperature hyperparameter and simplifies the loss computation"],
+      correct: 1,
       explanation: "In offline distillation, the student trains on teacher-generated sequences. At inference, the student generates from its own distribution, creating exposure bias — errors compound because the student never learned to recover from its own mistakes. On-policy distillation lets the student generate sequences, then uses the teacher's per-token probabilities as training signal. This is analogous to DAgger in imitation learning. The GKD (Generalized Knowledge Distillation) framework formalizes the spectrum between on-policy and off-policy distillation."
     },
     {
       type: "mc",
       question: "Structured pruning removes entire **structures** (attention heads, neurons, layers), while unstructured pruning removes individual weights. The practical advantage of structured pruning is:",
-      options: ["It achieves higher sparsity levels than unstructured pruning because removing entire structures eliminates more parameters per pruning decision", "It can be applied during training at no additional cost because the structure removal is handled automatically by the optimizer's weight decay", "It preserves more model quality at the same sparsity level because structure-level redundancy is more common than individual weight redundancy", "The resulting model has **regular, dense tensor shapes** that run efficiently on standard hardware (GPUs/TPUs) without specialized sparse kernels — unstructured pruning creates irregular sparsity patterns that standard hardware cannot accelerate"],
-      correct: 3,
+      options: ["The resulting model has **regular, dense tensor shapes** that run efficiently on standard hardware (GPUs/TPUs) without specialized sparse kernels — unstructured pruning creates irregular sparsity patterns that standard hardware cannot accelerate", "It can be applied during training at no additional cost because the structure removal is handled automatically by the optimizer's weight decay", "It preserves more model quality at the same sparsity level because structure-level redundancy is more common than individual weight redundancy", "It achieves higher sparsity levels than unstructured pruning because removing entire structures eliminates more parameters per pruning decision"],
+      correct: 0,
       explanation: "Removing 50% of individual weights (unstructured) leaves an irregular sparse matrix requiring specialized sparse GEMM kernels to achieve speedup — and these kernels often underperform dense GEMMs until >90% sparsity on GPUs. Removing 50% of neurons (structured) simply halves the matrix dimension, yielding dense smaller matrices that run at full hardware efficiency. The trade-off: unstructured pruning preserves more quality at the same compression ratio, but structured pruning gives predictable, hardware-friendly speedups."
     },
     {
@@ -344,25 +344,25 @@ export const compressionAssessment = {
       question: "When merging two LoRA adapters trained on different tasks, the simplest approach is weight-space averaging: $\\Delta W_{\\text{merged}} = \\alpha \\Delta W_A + (1 - \\alpha) \\Delta W_B$. The fundamental limitation of this approach is:",
       options: [
         "The merged weights are always larger in magnitude than the originals, causing activation magnitudes to grow and potentially overflow at inference",
-        "Weight-space interpolation assumes a **linear loss landscape** between the two solutions — if the loss landscape has barriers between the adapter basins, the merged point may perform poorly on both tasks despite each adapter being individually excellent",
+        "The merged adapter has a different effective rank than the originals, causing the merged model to either underfit or overfit relative to each individual adapter",
         "LoRA rank prevents merging because two rank-$r$ adapters combined exceed the maximum rank supported by the base model architecture",
-        "The merged adapter has a different effective rank than the originals, causing the merged model to either underfit or overfit relative to each individual adapter"
+        "Weight-space interpolation assumes a **linear loss landscape** between the two solutions — if the loss landscape has barriers between the adapter basins, the merged point may perform poorly on both tasks despite each adapter being individually excellent"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Linear interpolation in weight space only works well when the two solutions lie in the same loss basin (connected by a low-loss path). If training dynamics led the adapters to different basins, the midpoint can sit on a high-loss ridge. This connects to mode connectivity research: models trained from the same pre-trained checkpoint tend to be linearly connected in the loss landscape, but fine-tuning on very different tasks can break this. Techniques like TIES-Merging and DARE address this by resolving sign conflicts and pruning redundant parameters before merging."
     },
     {
       type: "mc",
       question: "A teacher model has 70B parameters and a student has 7B. After distillation, the student achieves 95% of the teacher's accuracy on benchmarks. The student's inference cost is approximately:",
-      options: ["~10% of the teacher's cost — inference cost scales roughly linearly with parameter count (dominated by weight-loading for decode), so a 10x smaller model is ~10x cheaper regardless of how well it was trained", "95% of the teacher's cost, since the distillation process transfers most of the teacher's computational requirements into the student's learned representations", "50% of the teacher's cost due to the shared architecture design, where the student reuses half of the teacher's layers during inference", "The same as the teacher's cost because the student must internally simulate the teacher's computation to reproduce the distilled knowledge at inference time"],
-      correct: 0,
+      options: ["The same as the teacher's cost because the student must internally simulate the teacher's computation to reproduce the distilled knowledge at inference time", "95% of the teacher's cost, since the distillation process transfers most of the teacher's computational requirements into the student's learned representations", "50% of the teacher's cost due to the shared architecture design, where the student reuses half of the teacher's layers during inference", "~10% of the teacher's cost — inference cost scales roughly linearly with parameter count (dominated by weight-loading for decode), so a 10x smaller model is ~10x cheaper regardless of how well it was trained"],
+      correct: 3,
       explanation: "Inference compute and memory scale with parameter count, not training method. The 7B student needs ~10x fewer FLOPs per forward pass, ~10x less memory for weights, and ~10x less KV-cache memory (assuming proportionally smaller hidden dimensions). Distillation improves the student's quality for its size class but doesn't change its computational cost. This is precisely the value proposition of distillation: getting a model that punches above its weight class computationally."
     },
     {
       type: "mc",
       question: "Neural Architecture Search (NAS) for LLMs differs from NAS for vision models primarily because:",
-      options: ["LLMs don't have meaningful hyperparameters to search over since the Transformer architecture has converged to a standard design with fixed depth, width, and head count ratios", "LLM architectures are already optimal due to extensive manual tuning over the past decade, leaving no room for automated improvement through search-based methods", "The **training cost of each candidate architecture** is enormous (millions of dollars for a full pre-training run), making exhaustive search infeasible — NAS for LLMs relies on proxy metrics or constrained subspaces", "NAS requires supervised labels to evaluate candidate architectures, which LLMs don't use since they are trained with self-supervised next-token prediction objectives"],
-      correct: 2,
+      options: ["The **training cost of each candidate architecture** is enormous (millions of dollars for a full pre-training run), making exhaustive search infeasible — NAS for LLMs relies on proxy metrics or constrained subspaces", "LLM architectures are already optimal due to extensive manual tuning over the past decade, leaving no room for automated improvement through search-based methods", "LLMs don't have meaningful hyperparameters to search over since the Transformer architecture has converged to a standard design with fixed depth, width, and head count ratios", "NAS requires supervised labels to evaluate candidate architectures, which LLMs don't use since they are trained with self-supervised next-token prediction objectives"],
+      correct: 0,
       explanation: "Vision NAS can evaluate a candidate architecture by training it to convergence in hours on a single GPU. LLM NAS cannot — training a 7B model costs ~\\$100K, making brute-force search over architecture variants prohibitive. Practical LLM NAS uses: (1) scaling law extrapolation from small proxy models, (2) zero-shot proxies based on gradient statistics, (3) constrained search over specific dimensions (depth, width, FFN ratio, head count) with other choices fixed. Results like the Chinchilla scaling laws are a form of two-variable NAS over model size and data quantity."
     },
     {
@@ -377,18 +377,18 @@ export const compressionAssessment = {
       question: "When distilling an LLM for a specific task (e.g., code generation), which data strategy typically yields the best student?",
       options: [
         "Training on the same pre-training corpus as the teacher, relying on the distillation loss to extract task-relevant knowledge from the general-purpose training data",
-        "Using the teacher to generate **synthetic task-specific data** — having the teacher produce many high-quality examples with chain-of-thought reasoning, then training the student on this curated dataset, which is both task-relevant and teacher-distribution-aligned",
         "Using only human-labeled examples collected specifically for the target task, since human annotations provide a stronger learning signal than teacher-generated outputs",
+        "Using the teacher to generate **synthetic task-specific data** — having the teacher produce many high-quality examples with chain-of-thought reasoning, then training the student on this curated dataset, which is both task-relevant and teacher-distribution-aligned",
         "Random data from the internet filtered by keyword relevance to the target task, maximizing data diversity while maintaining topical coverage"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Synthetic data generation from the teacher provides several advantages: (1) unlimited data at the cost of teacher inference, (2) data that is distributionally aligned with the teacher's capabilities, (3) ability to include reasoning traces that teach the student the process, not just the answer. This is the approach behind Phi-1 (textbook-quality synthetic data), Orca (explanation-augmented distillation), and WizardLM (evolved instructions). The key insight is that the teacher's ability to generate informative training data can be more valuable than its raw predictions."
     },
     {
       type: "mc",
       question: "Pruning at initialization (before training) versus pruning after training represents a fundamental debate. The **lottery ticket hypothesis** states:",
-      options: ["Dense randomly-initialized networks contain **sparse subnetworks** (winning tickets) that, when trained in isolation from their original initialization, match the full dense network's accuracy — suggesting that most parameters exist to help find these subnetworks during training", "All neural network architectures are equally expressive regardless of depth, width, or connectivity pattern, so pruning cannot reduce capability", "Pruned networks always outperform dense networks because removing redundant parameters acts as regularization that improves generalization on held-out data", "Random pruning is as effective as informed pruning methods, since the specific identity of removed weights matters less than the overall sparsity level"],
-      correct: 0,
+      options: ["Pruned networks always outperform dense networks because removing redundant parameters acts as regularization that improves generalization on held-out data", "All neural network architectures are equally expressive regardless of depth, width, or connectivity pattern, so pruning cannot reduce capability", "Dense randomly-initialized networks contain **sparse subnetworks** (winning tickets) that, when trained in isolation from their original initialization, match the full dense network's accuracy — suggesting that most parameters exist to help find these subnetworks during training", "Random pruning is as effective as informed pruning methods, since the specific identity of removed weights matters less than the overall sparsity level"],
+      correct: 2,
       explanation: "Frankle & Carlin (2019) showed that within a randomly initialized dense network, there exist sparse subnetworks that can be trained from their original initialization to match the dense network's performance. Finding these \"winning tickets\" requires train-prune-reset cycles. For LLMs, directly finding winning tickets is computationally prohibitive, but the hypothesis motivates the intuition behind successful post-training pruning: well-trained networks contain many low-importance parameters whose removal minimally impacts function. Subsequent work (especially on supermasks) has refined these findings significantly."
     }
   ]
@@ -408,15 +408,15 @@ export const cotAssessment = {
     {
       type: "mc",
       question: "The **scratchpad hypothesis** for why chain-of-thought (CoT) improves LLM reasoning posits that:",
-      options: ["CoT activates special reasoning circuits in the transformer that are dormant during standard next-token prediction and require explicit prompting to engage them", "CoT prompts contain the answer implicitly within their exemplar structure, and the model merely extracts it through surface-level pattern matching on the format", "The intermediate tokens serve as **external working memory** — they allow the model to decompose multi-step problems into sequential single-step computations, extending its bounded computational depth", "Writing more tokens gives the model more time to think in wall-clock time, and the additional GPU processing cycles during generation accumulate into deeper reasoning"],
-      correct: 2,
+      options: ["CoT activates special reasoning circuits in the transformer that are dormant during standard next-token prediction and require explicit prompting to engage them", "CoT prompts contain the answer implicitly within their exemplar structure, and the model merely extracts it through surface-level pattern matching on the format", "Writing more tokens gives the model more time to think in wall-clock time, and the additional GPU processing cycles during generation accumulate into deeper reasoning", "The intermediate tokens serve as **external working memory** — they allow the model to decompose multi-step problems into sequential single-step computations, extending its bounded computational depth"],
+      correct: 3,
       explanation: "A transformer's forward pass has fixed computational depth (number of layers). For problems requiring more sequential computation steps than layers, the model cannot solve them in a single pass. CoT externalizes intermediate computations into generated tokens, which are then fed back as input. Each token generation step adds another forward pass worth of computation, conditioned on previous results. This effectively gives the model $O(T \\times L)$ sequential computation for $T$ output tokens and $L$ layers, rather than just $O(L)$."
     },
     {
       type: "mc",
       question: "Self-consistency (Wang et al., 2022) improves CoT reasoning by:",
-      options: ["Training the model to be internally consistent by adding an auxiliary loss that penalizes contradictions between different parts of its reasoning", "Using a verifier model to score each reasoning chain and selecting the single chain with the highest verification score as the final output", "Asking the model to check its own work by appending a verification prompt after the initial answer and regenerating if errors are detected", "Sampling **multiple independent reasoning chains** (with temperature > 0), extracting the final answer from each, and returning the answer with the highest frequency — a majority voting scheme that marginalizes over diverse reasoning paths"],
-      correct: 3,
+      options: ["Sampling **multiple independent reasoning chains** (with temperature > 0), extracting the final answer from each, and returning the answer with the highest frequency — a majority voting scheme that marginalizes over diverse reasoning paths", "Using a verifier model to score each reasoning chain and selecting the single chain with the highest verification score as the final output", "Asking the model to check its own work by appending a verification prompt after the initial answer and regenerating if errors are detected", "Training the model to be internally consistent by adding an auxiliary loss that penalizes contradictions between different parts of its reasoning"],
+      correct: 0,
       explanation: "Self-consistency samples $N$ reasoning chains (e.g., $N = 40$) with temperature sampling, then takes a majority vote on the final answers. The intuition: correct answers tend to be reachable via multiple valid reasoning paths, while incorrect answers typically result from specific errors that vary across samples. Formally, it approximates $\\arg\\max_a P(a \\mid \\text{question})$ by marginalizing over reasoning paths. This is a simple but powerful technique — it improved GSM8K accuracy from 56% (single CoT) to 74% on PaLM 540B."
     },
     {
@@ -424,32 +424,32 @@ export const cotAssessment = {
       question: "Tree-of-Thought (ToT) extends chain-of-thought by:",
       options: [
         "Using tree-structured attention patterns that allow each token to attend to multiple branching context paths simultaneously during a single forward pass",
-        "Exploring a **tree of possible reasoning steps**, where the model evaluates and selects among multiple candidate next steps at each node — using search algorithms like BFS or DFS with self-evaluation to prune unpromising branches",
         "Generating answers in a tree-structured format where each branch represents a different aspect of the solution, merged into a final unified response",
+        "Exploring a **tree of possible reasoning steps**, where the model evaluates and selects among multiple candidate next steps at each node — using search algorithms like BFS or DFS with self-evaluation to prune unpromising branches",
         "Training on tree-structured data that explicitly encodes branching reasoning paths, teaching the model to produce multi-path solutions during inference"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "ToT structures reasoning as a search problem over a tree: each node represents a partial solution, each edge is a reasoning step, and the model both generates candidate steps and evaluates their promise. This enables backtracking (abandoning bad reasoning paths) and look-ahead (evaluating partial solutions before committing). For problems like creative writing or planning, ToT significantly outperforms linear CoT because it avoids the irrecoverable commitment problem — a bad step in linear CoT permanently derails the solution."
     },
     {
       type: "mc",
       question: "Process reward models (PRMs) provide feedback on each **step** of a reasoning chain, as opposed to outcome reward models (ORMs) that only score the final answer. The advantage of PRMs for math reasoning is:",
-      options: ["PRMs provide **dense, step-level credit assignment** — they identify exactly where a reasoning chain went wrong, enabling more efficient search and better training signal than a single reward for the whole chain", "PRMs are cheaper to train because they use shorter input sequences, with each step evaluated independently rather than requiring full-chain processing through the entire verifier model", "PRMs always produce more accurate final answers because step-level verification guarantees that every intermediate result is mathematically correct before allowing the next step to proceed", "PRMs don't require human annotations since the correctness of individual reasoning steps can be verified automatically through symbolic execution of each mathematical operation"],
-      correct: 0,
+      options: ["PRMs are cheaper to train because they use shorter input sequences, with each step evaluated independently rather than requiring full-chain processing through the entire verifier model", "PRMs provide **dense, step-level credit assignment** — they identify exactly where a reasoning chain went wrong, enabling more efficient search and better training signal than a single reward for the whole chain", "PRMs always produce more accurate final answers because step-level verification guarantees that every intermediate result is mathematically correct before allowing the next step to proceed", "PRMs don't require human annotations since the correctness of individual reasoning steps can be verified automatically through symbolic execution of each mathematical operation"],
+      correct: 1,
       explanation: "ORMs suffer from the sparse reward problem: a 10-step derivation gets a single correct/incorrect label, giving no signal about which step caused a failure. PRMs score each step (e.g., step 3 introduced an algebraic error), enabling: (1) best-first search that prunes reasoning chains at the first erroneous step, (2) more efficient training since each step provides a supervision signal, and (3) interpretable failure analysis. Let's Verify Step by Step (Lightman et al., 2023) showed PRMs substantially outperform ORMs for math reasoning on MATH benchmark."
     },
     {
       type: "mc",
       question: "When does chain-of-thought reasoning **hurt** performance compared to direct answering?",
-      options: ["Never — CoT always helps regardless of the task type, since more reasoning tokens always improve the quality of the final output produced by the model", "Only on mathematical problems, since CoT was designed specifically for step-by-step arithmetic and has no benefit on verbal, logical, or commonsense reasoning tasks", "On tasks requiring **fast pattern matching or factual recall** — CoT can introduce errors by overthinking simple retrievals, leading the model astray on questions where direct answering is confident", "When the model is very large, since models above 100B parameters already have sufficient internal computation depth to solve problems without externalizing reasoning steps"],
-      correct: 2,
+      options: ["Never — CoT always helps regardless of the task type, since more reasoning tokens always improve the quality of the final output produced by the model", "On tasks requiring **fast pattern matching or factual recall** — CoT can introduce errors by overthinking simple retrievals, leading the model astray on questions where direct answering is confident", "Only on mathematical problems, since CoT was designed specifically for step-by-step arithmetic and has no benefit on verbal, logical, or commonsense reasoning tasks", "When the model is very large, since models above 100B parameters already have sufficient internal computation depth to solve problems without externalizing reasoning steps"],
+      correct: 1,
       explanation: "CoT helps most on multi-step reasoning tasks (math, logic, multi-hop QA) where the problem genuinely requires sequential computation. It hurts on: (1) simple factual recall (\"What is the capital of France?\") where reasoning steps are unnecessary noise, (2) tasks where the model's first instinct is correct but overthinking introduces doubt, (3) pattern-matching tasks like sentiment analysis where reasoning can rationalize wrong answers. Empirically, CoT provides little benefit or even degrades performance for models below ~100B parameters on many tasks."
     },
     {
       type: "mc",
       question: "The debate over whether LLMs are \"truly reasoning\" versus \"pattern matching\" centers on:",
-      options: ["Whether LLMs use symbolic or subsymbolic representations internally, since only symbolic representations can support true logical inference and formal deduction over structured inputs", "Whether LLMs were trained on sufficient reasoning data to acquire genuine reasoning capabilities, or whether the gap requires fundamentally different training objectives beyond scaling", "Whether LLMs use more parameters than the human brain has synapses, since raw computational capacity determines the boundary between shallow pattern matching and real reasoning", "Whether LLMs exhibit **systematic generalization** — solving novel problem compositions they haven't seen in training — or merely interpolate between memorized training examples and surface patterns"],
-      correct: 3,
+      options: ["Whether LLMs use symbolic or subsymbolic representations internally, since only symbolic representations can support true logical inference and formal deduction over structured inputs", "Whether LLMs were trained on sufficient reasoning data to acquire genuine reasoning capabilities, or whether the gap requires fundamentally different training objectives beyond scaling", "Whether LLMs exhibit **systematic generalization** — solving novel problem compositions they haven't seen in training — or merely interpolate between memorized training examples and surface patterns", "Whether LLMs use more parameters than the human brain has synapses, since raw computational capacity determines the boundary between shallow pattern matching and real reasoning"],
+      correct: 2,
       explanation: "The critical test is out-of-distribution generalization: can models solve problems requiring novel combinations of learned operations? Evidence for pattern matching: performance degrades on math problems with unusual number ranges, models are fooled by irrelevant information that shouldn't affect logical reasoning, and models struggle with problems structurally identical to training examples but with different surface forms. Evidence for reasoning: models can solve some novel compositions, show consistent performance on well-structured problems, and benefit from CoT in ways consistent with genuine computation. The truth likely involves both capabilities in different proportions."
     },
     {
@@ -474,15 +474,15 @@ export const cotAssessment = {
     {
       type: "mc",
       question: "When using self-consistency with $N = 40$ samples, the computational cost is 40x a single generation. Which statement about the cost-accuracy trade-off is correct?",
-      options: ["Accuracy scales linearly with $N$ — doubling from 40 to 80 samples doubles the accuracy gain, so more samples always yield proportional improvements", "All $N$ samples must use the same temperature — varying temperature across samples invalidates the majority voting assumption by mixing incompatible distributions", "Accuracy improvements follow **diminishing returns** — gains from $N=1$ to $N=5$ are much larger than from $N=20$ to $N=40$, and the optimal $N$ depends on the task difficulty", "Self-consistency with $N=2$ is always worse than single CoT — the majority vote between two samples degenerates to random selection when they disagree"],
-      correct: 2,
+      options: ["Accuracy scales linearly with $N$ — doubling from 40 to 80 samples doubles the accuracy gain, so more samples always yield proportional improvements", "All $N$ samples must use the same temperature — varying temperature across samples invalidates the majority voting assumption by mixing incompatible distributions", "Self-consistency with $N=2$ is always worse than single CoT — the majority vote between two samples degenerates to random selection when they disagree", "Accuracy improvements follow **diminishing returns** — gains from $N=1$ to $N=5$ are much larger than from $N=20$ to $N=40$, and the optimal $N$ depends on the task difficulty"],
+      correct: 3,
       explanation: "Majority voting accuracy follows a law of diminishing returns. For an easy problem where the model gets the right answer 80% of the time, even $N=5$ gives >95% accuracy (binomial probability). For a hard problem where the correct rate is 30%, even $N=100$ won't produce a majority-correct result. The marginal improvement from each additional sample decreases because the majority vote converges. The compute-optimal strategy is to allocate more samples to harder problems (adaptive compute) rather than using a fixed $N$ across all inputs."
     },
     {
       type: "mc",
       question: "A model answers a math problem correctly with CoT, but when the same problem is rephrased with a misleading \"common sense\" cue (e.g., adding irrelevant context suggesting a different answer), the model changes its answer. This demonstrates:",
-      options: ["The model needs more training data on adversarially rephrased problems, and scaling the dataset with such examples would eliminate the sensitivity to irrelevant cues", "CoT doesn't work for math problems because the step-by-step format introduces opportunities for error at each reasoning step that direct answering would avoid", "The rephrased problem was actually harder because adding context increases the input complexity, requiring the model to parse and filter more information before solving", "**Reasoning fragility** — the model's chain-of-thought is influenced by surface-level features and social priors rather than following purely logical computation that is invariant to irrelevant context"],
-      correct: 3,
+      options: ["**Reasoning fragility** — the model's chain-of-thought is influenced by surface-level features and social priors rather than following purely logical computation that is invariant to irrelevant context", "CoT doesn't work for math problems because the step-by-step format introduces opportunities for error at each reasoning step that direct answering would avoid", "The rephrased problem was actually harder because adding context increases the input complexity, requiring the model to parse and filter more information before solving", "The model needs more training data on adversarially rephrased problems, and scaling the dataset with such examples would eliminate the sensitivity to irrelevant cues"],
+      correct: 0,
       explanation: "This is a key piece of evidence in the reasoning-vs-pattern-matching debate. Studies show that adding irrelevant information (e.g., \"Alice has 5 apples\" in a problem that doesn't involve Alice) or framing a problem to suggest a common-but-wrong answer can cause models to produce incorrect reasoning chains that rationalize the wrong answer. True compositional reasoning should be invariant to such perturbations. This suggests the model's \"reasoning\" is partly a post-hoc rationalization process guided by distributional cues rather than a faithful logical computation."
     }
   ]
@@ -504,65 +504,65 @@ export const testTimeComputeAssessment = {
       question: "The o1/o3 family of models use \"extended thinking\" at inference time. The core mechanism is:",
       options: [
         "Running the model on multiple GPUs simultaneously to perform parallel beam search over the top-$k$ most likely token sequences, selecting the highest-scoring completion",
-        "Generating a **long internal chain-of-thought** (potentially thousands of tokens) before producing the final answer — trained via RL to explore, backtrack, and verify",
+        "Searching over a database of pre-computed answers indexed by question embeddings and returning the closest semantic match from the cached response store",
         "Fine-tuning the model on each new question using a few gradient steps of in-context adaptation before generating the response, customizing weights per query",
-        "Searching over a database of pre-computed answers indexed by question embeddings and returning the closest semantic match from the cached response store"
+        "Generating a **long internal chain-of-thought** (potentially thousands of tokens) before producing the final answer — trained via RL to explore, backtrack, and verify"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "o1-style models generate an extended hidden reasoning trace before answering. The model was trained with reinforcement learning to use this trace productively: exploring multiple approaches, catching and correcting errors, and verifying intermediate results. This trades inference compute (generating many tokens) for accuracy. The reasoning trace can be thousands of tokens long for hard math/coding problems, but the model learns when to think briefly vs. extensively based on problem difficulty."
     },
     {
       type: "mc",
       question: "Best-of-N sampling generates $N$ complete responses and selects the best one using a reward model or verifier. Compared to self-consistency (majority voting), best-of-N:",
-      options: ["Can select based on **response quality rather than just answer frequency** — it can prefer a well-reasoned minority answer, but its effectiveness is bounded by verifier accuracy", "Always produces better results because the reward model provides a strictly more informative selection signal than simple answer frequency counting across samples", "Uses less compute since it only generates one response and applies the reward model as a cheap post-hoc filter on that single output to verify correctness", "Is identical to self-consistency in both mechanism and outcome, since the reward model's ranking always agrees with the majority vote result in practice"],
-      correct: 0,
+      options: ["Uses less compute since it only generates one response and applies the reward model as a cheap post-hoc filter on that single output to verify correctness", "Always produces better results because the reward model provides a strictly more informative selection signal than simple answer frequency counting across samples", "Can select based on **response quality rather than just answer frequency** — it can prefer a well-reasoned minority answer, but its effectiveness is bounded by verifier accuracy", "Is identical to self-consistency in both mechanism and outcome, since the reward model's ranking always agrees with the majority vote result in practice"],
+      correct: 2,
       explanation: "Self-consistency selects by answer frequency, implicitly assuming that correct reasoning paths outnumber incorrect ones. Best-of-N uses a learned verifier to evaluate response quality, which can capture reasoning quality beyond just the final answer. However, best-of-N is limited by: (1) verifier accuracy — a miscalibrated verifier may prefer confident-sounding wrong answers, (2) sample coverage — $N$ samples may not include a correct response for very hard problems, and (3) reward hacking if the verifier has exploitable biases."
     },
     {
       type: "mc",
       question: "Applying Monte Carlo Tree Search (MCTS) to LLM reasoning faces a fundamental challenge that doesn't exist in game-playing (e.g., AlphaGo):",
-      options: ["LLMs can't play games because they lack the spatial reasoning capabilities that MCTS requires for effective evaluation of intermediate positions and states", "MCTS requires a board representation with a fixed set of discrete legal moves, and natural language reasoning cannot be decomposed into a comparably finite action space", "The **branching factor is enormous** — at each token or reasoning step there are thousands of possible continuations, making exhaustive tree search intractable compared to Go's ~250 moves", "LLMs are too slow for real-time search because each node evaluation requires a full forward pass through billions of parameters, making deep tree exploration impractical"],
-      correct: 2,
+      options: ["The **branching factor is enormous** — at each token or reasoning step there are thousands of possible continuations, making exhaustive tree search intractable compared to Go's ~250 moves", "MCTS requires a board representation with a fixed set of discrete legal moves, and natural language reasoning cannot be decomposed into a comparably finite action space", "LLMs can't play games because they lack the spatial reasoning capabilities that MCTS requires for effective evaluation of intermediate positions and states", "LLMs are too slow for real-time search because each node evaluation requires a full forward pass through billions of parameters, making deep tree exploration impractical"],
+      correct: 0,
       explanation: "MCTS succeeds in Go because: (1) the branching factor (~250) is manageable, (2) a value network provides reliable position evaluations, and (3) the game has a clear terminal reward. For LLM reasoning: (1) the branching factor at the token level is ~32K-128K, requiring either very aggressive pruning or operating at the \"reasoning step\" level, (2) evaluating partial reasoning chains is much harder than evaluating board positions, and (3) defining what constitutes a \"move\" in reasoning is ambiguous. Approaches like LATS and RAP address these by chunking reasoning into coarse steps and using the LLM itself as a value function."
     },
     {
       type: "mc",
       question: "Compute-optimal inference allocation suggests that the optimal amount of test-time compute should depend on:",
-      options: ["Only the model size — larger models should always think longer because they have more representational capacity to utilize during extended reasoning and search", "The time of day and current server load, since compute allocation should be dynamically adjusted based on available infrastructure capacity and demand patterns", "The user's subscription tier, since higher-paying users should receive more inference compute regardless of the difficulty or complexity of their specific query", "The **difficulty of the specific input** — easy questions should use minimal test-time compute while hard questions benefit from extended reasoning, search, or multiple samples"],
-      correct: 3,
+      options: ["Only the model size — larger models should always think longer because they have more representational capacity to utilize during extended reasoning and search", "The time of day and current server load, since compute allocation should be dynamically adjusted based on available infrastructure capacity and demand patterns", "The **difficulty of the specific input** — easy questions should use minimal test-time compute while hard questions benefit from extended reasoning, search, or multiple samples", "The user's subscription tier, since higher-paying users should receive more inference compute regardless of the difficulty or complexity of their specific query"],
+      correct: 2,
       explanation: "Inference scaling research shows that the value of additional test-time compute follows a difficulty-dependent curve. For easy problems, the model's first answer is usually correct — additional compute is wasted. For hard problems, extended thinking, multiple samples, or search can dramatically improve accuracy. The optimal strategy adaptively allocates compute: a difficulty classifier or confidence estimator decides how much inference-time computation to invest per query. This mirrors the human intuition of \"thinking harder\" about harder problems."
     },
     {
       type: "mc",
       question: "Inference scaling laws describe how performance improves with test-time compute. Compared to training scaling laws (Chinchilla), inference scaling:",
       options: [
-        "Shows the same power-law exponent as training scaling, meaning identical returns per FLOP whether spent during pre-training or at inference time",
         "Can be **more cost-efficient for hard problems** — a smaller model with 100x inference compute can sometimes match a 10x larger model with 1x compute on reasoning tasks",
+        "Shows the same power-law exponent as training scaling, meaning identical returns per FLOP whether spent during pre-training or at inference time",
         "Never matches training-time scaling in practice — no amount of inference-time search can compensate for insufficient model capacity or training data",
         "Follows an exponential rather than power law, meaning each additional unit of inference compute yields exponentially larger accuracy improvements"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Research from DeepMind and OpenAI shows that for certain problem types (particularly verifiable reasoning), investing in test-time compute can substitute for model size. A 7B model with best-of-256 sampling can match a 70B model's accuracy on math problems. However, the trade-off depends heavily on task type: for knowledge-intensive tasks, the information must be in the model's parameters, and no amount of inference compute can compensate. The optimal compute allocation between training and inference depends on deployment volume — high-volume tasks favor larger trained models, while rare hard queries favor inference-time scaling."
     },
     {
       type: "mc",
       question: "A system uses best-of-N with a reward model to solve math problems. With $N = 1$, accuracy is 40%. With $N = 100$, accuracy reaches 75%. Doubling to $N = 200$ would most likely yield:",
-      options: ["~78-80% — improvements follow **logarithmic scaling** with $N$; each doubling provides diminishing marginal gains as coverage approaches the model's ceiling", "~100% accuracy — doubling the sample count from 100 to 200 doubles the improvement, continuing the linear trend from earlier gains", "~75% — the accuracy curve plateaus exactly at $N = 100$, with additional samples providing zero marginal benefit beyond that threshold", "~50% — additional samples beyond 100 introduce so many near-miss candidates that the reward model's selection accuracy degrades substantially"],
-      correct: 0,
+      options: ["~50% — additional samples beyond 100 introduce so many near-miss candidates that the reward model's selection accuracy degrades substantially", "~100% accuracy — doubling the sample count from 100 to 200 doubles the improvement, continuing the linear trend from earlier gains", "~75% — the accuracy curve plateaus exactly at $N = 100$, with additional samples providing zero marginal benefit beyond that threshold", "~78-80% — improvements follow **logarithmic scaling** with $N$; each doubling provides diminishing marginal gains as coverage approaches the model's ceiling"],
+      correct: 3,
       explanation: "Best-of-N accuracy scales as $1 - (1 - p)^N$ where $p$ is the per-sample probability of a correct-and-top-ranked response. For large $N$, this saturates. If the model has a 1% chance of producing the correct answer per sample, $N=100$ gives $\\sim 63\\%$ coverage, and $N=200$ gives $\\sim 87\\%$. But with a reward model selector, the binding constraint is often the reward model's ability to distinguish correct from incorrect solutions, not just coverage. Empirically, accuracy scales roughly as $a + b \\log(N)$ in the relevant range."
     },
     {
       type: "mc",
       question: "Process reward models (PRMs) can be used for step-level beam search during test-time reasoning. In this approach, the search:",
-      options: ["Generates all tokens simultaneously using the PRM scores as a non-autoregressive selection criterion over the full vocabulary at each position", "Only evaluates the final answer and uses the PRM score to decide whether to accept or reject the complete reasoning chain before presenting it", "Maintains a beam of $B$ partial reasoning chains, scoring each at every reasoning step using the PRM and pruning low-scoring branches — this focuses compute on the most promising reasoning paths rather than committing to a single chain or running independent samples", "Uses the PRM to generate tokens directly by sampling from the PRM's output distribution rather than from the language model's next-token predictions"],
-      correct: 2,
+      options: ["Generates all tokens simultaneously using the PRM scores as a non-autoregressive selection criterion over the full vocabulary at each position", "Only evaluates the final answer and uses the PRM score to decide whether to accept or reject the complete reasoning chain before presenting it", "Uses the PRM to generate tokens directly by sampling from the PRM's output distribution rather than from the language model's next-token predictions", "Maintains a beam of $B$ partial reasoning chains, scoring each at every reasoning step using the PRM and pruning low-scoring branches — this focuses compute on the most promising reasoning paths rather than committing to a single chain or running independent samples"],
+      correct: 3,
       explanation: "Step-level beam search with PRMs is a structured test-time compute strategy: at each reasoning step, $B$ candidate continuations are generated, the PRM scores each partial chain, and only the top-$B$ survive. This is more efficient than best-of-N (which runs $N$ independent chains to completion) because compute is concentrated on promising paths early. The PRM acts as a value function estimating the probability of reaching a correct answer from each partial state. This is the approach advocated by Let's Verify Step by Step and subsequent work on verifier-guided search."
     },
     {
       type: "mc",
       question: "A key distinction between o1-style extended thinking and standard chain-of-thought prompting is:",
-      options: ["Extended thinking uses a different model architecture with specialized reasoning layers that are activated only during the thinking phase and bypassed for direct answers", "Extended thinking only works in English because the RL training data for reasoning optimization was collected exclusively from English-language mathematical proofs and solutions", "Standard CoT produces longer reasoning traces because it includes more verbose natural language explanations, while extended thinking uses compressed internal token representations", "Extended thinking models are trained with **RL to optimize the reasoning process itself** — the model learns when to explore, backtrack, and verify rather than relying on pre-trained generation"],
-      correct: 3,
+      options: ["Extended thinking models are trained with **RL to optimize the reasoning process itself** — the model learns when to explore, backtrack, and verify rather than relying on pre-trained generation", "Extended thinking only works in English because the RL training data for reasoning optimization was collected exclusively from English-language mathematical proofs and solutions", "Standard CoT produces longer reasoning traces because it includes more verbose natural language explanations, while extended thinking uses compressed internal token representations", "Extended thinking uses a different model architecture with specialized reasoning layers that are activated only during the thinking phase and bypassed for direct answers"],
+      correct: 0,
       explanation: "Standard CoT relies on the model's pre-trained distribution over explanation-like text — it produces plausible-looking reasoning but has no explicit incentive to reason correctly or to self-correct. o1-style models are trained with RL where the reward signal is answer correctness, so the model learns to use its reasoning trace strategically: trying multiple approaches, identifying and recovering from errors, and allocating reasoning effort proportional to problem difficulty. The RL training fundamentally changes the model's relationship to its own reasoning output from \"generating plausible text\" to \"using text as a computational medium.\""
     },
     {
@@ -580,8 +580,8 @@ export const testTimeComputeAssessment = {
     {
       type: "mc",
       question: "A company deploys a reasoning model and observes that 80% of user queries are simple (answered correctly with 1 inference step) while 20% are hard (requiring 50 inference steps). If they allocate the same 50-step budget to all queries, the wasted compute fraction is approximately:",
-      options: ["About 78% — the 80% of easy queries waste 49 of their 50 allocated steps: $\\frac{0.8 \\times 49}{0.8 \\times 50 + 0.2 \\times 50} = \\frac{39.2}{50}$ of total compute goes to unnecessary reasoning", "0% — more compute never hurts model quality, so allocating extra reasoning steps to easy queries only improves confidence without wasting any resources", "About 20% — only the hard queries contribute waste, since easy queries complete early and release their allocated compute back to the shared resource pool", "About 50% — half the total compute is wasted because the 50-step budget is optimal for exactly half the queries (the hard ones) and excessive for the other half"],
-      correct: 0,
+      options: ["0% — more compute never hurts model quality, so allocating extra reasoning steps to easy queries only improves confidence without wasting any resources", "About 78% — the 80% of easy queries waste 49 of their 50 allocated steps: $\\frac{0.8 \\times 49}{0.8 \\times 50 + 0.2 \\times 50} = \\frac{39.2}{50}$ of total compute goes to unnecessary reasoning", "About 20% — only the hard queries contribute waste, since easy queries complete early and release their allocated compute back to the shared resource pool", "About 50% — half the total compute is wasted because the 50-step budget is optimal for exactly half the queries (the hard ones) and excessive for the other half"],
+      correct: 1,
       explanation: "With uniform 50-step allocation: easy queries use 1 useful step + 49 wasted = 0.8 * 49 = 39.2 wasted step-equivalents. Hard queries use all 50 steps productively. Total compute = 50 steps * 100% of queries = 50 units. Wasted = 39.2 units. Waste fraction = 39.2/50 = 78.4%. Adaptive allocation (1 step for easy, 50 for hard) uses 0.8*1 + 0.2*50 = 10.8 units — a 4.6x compute reduction. This illustrates why difficulty-adaptive inference allocation is crucial for cost-effective deployment of reasoning models."
     }
   ]
@@ -601,15 +601,15 @@ export const toolUseAssessment = {
     {
       type: "mc",
       question: "Function calling in LLMs is typically trained by:",
-      options: ["Hard-coding specific API calls into the model's architecture through specialized attention heads that route queries to external function endpoints during inference", "Giving the model direct access to execute code during training so it learns the input-output behavior of each function through repeated trial and error interactions", "Fine-tuning on datasets of (user query, function call, function result, final response) sequences — the model learns to emit **structured function call tokens** that the serving system intercepts", "Training a separate classifier that maps user queries to the appropriate function based on intent detection, then invoking the function through an independent pipeline"],
-      correct: 2,
+      options: ["Fine-tuning on datasets of (user query, function call, function result, final response) sequences — the model learns to emit **structured function call tokens** that the serving system intercepts", "Giving the model direct access to execute code during training so it learns the input-output behavior of each function through repeated trial and error interactions", "Hard-coding specific API calls into the model's architecture through specialized attention heads that route queries to external function endpoints during inference", "Training a separate classifier that maps user queries to the appropriate function based on intent detection, then invoking the function through an independent pipeline"],
+      correct: 0,
       explanation: "Function calling training involves: (1) curating datasets where the correct response involves calling specific functions with appropriate arguments, (2) defining a structured output format (often JSON) that the model generates inline, (3) teaching the model when to call functions vs. answer directly. The serving system parses these structured outputs, executes the function, and appends the result to the context for the model to incorporate. This is how models like GPT-4 and Claude handle tool use — the function call is part of the model's text generation, not a separate system."
     },
     {
       type: "mc",
       question: "In a RAG (Retrieval-Augmented Generation) system, the chunking strategy — how documents are split into retrievable units — critically affects quality. Which statement is correct?",
-      options: ["Larger chunks are always better because they provide more surrounding context for the LLM to synthesize its answer from each retrieved passage without fragmentation", "All documents should be stored as single chunks to preserve the full semantic coherence of each source and avoid fragmenting arguments across retrieval boundaries", "Chunking doesn't matter if the embedding model is good enough, since a sufficiently powerful embedder can represent any chunk size with equal fidelity and precision", "Chunk size involves a **precision-recall trade-off**: smaller chunks yield precise retrieval but miss context, while larger ones capture context but dilute relevance with irrelevant text"],
-      correct: 3,
+      options: ["Larger chunks are always better because they provide more surrounding context for the LLM to synthesize its answer from each retrieved passage without fragmentation", "All documents should be stored as single chunks to preserve the full semantic coherence of each source and avoid fragmenting arguments across retrieval boundaries", "Chunk size involves a **precision-recall trade-off**: smaller chunks yield precise retrieval but miss context, while larger ones capture context but dilute relevance with irrelevant text", "Chunking doesn't matter if the embedding model is good enough, since a sufficiently powerful embedder can represent any chunk size with equal fidelity and precision"],
+      correct: 2,
       explanation: "Too-small chunks: high retrieval precision (the chunk matches the query well) but insufficient context for the LLM to synthesize an answer. Too-large chunks: the relevant passage is buried in irrelevant text, diluting the embedding representation and the LLM's ability to extract the answer. Strategies to mitigate: (1) overlapping windows (e.g., 512 tokens with 128 overlap), (2) hierarchical chunking (retrieve small chunks but expand to parent chunks for context), (3) semantic chunking (split at topic boundaries rather than fixed token counts). The optimal strategy is domain-dependent."
     },
     {
@@ -627,15 +627,15 @@ export const toolUseAssessment = {
     {
       type: "mc",
       question: "Multi-step retrieval (also called iterative or multi-hop RAG) is needed when:",
-      options: ["The answer requires **synthesizing information from multiple documents** via a chain of lookups — each retrieval step uses prior results to formulate the next query", "The document collection is very large, exceeding the capacity of the embedding index to return relevant results in a single retrieval step over the full corpus", "The embedding model has limited context length and cannot encode queries that are longer than a few hundred tokens into a single vector representation effectively", "The user asks multiple questions in one turn, requiring the system to retrieve separate sets of documents for each independent sub-question in the input"],
-      correct: 0,
+      options: ["The document collection is very large, exceeding the capacity of the embedding index to return relevant results in a single retrieval step over the full corpus", "The answer requires **synthesizing information from multiple documents** via a chain of lookups — each retrieval step uses prior results to formulate the next query", "The embedding model has limited context length and cannot encode queries that are longer than a few hundred tokens into a single vector representation effectively", "The user asks multiple questions in one turn, requiring the system to retrieve separate sets of documents for each independent sub-question in the input"],
+      correct: 1,
       explanation: "Single-shot retrieval fails on multi-hop questions because the initial query doesn't contain the intermediate information needed to formulate the final retrieval. Multi-step RAG decomposes the question: (1) retrieve \"transformer architecture inventor\" -> Vaswani et al., (2) retrieve birthplace information -> identify country, (3) retrieve GDP data. Each retrieval step uses information from prior steps to formulate the next query. Architectures like IRCoT (Interleaving Retrieval with CoT) and Self-RAG automate this decomposition."
     },
     {
       type: "mc",
       question: "When an LLM generates a function call that fails (e.g., API returns an error), the ideal error recovery behavior is:",
-      options: ["Immediately returning the raw error message to the user without interpretation, since the user can diagnose the tool failure more accurately than the model", "Ignoring the error and generating an answer without the tool result, relying on the model's parametric knowledge to fill in the missing information", "Analyzing the error, **reformulating the function call** (e.g., correcting parameter types, trying alternative APIs, or decomposing into simpler sub-calls), and retrying — this error recovery loop should be bounded to prevent infinite retries, with graceful degradation when recovery fails", "Calling the same function again with identical parameters, since transient errors like rate limits or timeouts will resolve on subsequent attempts"],
-      correct: 2,
+      options: ["Analyzing the error, **reformulating the function call** (e.g., correcting parameter types, trying alternative APIs, or decomposing into simpler sub-calls), and retrying — this error recovery loop should be bounded to prevent infinite retries, with graceful degradation when recovery fails", "Ignoring the error and generating an answer without the tool result, relying on the model's parametric knowledge to fill in the missing information", "Immediately returning the raw error message to the user without interpretation, since the user can diagnose the tool failure more accurately than the model", "Calling the same function again with identical parameters, since transient errors like rate limits or timeouts will resolve on subsequent attempts"],
+      correct: 0,
       explanation: "Robust tool use requires error handling as a core capability, not an afterthought. The model should: (1) parse the error message to diagnose the failure (auth error? malformed input? rate limit?), (2) determine if the call can be retried with corrections or if an alternative approach is needed, (3) attempt recovery with a bounded retry count, (4) gracefully inform the user if recovery fails, explaining what was attempted. Training for error recovery involves including error scenarios in the fine-tuning data — models that only see successful tool calls perform poorly when tools fail."
     },
     {
@@ -650,11 +650,11 @@ export const toolUseAssessment = {
       question: "Embedding models used for RAG retrieval are typically trained with **contrastive learning**. The training objective is:",
       options: [
         "Predicting the next word in a document, using the autoregressive language modeling objective to learn contextual representations that capture document-level semantics",
-        "Learning representations where **semantically similar query-passage pairs have high cosine similarity** while dissimilar pairs are pushed apart using hard negatives",
+        "Classifying documents into predefined categories using cross-entropy loss, then extracting the penultimate layer's activations as general-purpose retrieval embeddings",
         "Minimizing the reconstruction error of documents by training an autoencoder that compresses and reconstructs each passage through a fixed-dimension bottleneck vector",
-        "Classifying documents into predefined categories using cross-entropy loss, then extracting the penultimate layer's activations as general-purpose retrieval embeddings"
+        "Learning representations where **semantically similar query-passage pairs have high cosine similarity** while dissimilar pairs are pushed apart using hard negatives"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Contrastive training (e.g., DPR, E5, GTE) uses pairs $(q_i, p_i^+)$ of queries and relevant passages. The loss pulls together $e(q_i)$ and $e(p_i^+)$ while pushing apart $e(q_i)$ and $e(p_j^+)$ for $j \\neq i$ (in-batch negatives). Hard negatives — passages that are superficially similar to the query but not actually relevant (e.g., same topic but different answer) — are critical for learning fine-grained distinctions. Modern embedding models (GTE, E5-Mistral) build on decoder LLMs fine-tuned with contrastive objectives, achieving strong retrieval by leveraging the LLM's pre-trained language understanding."
     },
     {
@@ -674,8 +674,8 @@ export const toolUseAssessment = {
     {
       type: "mc",
       question: "A RAG system's retrieval component returns passages with relevance scores. At what point does adding more retrieved passages to the LLM context typically **hurt** performance?",
-      options: ["Never — more context is always better because the model can simply ignore irrelevant passages and focus on the useful information within the retrieved set", "Only when the context window is physically exceeded, since the model benefits from all available information up to the maximum sequence length of the architecture", "After exactly 3 passages in all cases, since empirical studies have converged on this as the universal optimal number for retrieval-augmented generation tasks", "When additional passages have **low relevance scores** — they introduce noise that can distract the LLM and cause hallucinated synthesis of contradictory information sources"],
-      correct: 3,
+      options: ["Never — more context is always better because the model can simply ignore irrelevant passages and focus on the useful information within the retrieved set", "When additional passages have **low relevance scores** — they introduce noise that can distract the LLM and cause hallucinated synthesis of contradictory information sources", "After exactly 3 passages in all cases, since empirical studies have converged on this as the universal optimal number for retrieval-augmented generation tasks", "Only when the context window is physically exceeded, since the model benefits from all available information up to the maximum sequence length of the architecture"],
+      correct: 1,
       explanation: "Adding passages with relevance scores below a task-specific threshold introduces noise. The LLM may: (1) hallucinate a synthesis of contradictory information from relevant and irrelevant passages, (2) get distracted by plausible-sounding but incorrect passages (especially problematic for factual QA), (3) suffer from the lost-in-the-middle effect as the context grows. Empirically, accuracy often peaks at 3-5 highly relevant passages and degrades with more. Adaptive retrieval strategies set a relevance threshold or use the LLM's own confidence to decide when enough context has been retrieved."
     }
   ]
@@ -697,11 +697,11 @@ export const agenticAssessment = {
       question: "The ReAct (Reasoning + Acting) framework structures agent behavior as an interleaved sequence of:",
       options: [
         "Training and inference steps, where the agent alternates between updating its weights on new observations and generating predictions based on the updated model parameters",
-        "**Thought -> Action -> Observation** cycles — the agent reasons about what to do, executes a tool call, observes the result, and repeats until the task is complete",
         "Encoding and decoding steps, where the encoder processes the environment state into a latent representation and the decoder generates the appropriate action sequence",
+        "**Thought -> Action -> Observation** cycles — the agent reasons about what to do, executes a tool call, observes the result, and repeats until the task is complete",
         "Forward and backward passes through the model, where the forward pass generates a candidate action and the backward pass updates the policy based on observed reward"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "ReAct (Yao et al., 2022) combines chain-of-thought reasoning with tool use in a structured loop. The Thought step allows the agent to plan, interpret observations, and decide what to do next. The Action step interfaces with external tools (search, calculator, API calls). The Observation step grounds the agent in real-world feedback. This structure outperforms both pure reasoning (no grounding) and pure acting (no planning) because reasoning guides action selection while observations correct reasoning errors."
     },
     {
@@ -714,34 +714,34 @@ export const agenticAssessment = {
     {
       type: "mc",
       question: "To achieve 90% task success rate on a 10-step task, the required per-step accuracy is:",
-      options: ["90% — the task success rate directly equals the per-step accuracy when errors are independent across steps", "95% — a small margin above the target task success rate is sufficient to absorb the compounding effect over ten steps", "~99% — since $x^{10} = 0.9$ gives $x = 0.9^{1/10} \\approx 0.9895$; this illustrates why agentic systems need near-perfect per-step reliability for multi-step tasks", "99.9% — each step must be nearly infallible because even a 0.1% error rate compounds to significant task failure over ten sequential steps"],
-      correct: 2,
+      options: ["90% — the task success rate directly equals the per-step accuracy when errors are independent across steps", "95% — a small margin above the target task success rate is sufficient to absorb the compounding effect over ten steps", "99.9% — each step must be nearly infallible because even a 0.1% error rate compounds to significant task failure over ten sequential steps", "~99% — since $x^{10} = 0.9$ gives $x = 0.9^{1/10} \\approx 0.9895$; this illustrates why agentic systems need near-perfect per-step reliability for multi-step tasks"],
+      correct: 3,
       explanation: "Solving $x^{10} = 0.9$: $x = 0.9^{0.1} = e^{0.1 \\ln(0.9)} = e^{-0.01053} \\approx 0.9895$. So you need ~98.95% per-step accuracy for 90% task completion. For a 20-step task: $x = 0.9^{0.05} \\approx 0.9947$ (99.47% per step). This quantifies why long-horizon agentic tasks are so challenging: the reliability requirement per step grows exponentially with task length. It also explains why current agents work best on short, well-defined tasks and struggle with open-ended, multi-step workflows."
     },
     {
       type: "mc",
       question: "Agent memory architectures typically distinguish between short-term and long-term memory. In LLM-based agents, these correspond to:",
-      options: ["GPU memory vs CPU memory, with high-priority recent observations stored on the faster GPU and historical data offloaded to the CPU for retrieval when needed", "Attention keys vs attention values within the transformer, with keys serving as indexable short-term memory and values storing the long-term content retrieved through attention", "Training data vs inference data, where the model's parametric memory from training serves as long-term storage and the inference-time context provides short-term task information", "The **context window** (short-term: recent observations and current plan) and **external storage** (long-term: vector databases of past experiences and learned procedures)"],
-      correct: 3,
+      options: ["GPU memory vs CPU memory, with high-priority recent observations stored on the faster GPU and historical data offloaded to the CPU for retrieval when needed", "The **context window** (short-term: recent observations and current plan) and **external storage** (long-term: vector databases of past experiences and learned procedures)", "Training data vs inference data, where the model's parametric memory from training serves as long-term storage and the inference-time context provides short-term task information", "Attention keys vs attention values within the transformer, with keys serving as indexable short-term memory and values storing the long-term content retrieved through attention"],
+      correct: 1,
       explanation: "Short-term memory is the context window: it contains the current task description, recent Thought-Action-Observation steps, and immediate working state. It's limited by the model's context length and is lost between sessions. Long-term memory uses external storage: (1) episodic memory — past task executions stored as retrievable summaries, (2) semantic memory — facts and procedures in a vector database, (3) procedural memory — learned tool-use patterns. The retrieval system selectively loads relevant long-term memories into the context window, analogous to human memory retrieval."
     },
     {
       type: "mc",
       question: "Multi-agent debate systems use multiple LLM instances that argue different positions and critique each other's reasoning. The primary benefit over a single model is:",
       options: [
-        "Multi-agent systems are cheaper to run because each agent handles a smaller portion of the task, reducing the per-agent context window size and inference cost",
         "Adversarial interaction can surface **errors and unstated assumptions** that a single model would not catch — each agent's critique forces others to justify their reasoning, improving the quality of the final consensus through dialectical refinement",
+        "Multi-agent systems are cheaper to run because each agent handles a smaller portion of the task, reducing the per-agent context window size and inference cost",
         "Multiple models always agree on the correct answer because they share the same training data and therefore converge to identical reasoning patterns",
         "Each agent can use a different programming language, enabling the system to leverage the strengths of multiple language ecosystems for code generation"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "A single model generating a response has no external check on its reasoning. In multi-agent debate: (1) a critic agent identifies logical gaps, unsupported claims, or errors, (2) the original agent must defend or revise its reasoning, (3) this iterative process often converges to higher-quality outputs. However, limitations exist: LLM agents may be too deferential (agreeing with critiques even when the original reasoning was correct), or they may share systematic biases (multiple instances of the same model make the same mistakes). Diversity of model or prompting strategy helps mitigate this."
     },
     {
       type: "mc",
       question: "Evaluating agentic systems is fundamentally harder than evaluating standard LLM outputs because:",
-      options: ["Agent evaluation requires assessing **multi-step trajectories** in environments with stochastic outcomes — the same agent may take different valid paths to the same goal, intermediate states are hard to evaluate, success criteria can be ambiguous, and the environment may change between evaluation runs", "Agents produce longer outputs that are more expensive to evaluate because human reviewers must read through the entire multi-step trace to assess quality", "Agents only work in production environments with real-world tools, making controlled benchmark evaluation infeasible without expensive infrastructure simulation", "Agent outputs cannot be compared to ground truth because the space of valid solutions is so large that no reference set can cover all acceptable outcomes"],
-      correct: 0,
+      options: ["Agent outputs cannot be compared to ground truth because the space of valid solutions is so large that no reference set can cover all acceptable outcomes", "Agents produce longer outputs that are more expensive to evaluate because human reviewers must read through the entire multi-step trace to assess quality", "Agents only work in production environments with real-world tools, making controlled benchmark evaluation infeasible without expensive infrastructure simulation", "Agent evaluation requires assessing **multi-step trajectories** in environments with stochastic outcomes — the same agent may take different valid paths to the same goal, intermediate states are hard to evaluate, success criteria can be ambiguous, and the environment may change between evaluation runs"],
+      correct: 3,
       explanation: "Standard LLM evaluation compares a single output to a reference. Agent evaluation must handle: (1) multiple valid solution paths (did the agent take a suboptimal but correct path?), (2) partial credit for partially completed tasks, (3) environment stochasticity (web pages change, APIs have different latencies), (4) difficulty of attributing failure to specific steps vs. the overall strategy, (5) cost of evaluation (each agent run may take minutes and cost dollars in API calls). Benchmarks like SWE-bench, WebArena, and GAIA attempt standardized agent evaluation but each captures only a narrow slice of real-world agent capabilities."
     },
     {
@@ -754,27 +754,27 @@ export const agenticAssessment = {
     {
       type: "mc",
       question: "The \"inner monologue\" approach to agent reasoning, where the agent maintains an explicit running commentary of its state and plans, helps primarily by:",
-      options: ["Making the agent's responses more verbose for users, providing transparency into the decision-making process and building trust through detailed explanations", "Reducing the number of API calls by allowing the agent to reason through multiple steps internally before committing to an external action or tool invocation", "Improving the agent's language fluency by generating practice text that refines the model's output distribution toward more coherent and well-structured responses", "Keeping the agent's **goals, current state, and plan in the active context window** — without explicit tracking, earlier context scrolls out of the attention window over long trajectories"],
-      correct: 3,
+      options: ["Making the agent's responses more verbose for users, providing transparency into the decision-making process and building trust through detailed explanations", "Keeping the agent's **goals, current state, and plan in the active context window** — without explicit tracking, earlier context scrolls out of the attention window over long trajectories", "Improving the agent's language fluency by generating practice text that refines the model's output distribution toward more coherent and well-structured responses", "Reducing the number of API calls by allowing the agent to reason through multiple steps internally before committing to an external action or tool invocation"],
+      correct: 1,
       explanation: "Over a 50-step trajectory, the early steps (including the original task description) may be hundreds of tokens back in the context, receiving diminished attention. Inner monologue explicitly restates: \"My goal is X. I have completed A, B, C. Current state is Y. Next I need to do Z.\" This keeps critical information in the recent context window where the model attends most strongly. It also serves as a form of self-verification — stating the current plan explicitly can reveal inconsistencies. The cost is additional token generation, but this is usually worthwhile for complex tasks."
     },
     {
       type: "mc",
       question: "When deploying an LLM agent with access to real-world tools (email, file system, web browsing), the primary safety concern is:",
       options: [
-        "The agent might generate offensive text in its reasoning traces, which could be exposed to users through logging or debugging interfaces during development",
         "**Unintended or adversarial actions with real-world consequences** — the agent might delete files, send unintended emails, or be manipulated via indirect prompt injection",
+        "The agent might generate offensive text in its reasoning traces, which could be exposed to users through logging or debugging interfaces during development",
         "The agent will use too much compute by entering infinite reasoning loops, consuming expensive GPU resources without producing useful output for the user",
         "The agent's actions are too slow for real-time applications, since each tool call adds network latency that compounds across the multi-step execution"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Unlike chat-only LLMs where the worst case is bad text, tool-using agents can cause real harm: deleting data, sending emails as the user, making purchases, or modifying code in production. Key risks: (1) misinterpreted instructions amplified by tool capabilities, (2) indirect prompt injection — malicious content in web pages or documents instructing the agent to take harmful actions, (3) compounding errors leading to unintended state changes. Mitigations include: sandboxing, requiring human approval for irreversible actions, input/output filtering, and principle of least privilege for tool access."
     },
     {
       type: "mc",
       question: "An agent system decomposes a complex task into subtasks handled by specialized sub-agents (e.g., a \"researcher\" agent, a \"coder\" agent, a \"reviewer\" agent). The orchestration challenge is:",
-      options: ["Ensuring correct **information flow and task dependency management** — tracking sub-task completion, passing the right context to each sub-agent, and merging conflicting outputs", "Sub-agents are more expensive than a single agent because each sub-agent requires its own full model instance, multiplying the total inference cost by the number of agents", "Sub-agents can't communicate with each other directly and must route all information through the user, creating a bottleneck that limits collaborative problem-solving", "Each sub-agent needs a separate GPU to run concurrently, making multi-agent systems impractical without access to large-scale GPU clusters for parallel execution"],
-      correct: 0,
+      options: ["Sub-agents are more expensive than a single agent because each sub-agent requires its own full model instance, multiplying the total inference cost by the number of agents", "Ensuring correct **information flow and task dependency management** — tracking sub-task completion, passing the right context to each sub-agent, and merging conflicting outputs", "Sub-agents can't communicate with each other directly and must route all information through the user, creating a bottleneck that limits collaborative problem-solving", "Each sub-agent needs a separate GPU to run concurrently, making multi-agent systems impractical without access to large-scale GPU clusters for parallel execution"],
+      correct: 1,
       explanation: "Multi-agent orchestration is essentially a workflow management problem with LLM-specific challenges: (1) context management — each sub-agent needs enough context to do its job but not so much that it's distracted, (2) dependency tracking — the coder agent can't start until the researcher agent provides specifications, (3) failure handling — if the researcher returns low-quality results, the orchestrator must detect this and retry or adjust, (4) output merging — when the reviewer critiques the coder's output, the orchestrator must route the feedback and manage the revision loop. Frameworks like LangGraph and AutoGen provide abstractions for this but the fundamental complexity remains."
     }
   ]

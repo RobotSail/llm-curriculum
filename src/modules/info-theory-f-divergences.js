@@ -139,32 +139,54 @@ export const hardModule = {
     },
     {
       type: "info",
-      title: "Entropy as a Training Diagnostic",
-      content: "Switching from divergences between distributions to a property of a *single* distribution: **entropy** is a powerful diagnostic during training.\n\nThe entropy of a discrete distribution $p$ is $H(p) = -\\sum_i p_i \\log p_i$. Maximum entropy = uniform distribution; minimum entropy = all mass on one outcome.\n\nIn transformers, two key entropy diagnostics:\n\n**Attention entropy**: Each attention head produces a distribution over keys. If $H(\\text{attn}) \\to 0$, the attention is collapsing to a **one-hot** pattern (attending to a single token). This is called **entropy collapse** and can indicate the head is over-specializing.\n\n**Output entropy**: The softmax output distribution's entropy reflects model confidence. Very low entropy = model is extremely confident (possibly overconfident). Temperature $\\tau$ in $\\text{softmax}(z/\\tau)$ directly controls output entropy: higher $\\tau$ → more uniform → higher entropy.\n\nDuring training, monitoring attention entropy across layers and heads reveals which components are learning meaningful patterns vs. collapsing. Loss spikes often correlate with sudden entropy drops in specific attention heads."
+      title: "Why the Bound Is Tight — and What Breaks It",
+      content: "The variational bound $D_f(P \\| Q) \\geq \\sup_T\\{\\mathbb{E}_P[T] - \\mathbb{E}_Q[f^*(T)]\\}$ is tight when $T^*(x) = f'(P(x)/Q(x))$ — the optimal critic recovers the true density ratio.\n\nIn practice, three things weaken the bound:\n\n**1. Finite capacity**: A neural network $T_\\theta$ can only approximate $T^*$. Deeper, wider networks give tighter bounds but are harder to optimize.\n\n**2. Finite samples**: We estimate $\\mathbb{E}_P[T]$ and $\\mathbb{E}_Q[f^*(T)]$ with minibatch averages. High-variance estimates of these expectations produce noisy gradients for the generator.\n\n**3. Optimization dynamics**: The generator and discriminator are updated alternately, not jointly. If the discriminator is too strong (tight bound), the generator receives vanishing gradients through saturated activations. If too weak (loose bound), the generator gets uninformative gradients.\n\nThis is the fundamental instability of GAN training: the bound must be tight enough to guide the generator, but not so tight that gradients vanish. The choice of f-divergence directly affects this balance."
     },
     {
       type: "mc",
-      question: "During training, you observe that several attention heads in the same layer have attention entropy dropping to near zero. What is the most likely consequence?",
+      question: "In the original GAN (JS divergence), when the discriminator becomes near-optimal and the generator distribution $Q_G$ has little overlap with the real distribution $P$, what happens to the generator's gradients?",
       options: [
-        "Those heads are learning precise, useful attention patterns that focus on the most informative tokens",
-        "Those heads are collapsing to attend to a single fixed position (e.g., [BOS]), wasting model capacity",
-        "The model is converging faster than expected, and the low entropy indicates efficient learning dynamics",
-        "The learning rate should be increased to prevent the stagnation that low attention entropy signals"
+        "The gradients become large and unstable, causing the generator to overshoot and produce unrealistic samples",
+        "The gradients remain informative because JS divergence is bounded, so the generator can always improve",
+        "The gradients vanish because JS divergence saturates at $\\log 2$ when distributions don't overlap, giving near-zero signal",
+        "The gradients oscillate between large positive and negative values, preventing convergence"
       ],
-      correct: 1,
-      explanation: "Attention entropy near zero means the attention distribution is nearly one-hot — the head always attends to the same position regardless of input. This is **entropy collapse**: the head has stopped being useful and is wasting parameters. The $1/\\sqrt{d_k}$ scaling in attention exists precisely to prevent softmax saturation that leads to this collapse. If multiple heads collapse simultaneously, it often indicates the learning rate is too high or a training instability is developing."
+      correct: 2,
+      explanation: "When $P$ and $Q_G$ have disjoint supports, $\\text{JS}(P \\| Q_G) = \\log 2$ (its maximum). The discriminator achieves perfect classification, and $D(x) \\to 0$ for generated samples. The generator gradient $\\nabla_\\theta \\log(1 - D(G(z)))$ vanishes because $\\log(1 - D) \\to 0$ when $D \\to 0$. This **vanishing gradient** problem motivated Wasserstein GAN, which uses the Earth Mover's distance (not an f-divergence) to provide useful gradients even with non-overlapping supports."
     },
     {
       type: "info",
-      title: "The Information Bottleneck: Same Math as RLHF",
-      content: "The **information bottleneck** (IB) asks: what's the best compressed representation $Z$ of input $X$ for predicting target $Y$?\n\n$$\\min_{p(Z|X)} \\; I(X; Z) - \\beta \\cdot I(Z; Y)$$\n\n- $I(X; Z)$: how much $Z$ remembers about $X$ (want to **minimize** — compress)\n- $I(Z; Y)$: how useful $Z$ is for predicting $Y$ (want to **maximize** — preserve task info)\n- $\\beta$: controls the compression/performance trade-off\n\nNow compare with the RLHF objective:\n\n$$\\max_\\pi \\; \\mathbb{E}[R(x)] - \\beta \\cdot \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$$\n\n- $\\mathbb{E}[R(x)]$: reward (want to **maximize**)\n- $\\text{KL}(\\pi \\| \\pi_{\\text{ref}})$: distance from reference (want to **minimize** — stay close)\n- $\\beta$: controls the reward/constraint trade-off\n\nBoth are **KL-constrained optimization** problems. The $\\beta$ parameter plays the same role: it traces a Pareto frontier between competing objectives. Increase $\\beta$ → more conservative (tighter constraint); decrease $\\beta$ → more aggressive (chase the objective harder).\n\nThis isn't a coincidence — both are instances of the **rate-distortion** framework from information theory."
+      title: "Beyond f-Divergences: Wasserstein and IPMs",
+      content: "The vanishing gradient problem of JS-GAN revealed a fundamental limitation of f-divergences: they all depend on **density ratios** $P(x)/Q(x)$, which are undefined or degenerate when distributions live on low-dimensional manifolds in high-dimensional space (as images do).\n\nThe **Wasserstein-1 distance** (Earth Mover's distance) takes a different approach:\n\n$$W_1(P, Q) = \\inf_{\\gamma \\in \\Pi(P,Q)} \\mathbb{E}_{(x,y) \\sim \\gamma}[\\|x - y\\|]$$\n\nBy the Kantorovich-Rubinstein duality, this has its own variational form:\n\n$$W_1(P, Q) = \\sup_{\\|T\\|_L \\leq 1} \\{\\mathbb{E}_P[T(x)] - \\mathbb{E}_Q[T(x)]\\}$$\n\nwhere $T$ is restricted to 1-Lipschitz functions. Compare this to the f-divergence bound — the structure is similar (sup over a function class of the difference in expectations), but with a **Lipschitz constraint** instead of $f^*$.\n\nThis family of distances — **Integral Probability Metrics** (IPMs) — provides meaningful gradients even when distributions don't overlap, because they measure how much *mass must move* rather than how density ratios differ."
     },
     {
       type: "mc",
-      question: "In both the information bottleneck and RLHF, $\\beta$ controls a trade-off. In the IB, increasing $\\beta$ makes the model retain more task-relevant information. In RLHF, increasing $\\beta$ makes the policy:",
-      options: ["Stay closer to $\\pi_{\\text{ref}}$, sacrificing potential reward for distributional safety", "Chase higher rewards more aggressively, diverging further from $\\pi_{\\text{ref}}$", "Have no effect on the policy, because $\\beta$ only matters in the IB setting", "Increase the entropy of the policy distribution independent of the reference model"],
-      correct: 0,
-      explanation: "In the RLHF objective $\\max \\mathbb{E}[R] - \\beta \\cdot \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$, a larger $\\beta$ increases the penalty for deviating from $\\pi_{\\text{ref}}$. The policy stays closer to the reference model and sacrifices potential reward for safety/coherence. This is exactly analogous to the IB: higher $\\beta$ → stronger constraint → more conservative behavior. The Pareto frontier traced by varying $\\beta$ is called the **rate-distortion curve** in information theory."
+      question: "The WGAN critic objective is $\\sup_{\\|T\\|_L \\leq 1}\\{\\mathbb{E}_P[T(x)] - \\mathbb{E}_Q[T(x)]\\}$. In the original WGAN paper, the Lipschitz constraint was enforced by weight clipping. Why was this approach problematic, leading to WGAN-GP?",
+      options: [
+        "Weight clipping made the critic too powerful, causing it to memorize training examples rather than learn distributional structure",
+        "Weight clipping biased the critic toward very simple functions (low capacity), providing weak gradients and slow convergence",
+        "Weight clipping violated the Kantorovich-Rubinstein duality, making the Wasserstein estimate invalid",
+        "Weight clipping caused the critic to always output the same value regardless of input, making training impossible"
+      ],
+      correct: 1,
+      explanation: "Clipping weights to $[-c, c]$ forces the critic to use only a small fraction of its capacity — it biases toward very simple, nearly linear functions. This means the critic provides **weak, uninformative gradients** to the generator. WGAN-GP (Gulrajani et al., 2017) replaced weight clipping with a **gradient penalty**: $\\lambda \\mathbb{E}_{\\hat{x}}[(\\|\\nabla_{\\hat{x}} T(\\hat{x})\\| - 1)^2]$, which directly enforces the Lipschitz constraint at interpolated points $\\hat{x}$ between real and generated samples. This allows the critic to use its full capacity while satisfying the constraint."
+    },
+    {
+      type: "info",
+      title: "Summary: A Unified View of Distributional Distances",
+      content: "You've now seen the full arc from f-divergences to their variational representations to practical GAN training:\n\n**1. f-Divergences** measure distributional distance via density ratios and a convex generator $f$. Each choice of $f$ gives a different divergence (KL, JS, chi-squared, etc.) with distinct sensitivity properties.\n\n**2. The variational bound** $D_f \\geq \\sup_T\\{\\mathbb{E}_P[T] - \\mathbb{E}_Q[f^*(T)]\\}$ transforms divergence estimation into an optimization problem — the discriminator/critic tightens this bound.\n\n**3. The original GAN** is the variational bound applied to JS divergence. The f-GAN framework generalizes this to any f-divergence.\n\n**4. f-Divergence limitations**: All f-divergences depend on density ratios and can produce vanishing gradients when distributions have disjoint supports (common in high dimensions).\n\n**5. Wasserstein/IPMs** replace density ratios with function-class constraints (Lipschitz), providing useful gradients even without distributional overlap. This is why WGAN training is often more stable.\n\nThe choice of divergence or distance defines your training objective's **failure modes**: KL gives mode-covering, JS gives vanishing gradients with disjoint supports, Wasserstein gives stable but slower training. Understanding these trade-offs is essential for both GAN design and RLHF objective selection."
+    },
+    {
+      type: "mc",
+      question: "You're designing a training objective for aligning a language model. You want the objective to (a) penalize the model for deviating from a reference distribution, and (b) provide informative gradients even when the model's distribution is far from the reference. Which approach best satisfies both requirements?",
+      options: [
+        "Use forward KL $\\text{KL}(P_{\\text{ref}} \\| \\pi)$ — it's mode-covering and always provides strong gradients when the model misses probability mass",
+        "Use JS divergence — it's symmetric and bounded, so it handles both directions of mismatch equally",
+        "Use reverse KL $\\text{KL}(\\pi \\| P_{\\text{ref}})$ with a Wasserstein regularizer — KL penalizes deviation while Wasserstein provides gradients in low-overlap regions",
+        "Use chi-squared divergence — it directly measures importance sampling variance, which is the most relevant quantity for alignment"
+      ],
+      correct: 2,
+      explanation: "Forward KL satisfies (a) but can have infinite values that destabilize optimization. JS satisfies (b) via boundedness but actually *loses* gradient signal when distributions don't overlap (the vanishing gradient problem). Chi-squared is sensitive to density ratio variance but doesn't specifically address low-overlap gradients. Combining reverse KL (which directly penalizes the model for placing mass where the reference doesn't) with a Wasserstein term (which provides geometric gradient information even in low-overlap regimes) addresses both requirements. This hybrid approach reflects the general principle: different distances have complementary strengths, and practical objectives often combine them."
     }
   ]
 };
