@@ -20,7 +20,7 @@ export const perplexityLearning = {
       question: "Model A has perplexity 30 and Model B has perplexity 90. How much better is A than B in cross-entropy (bits)?",
       options: [
         "$\\log_2(90) - \\log_2(30) = \\log_2(3) \\approx 1.58$ bits per token",
-        "$90 - 30 = 60$ bits per token — perplexity differences equal cross-entropy differences",
+        "$\\log_2(90) / \\log_2(30) \\approx 1.33$ bits per token — the ratio of the log-perplexities gives the cross-entropy improvement",
         "$(90 - 30)/90 \\approx 0.67$ bits per token — the normalized perplexity gap",
         "$\\log_2(90/30) = \\log_2(3) \\approx 1.58$ bits per token, but only if both models use the same vocabulary"
       ],

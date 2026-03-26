@@ -92,6 +92,18 @@ export const bayesianAssessment = {
       options: ["It guarantees exact posterior inference by using a sufficiently expressive encoder architecture, eliminating the approximation gap entirely for any deep network model", "It constrains the posterior to always be Gaussian regardless of the true posterior shape, simplifying the KL computation in the ELBO to a closed-form analytical expression", "It eliminates the need for the ELBO objective entirely, allowing direct maximization of the marginal likelihood $\\log p(x)$ through the encoder's learned approximate posterior", "After training, inference for a new $x$ is a single forward pass through the encoder — no iterative optimization needed, trading per-datapoint optimality for speed"],
       correct: 3,
       explanation: "Traditional VI optimizes $q(z)$ separately per datapoint (expensive). Amortized inference learns a single function $q_\\phi(z|x)$ (the encoder) that maps any $x$ to an approximate posterior in one forward pass. The trade-off: the \"amortization gap\" — the shared encoder may not be as good as per-datapoint optimization. But the speedup (one pass vs. iterative optimization) makes it practical for large datasets."
+    },
+    {
+      type: "mc",
+      question: "The **Laplace approximation** fits a Gaussian to the posterior by taking a second-order Taylor expansion of $\\log P(\\theta \\mid \\mathcal{D})$ around the MAP estimate $\\theta^*$. The covariance of the approximating Gaussian is:",
+      options: [
+        "The identity matrix scaled by the number of datapoints, $N \\cdot I$, reflecting that uncertainty decreases uniformly as more data is observed",
+        "The inverse Hessian of the negative log-posterior at $\\theta^*$, capturing local curvature to estimate parameter uncertainty",
+        "The empirical covariance of the gradients computed across the training set at $\\theta^*$, using the Fisher information as a plug-in estimate",
+        "The prior covariance matrix unchanged, since the Laplace approximation only updates the mean to $\\theta^*$ and leaves the variance at its prior value"
+      ],
+      correct: 1,
+      explanation: "The Laplace approximation is $q(\\theta) = \\mathcal{N}(\\theta^*, \\Sigma)$ where $\\Sigma = (-\\nabla^2 \\log P(\\theta \\mid \\mathcal{D})|_{\\theta^*})^{-1}$ — the inverse Hessian of the negative log-posterior. Sharp curvature (large Hessian) means tight uncertainty; flat curvature means broad uncertainty. This is computationally expensive for neural networks (the Hessian is huge), which is why diagonal or Kronecker-factored approximations (like KFAC) are used in practice."
     }
   ]
 };

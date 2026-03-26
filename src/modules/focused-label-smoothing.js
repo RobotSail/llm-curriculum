@@ -21,7 +21,7 @@ export const labelSmoothingLearning = {
       options: [
         "The logit should go to $+\\infty$ since driving $Q(y^*) \\to 1$ requires unbounded logits",
         "The logit should converge to $\\log K$ to balance the softmax normalizer over $K$ classes",
-        "The logit should converge to exactly $1.0$ to match the one-hot probability target",
+        "The logit should converge to $\\log(K-1)$ to create a balanced margin against all $K-1$ incorrect classes",
         "The logit should converge to the log-prior $\\log P(y^*)$ for Bayesian consistency"
       ],
       correct: 0,
@@ -36,10 +36,10 @@ export const labelSmoothingLearning = {
       type: "mc",
       question: "With label smoothing $\\alpha = 0.1$ and vocabulary size $K = 50000$, what is the approximate optimal logit gap between the correct and incorrect classes?",
       options: [
-        "$\\log(\\alpha \\cdot K) = \\log(0.1 \\times 50000) = \\log(5000) \\approx 8.5$",
+        "$\\log(\\alpha \\cdot K / (1-\\alpha)) = \\log(0.1 \\times 50000 / 0.9) = \\log(5556) \\approx 8.6$",
         "$\\log((1-\\alpha) \\cdot K / \\alpha) = \\log(0.9 \\times 50000 / 0.1) = \\log(450000) \\approx 13.0$",
-        "$\\log(K) = \\log(50000) \\approx 10.8$, independent of $\\alpha$",
-        "$\\log((1-\\alpha)/\\alpha) = \\log(0.9 / 0.1) = \\log(9) \\approx 2.2$"
+        "$\\log(K / (1+\\alpha)) = \\log(50000 / 1.1) = \\log(45455) \\approx 10.7$",
+        "$\\log((1-\\alpha)/\\alpha) \\cdot \\log(K) = \\log(9) \\times \\log(50000) \\approx 23.8$"
       ],
       correct: 1,
       explanation: "The optimal gap is $\\log\\frac{(1-\\alpha)K}{\\alpha} = \\log\\frac{0.9 \\times 50000}{0.1} = \\log(450000) \\approx 13.0$ (using natural log). Without label smoothing, this gap would be $+\\infty$. With $\\alpha = 0.1$, it is a large but finite number. The logits stabilize rather than growing without bound, leading to better-conditioned gradients in the final layers."

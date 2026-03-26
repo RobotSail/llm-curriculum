@@ -19,10 +19,10 @@ export const adamLearning = {
       type: "mc",
       question: "With momentum $\\beta_1 = 0.9$, roughly how many recent steps contribute meaningfully to $m_t$?",
       options: [
-        "About 2 steps — the EMA forgets very quickly with $\\beta_1 < 1$",
+        "About 2 steps — the complement $(1 - \\beta_1) = 0.1$ means only the last couple of gradients carry meaningful weight in the average",
         "About 10 steps — the effective window of an EMA with decay $\\beta_1$ is approximately $1/(1 - \\beta_1)$",
-        "About 90 steps — $\\beta_1 = 0.9$ means 90% of steps are retained",
-        "All previous steps contribute equally because the EMA never fully discards history"
+        "About 90 steps — the factor $\\beta_1 = 0.9$ directly gives the fraction of total history retained, so $0.9 \\times 100 = 90$ steps",
+        "All previous steps equally — an EMA never fully zeroes out any past gradient, so the effective window is the entire training history"
       ],
       correct: 1,
       explanation: "The effective window of an EMA with decay $\\beta_1$ is $1/(1 - \\beta_1) = 1/0.1 = 10$ steps. After 10 steps, a gradient's contribution has decayed to roughly $0.9^{10} \\approx 0.35$, and after 20 steps to $0.9^{20} \\approx 0.12$. So the last ~10 steps dominate, older ones fade rapidly."
@@ -70,10 +70,10 @@ export const adamLearning = {
       type: "mc",
       question: "A gradient matrix $G$ has singular values $[100, 50, 1, 0.01]$. After Adam processes it (assuming $v_t$ has converged), the effective update for each entry is approximately $\\text{sign}(G_{ij})$. What are the approximate singular values of Adam's update matrix?",
       options: [
-        "$[1, 1, 1, 1]$ — Adam equalizes all singular values since $\\text{sign}$ has uniform magnitude",
-        "$[100, 50, 1, 0.01]$ — Adam preserves the original singular value structure",
-        "$[10, 7.1, 1, 0.1]$ — Adam takes the square root of each singular value",
-        "They depend on the specific entries of $G$, not just its singular values, because Adam operates element-wise"
+        "$[1, 1, 1, 1]$ — Adam equalizes all singular values since the element-wise $\\text{sign}$ operation produces uniform magnitude entries",
+        "$[100, 50, 1, 0.01]$ — Adam preserves the original singular value structure since element-wise scaling does not alter rank ordering",
+        "$[10, 7.1, 1, 0.1]$ — Adam's $1/\\sqrt{v_t}$ normalization effectively takes the square root of each singular value",
+        "They depend on the specific entry-level sign pattern of $G$, not its singular values, since Adam processes each matrix element independently"
       ],
       correct: 3,
       explanation: "This is the key insight. Adam's element-wise $\\text{sign}(G_{ij})$ produces a matrix of $\\pm 1$ entries, but the singular values of a sign matrix depend on the **pattern** of signs, not on the original singular values. The sign matrix's spectral structure is essentially uncontrolled — it depends on which entries of $G$ are positive vs negative, which has no simple relationship to $G$'s SVD. This is fundamentally different from Muon, which explicitly controls the spectral structure."

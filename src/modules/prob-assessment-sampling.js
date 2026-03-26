@@ -87,6 +87,18 @@ export const samplingAssessment = {
       options: ["Rejection sampling — each draft token is accepted with probability $\\min(1, P_{\\text{target}}(w_t) / P_{\\text{draft}}(w_t))$, and on rejection we resample from a corrected distribution to match the target exactly", "Beam search with pruning, where the draft model proposes candidate beams and the target model scores and selects among the top-scoring continuations", "Importance sampling with the draft model as the proposal distribution, reweighting each candidate token by the ratio of target to draft probabilities", "Gibbs sampling that alternates between the draft and target model distributions, iteratively refining each token position conditioned on its neighbors"],
       correct: 0,
       explanation: "Speculative decoding is mathematically exact: the output distribution matches what the target model would produce with standard autoregressive sampling. The trick is that acceptance probability $\\min(1, P_{\\text{target}}/P_{\\text{draft}})$ is high when the draft model is good, so most tokens are accepted without running the large model sequentially. On rejection, sampling from the residual $(P_{\\text{target}} - P_{\\text{draft}})_+$ corrects for the draft model's errors."
+    },
+    {
+      type: "mc",
+      question: "**Nucleus (top-p) sampling** keeps the smallest set of tokens whose cumulative probability exceeds $p$, then renormalizes. Compared to top-k sampling with a fixed $k$, the main advantage is:",
+      options: [
+        "It runs faster at inference time because the dynamic cutoff reduces the number of softmax computations needed per token generation step",
+        "It adapts the effective vocabulary size per position — using fewer tokens when the model is confident and more when the distribution is flat",
+        "It guarantees that the generated text has higher perplexity than top-k, which empirically correlates with more creative and diverse outputs",
+        "It eliminates the need for a temperature parameter entirely, since the cumulative probability threshold fully controls the entropy of the output distribution"
+      ],
+      correct: 1,
+      explanation: "Top-k always samples from exactly $k$ tokens regardless of how peaked or flat the distribution is. At a position where the model is 99% sure of one token, top-k still considers $k$ options (adding noise). At a position with high uncertainty, $k$ may be too small and cut off plausible continuations. Nucleus sampling adapts: the set size shrinks when the model is confident and expands when it is uncertain. Temperature and top-p serve complementary roles and are typically used together."
     }
   ]
 };

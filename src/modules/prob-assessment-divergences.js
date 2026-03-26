@@ -87,6 +87,18 @@ export const divergencesAssessment = {
       options: ["Jensen-Shannon divergence between preferred and dispreferred completion distributions, symmetrizing the reward signal to stabilize gradient updates during policy training", "The density ratio $\\pi_\\theta / \\pi_{\\text{ref}}$ that appears in KL divergence — DPO reparameterizes the KL-constrained RLHF objective into a supervised loss via the closed-form solution", "Total variation distance between the old and new policies, which bounds the maximum change in action probabilities and ensures conservative policy updates per step", "Wasserstein distance in token embedding space, measuring the minimum transport cost to move probability mass from the reference policy's outputs to the trained policy's"],
       correct: 1,
       explanation: "DPO derives from the RLHF objective $\\max_\\pi \\mathbb{E}[r(x)] - \\beta \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$, whose closed-form solution is $\\pi^*(y \\mid x) \\propto \\pi_{\\text{ref}}(y \\mid x) \\exp(r(y,x)/\\beta)$. Rearranging gives $r(y,x) = \\beta \\log \\frac{\\pi^*(y \\mid x)}{\\pi_{\\text{ref}}(y \\mid x)} + \\text{const}$. DPO substitutes this into the Bradley-Terry preference model, yielding a supervised loss that implicitly optimizes the KL-constrained objective."
+    },
+    {
+      type: "mc",
+      question: "The **data processing inequality** states that for any Markov chain $X \\to Y \\to Z$, $I(X; Z) \\leq I(X; Y)$. Applied to a neural network where input $X$ passes through layers producing representations $Y$ then $Z$, this means:",
+      options: [
+        "Deeper layers always lose mutual information with the input, so the final layer retains the least information about $X$ of any layer in the network",
+        "No deterministic or stochastic post-processing of $Y$ can increase the information about $X$ beyond what $Y$ already contains",
+        "Skip connections violate this inequality by allowing $Z$ to access $X$ directly, which is why residual networks outperform feedforward networks",
+        "The mutual information between any two adjacent layers must decrease monotonically, requiring each layer to compress by at least one bit"
+      ],
+      correct: 1,
+      explanation: "The data processing inequality says processing cannot create information: once $Y$ has discarded something about $X$, no function of $Y$ can recover it. This is fundamental to understanding information bottleneck theory and why intermediate representations matter. Skip connections do not violate it — they change the Markov structure so $Z$ is no longer solely a function of $Y$, making the chain $X \\to Y \\to Z$ inapplicable. The inequality does not require monotonic decrease — it bounds $I(X;Z)$ relative to $I(X;Y)$, not layer-to-layer."
     }
   ]
 };
