@@ -81,12 +81,12 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "A reward model extracts the hidden state $h_T \\in \\mathbb{R}^{4096}$ at the last token position and applies a linear head $r = w^\\top h_T + b$. How many learnable parameters does the scalar head itself have?",
       options: [
-        "$4096 + 1 = 4097$ — one weight per hidden dimension plus a bias term, since the head is a single linear layer to a scalar",
         "$4096^2 + 4096 = 16,781,312$ — a full $d \\times d$ matrix is needed to transform the hidden state before the final projection",
+        "$4096 + 1 = 4097$ — one weight per hidden dimension plus a bias term, since the head is a single linear layer to a scalar",
         "$2 \\times 4096 = 8192$ — separate weight vectors for the preferred and rejected responses, since the model must score both",
         "$4096 \\times V$ where $V$ is the vocabulary size — the head must project to token probabilities before converting to a scalar"
       ],
-      correct: 0,
+      correct: 1,
       explanation: "The scalar head is a linear map from $\\mathbb{R}^{4096}$ to $\\mathbb{R}^1$: $r = w^\\top h_T + b$ with $w \\in \\mathbb{R}^{4096}$ and $b \\in \\mathbb{R}$. That's $4096 + 1 = 4097$ parameters. The same head is used for both $y_w$ and $y_l$ — each gets scored independently in a separate forward pass through the same model with the same parameters. The vast majority of the RM's parameters are in the transformer backbone, not the head."
     },
     // Step 9: Reward hacking

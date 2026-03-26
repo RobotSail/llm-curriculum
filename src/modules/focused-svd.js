@@ -96,8 +96,8 @@ export const svdLearning = {
     {
       type: "mc",
       question: "You want to compress a trained weight matrix $W \\in \\mathbb{R}^{4096 \\times 4096}$ by keeping only its top-$r$ singular values. The spectrum shows $\\sigma_1 = 850, \\ldots, \\sigma_{50} = 810, \\sigma_{51} = 12, \\sigma_{52} = 11.5, \\ldots$ What does this suggest about an appropriate $r$?",
-      options: ["$r = 4096$ — the spectrum is too dense to truncate safely without losing information", "$r = 1$ — the first singular value dominates so one component captures the matrix", "$r \\approx 50$ — a sharp spectral gap at rank 50 separates signal from noise", "$r$ is indeterminate — the task loss must be measured for each rank to decide"],
-      correct: 2,
+      options: ["$r = 4096$ — the spectrum is too dense to truncate safely without losing information", "$r = 1$ — the first singular value dominates so one component captures the matrix", "$r$ is indeterminate — the task loss must be measured for each rank to decide", "$r \\approx 50$ — a sharp spectral gap at rank 50 separates signal from noise"],
+      correct: 3,
       explanation: "The spectral gap between $\\sigma_{50} \\approx 810$ and $\\sigma_{51} \\approx 12$ (a factor of ~67×) is a clear signal/noise boundary. The top 50 singular vectors capture the structured information; the rest is noise-level. Setting $r = 50$ keeps almost all the signal while compressing storage from $4096^2 \\approx 16.8$M to $2 \\times 50 \\times 4096 \\approx 409$K parameters — a ~41× reduction."
     }
   ]

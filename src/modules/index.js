@@ -28,6 +28,7 @@ import { distributedTrainingAssessment } from './assess-distributed-training';
 import { sftAssessment, rewardModelingAssessment, rlhfAssessment, directAlignmentAssessment, frontierAlignmentAssessment } from './assess-branch-a';
 import { scalingLawsAssessment, architectureAssessment, dataCentricAssessment, trainingDynamicsAssessment, novelObjectivesAssessment } from './assess-branch-b';
 import { quantizationAssessment, decodingAssessment, servingAssessment, compressionAssessment, cotAssessment, testTimeComputeAssessment, toolUseAssessment, agenticAssessment } from './assess-branch-cd';
+import { quantizationLearning } from './focused-quantization';
 import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
 import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
@@ -59,6 +60,8 @@ import { mixedPrecisionLearning } from './focused-mixed-precision';
 import { tensorParallelismLearning } from './focused-tensor-parallelism';
 import { pipelineParallelismLearning } from './focused-pipeline-parallelism';
 import { zeroFsdpLearning } from './focused-zero-fsdp';
+import { modelParallelismLearning } from './focused-model-parallelism';
+import { mixtureOfExpertsLearning } from './focused-mixture-of-experts';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -110,7 +113,7 @@ export const MODULES = {
   "1.3": [nextTokenPredictionLearning, trainingInstabilitiesLearning, pretrainingAssessment],
   "1.4": [dataQualityLearning, dataAssessment],
   "1.5": [benchmarkDesignLearning, evaluationAssessment],
-  "1.6": [dataParallelismLearning, zeroFsdpLearning, tensorParallelismLearning, pipelineParallelismLearning, mixedPrecisionLearning, distributedTrainingAssessment],
+  "1.6": [dataParallelismLearning, zeroFsdpLearning, tensorParallelismLearning, pipelineParallelismLearning, modelParallelismLearning, mixedPrecisionLearning, distributedTrainingAssessment],
 
   // Branch A — Post-training & alignment
   "A.1": [sftMechanicsLearning, sftAssessment],
@@ -121,13 +124,13 @@ export const MODULES = {
 
   // Branch B — Pretraining & architecture research
   "B.1": [scalingLawsLearning, scalingLawsAssessment],
-  "B.2": [architectureAssessment],
+  "B.2": [mixtureOfExpertsLearning, architectureAssessment],
   "B.3": [dataCentricAssessment],
   "B.4": [trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment
-  "C.1": [quantizationAssessment],
+  "C.1": [quantizationLearning, quantizationAssessment],
   "C.2": [decodingAssessment],
   "C.3": [servingAssessment],
   "C.4": [compressionAssessment],
