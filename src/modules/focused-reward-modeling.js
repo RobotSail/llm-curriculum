@@ -24,13 +24,13 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "Why is human preference data collected as pairwise comparisons (\"response A is better than response B\") rather than absolute ratings (\"response A gets 4 out of 5\")?",
       options: [
-        "Pairwise comparisons are more reliable — humans show much higher inter-annotator agreement when comparing two responses than when assigning absolute scores on a scale",
-        "Absolute ratings are too computationally expensive to convert into a loss function that neural networks can optimize",
-        "Pairwise comparisons produce more training data per annotation because each comparison generates two data points instead of one",
-        "Neural network reward models can only accept binary labels, so absolute ratings would need to be discretized anyway"
+        "Pairwise comparisons are more reliable — humans show much higher inter-annotator agreement when comparing two responses than when assigning absolute scores, because relative judgment avoids per-annotator calibration drift",
+        "Pairwise comparisons let the Bradley-Terry model recover a full ranking from fewer total annotations, since each pair constrains the relative ordering of two items simultaneously",
+        "Absolute ratings suffer from anchoring effects where the first response scored in a session biases all subsequent scores, while pairwise comparisons eliminate this by always presenting two options together",
+        "Absolute ratings produce continuous scores that require regression losses, which converge more slowly than the binary cross-entropy loss used for pairwise preference learning"
       ],
       correct: 0,
-      explanation: "Calibration is the key problem with absolute ratings: one annotator's 4/5 is another's 3/5. Different annotators use scales differently, and even the same annotator's scale drifts over time. Pairwise comparisons are much more consistent — \"which is better?\" is a simpler judgment that produces higher inter-annotator agreement. This reliability is crucial because the reward model is only as good as its training signal. The Bradley-Terry model converts these reliable pairwise judgments into learned scalar scores."
+      explanation: "Calibration is the key problem with absolute ratings: one annotator's 4/5 is another's 3/5. Different annotators use scales differently, and even the same annotator's scale drifts over time. Pairwise comparisons are much more consistent — \"which is better?\" is a simpler judgment that produces higher inter-annotator agreement. Option B is wrong because data efficiency is not the primary motivation — you still need many pairwise comparisons. Option C describes a real effect but it applies to both formats (order effects exist in pairwise comparisons too). Option D is wrong because regression losses converge fine; the issue is label quality, not loss function choice."
     },
     // Step 3: Bradley-Terry model
     {
@@ -79,15 +79,15 @@ export const rewardModelingLearning = {
     // Step 8: MC — RM architecture
     {
       type: "mc",
-      question: "A reward model extracts the hidden state $h_T \\in \\mathbb{R}^{4096}$ at the last token position and applies a linear head $r = w^\\top h_T + b$. How many learnable parameters does the scalar head itself have?",
+      question: "The reward model uses the same pretrained transformer backbone as the policy but replaces the language modeling head with a scalar head. A colleague suggests using the **average** of all token hidden states instead of just the last token's hidden state $h_T$. What is the main risk of this approach?",
       options: [
-        "$4096^2 + 4096 = 16,781,312$ — a full $d \\times d$ matrix is needed to transform the hidden state before the final projection",
-        "$4096 + 1 = 4097$ — one weight per hidden dimension plus a bias term, since the head is a single linear layer to a scalar",
-        "$2 \\times 4096 = 8192$ — separate weight vectors for the preferred and rejected responses, since the model must score both",
-        "$4096 \\times V$ where $V$ is the vocabulary size — the head must project to token probabilities before converting to a scalar"
+        "Averaging dilutes the response signal with prompt tokens — the reward should primarily reflect response quality, but the prompt tokens (which are identical for both $y_w$ and $y_l$) dominate the average and wash out differences between responses",
+        "Average pooling produces a vector outside the distribution of individual token representations, causing the linear head to extrapolate to an untrained region of its input space",
+        "The averaged hidden state has lower L2 norm than individual token states, so the scalar output $r = w^\\top \\bar{h} + b$ is compressed toward zero and loses discriminative power",
+        "Averaging all token states increases the computational cost from $O(d)$ to $O(Td)$ per reward computation, where $T$ is sequence length, making RM training prohibitively expensive"
       ],
-      correct: 1,
-      explanation: "The scalar head is a linear map from $\\mathbb{R}^{4096}$ to $\\mathbb{R}^1$: $r = w^\\top h_T + b$ with $w \\in \\mathbb{R}^{4096}$ and $b \\in \\mathbb{R}$. That's $4096 + 1 = 4097$ parameters. The same head is used for both $y_w$ and $y_l$ — each gets scored independently in a separate forward pass through the same model with the same parameters. The vast majority of the RM's parameters are in the transformer backbone, not the head."
+      correct: 0,
+      explanation: "When scoring $(x, y_w)$ vs $(x, y_l)$, the prompt $x$ is identical in both cases. An average over all token positions mixes prompt representations (which are the same) with response representations (which differ). If the prompt is long relative to the response, the average is dominated by the shared prompt signal, and the difference $r(x, y_w) - r(x, y_l)$ becomes tiny. Using the last token's hidden state focuses on the final representation, which has attended to the full sequence through causal attention and is most influenced by the response content."
     },
     // Step 9: Reward hacking
     {
@@ -138,13 +138,13 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "A preference dataset contains 10,000 comparison pairs. On 2,000 of these, the 5 annotators split 3-2 (narrow majority). On the remaining 8,000, annotators agree 4-1 or 5-0. How should the narrow-majority pairs be handled during RM training?",
       options: [
-        "Down-weight or remove them — the narrow margin suggests genuine ambiguity, and forcing a confident binary label on ambiguous pairs teaches the RM spurious preferences",
-        "Use them exclusively for training, since disagreement indicates these are the hardest and most informative examples",
-        "Include them with full weight — any label from a majority vote is equally valid, and removing data always hurts model performance",
-        "Assign them the opposite label from the majority vote, since narrow majorities are statistically likely to be wrong due to sampling noise"
+        "Train on them with a soft label (e.g., 0.6 instead of 1.0) reflecting the annotator split, so the RM learns calibrated confidence that matches the true level of human agreement",
+        "Down-weight or remove them — the narrow margin suggests genuine ambiguity, and forcing a confident binary label on ambiguous pairs teaches the RM spurious preferences that don't generalize",
+        "Keep them as a held-out validation set — they are the most informative examples for measuring RM calibration, since calibrated models should assign near-50/50 to genuinely ambiguous pairs",
+        "Collect additional annotations (e.g., 10 total) only on these pairs to resolve the ambiguity, since 5 annotators is too few for a statistically reliable majority on difficult comparisons"
       ],
-      correct: 0,
-      explanation: "When annotators split 3-2, the \"preferred\" response was barely preferred — this often reflects genuine ambiguity rather than clear quality difference. Training the RM to confidently distinguish these near-equivalent responses teaches it arbitrary preferences that don't generalize. Common approaches: remove these pairs entirely, or down-weight them so they contribute less to the loss. The high-agreement pairs (4-1 or 5-0) provide clearer signal and should dominate training. This improves RM reliability at the cost of a smaller effective dataset — a worthwhile tradeoff."
+      correct: 1,
+      explanation: "When annotators split 3-2, the \"preferred\" response was barely preferred — this often reflects genuine ambiguity rather than clear quality difference. Training the RM to confidently distinguish these near-equivalent responses teaches it arbitrary preferences that don't generalize. Option A (soft labels) sounds reasonable but the Bradley-Terry loss is defined for binary preferences, and modifying it to handle soft targets changes the training dynamics in complex ways. Option C wastes informative data by removing it from training entirely. Option D is impractical at scale — if 20% of pairs need re-annotation, the cost of the additional collection may exceed the original budget."
     }
   ]
 };
