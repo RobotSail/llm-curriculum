@@ -57,6 +57,7 @@ import { scalingLawsLearning } from './focused-scaling-laws';
 import { loraLearning } from './focused-lora';
 import { mixedPrecisionLearning } from './focused-mixed-precision';
 import { modelParallelismLearning } from './focused-model-parallelism';
+import { mixtureOfExpertsLearning } from './focused-mixture-of-experts';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -119,7 +120,7 @@ export const MODULES = {
 
   // Branch B — Pretraining & architecture research
   "B.1": [scalingLawsLearning, scalingLawsAssessment],
-  "B.2": [architectureAssessment],
+  "B.2": [mixtureOfExpertsLearning, architectureAssessment],
   "B.3": [dataCentricAssessment],
   "B.4": [trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
