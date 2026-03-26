@@ -46,7 +46,8 @@ import { selfAttentionLearning } from './focused-self-attention';
 import { multiHeadAttentionLearning } from './focused-multi-head-attention';
 import { bpeLearning } from './focused-bpe';
 import { positionalEncodingLearning } from './focused-positional-encoding';
-import { residualStreamsLearning } from './focused-residual-streams';
+import { residualConnectionsLearning } from './focused-residual-connections';
+import { layerNormalizationLearning } from './focused-layer-normalization';
 import { dataParallelismLearning } from './focused-data-parallelism';
 import { dpoLearning } from './focused-dpo';
 import { nextTokenPredictionLearning } from './focused-next-token-prediction';
@@ -109,7 +110,7 @@ export const MODULES = {
   ],
 
   // Tier 1 — Foundational core
-  "1.1": [selfAttentionLearning, multiHeadAttentionLearning, positionalEncodingLearning, residualStreamsLearning, transformerAssessment],
+  "1.1": [selfAttentionLearning, multiHeadAttentionLearning, positionalEncodingLearning, residualConnectionsLearning, layerNormalizationLearning, transformerAssessment],
   "1.2": [bpeLearning, tokenizationAssessment],
   "1.3": [nextTokenPredictionLearning, trainingInstabilitiesLearning, pretrainingAssessment],
   "1.4": [dataQualityLearning, dataAssessment],
