@@ -26,10 +26,10 @@ export const mixtureOfExpertsLearning = {
       options: [
         "Both use 140 GB memory and the same FLOPs per token — MoE only helps during training, not inference",
         "The MoE model uses 800 GB memory (all parameters stored) but the same FLOPs per token as the dense model — MoE trades memory for compute efficiency",
-        "The MoE model uses ~800 GB memory but ~70B parameters worth of FLOPs per token — it needs more memory to store all experts but uses similar compute since only a subset activates",
-        "The MoE model uses 140 GB memory (only active parameters are stored) and 1/5 the FLOPs — inactive experts are paged out to CPU"
+        "The MoE model uses 140 GB memory (only active parameters are stored) and 1/5 the FLOPs — inactive experts are paged out to CPU",
+        "The MoE model uses ~800 GB memory but ~70B parameters worth of FLOPs per token — it needs more memory to store all experts but uses similar compute since only a subset activates"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "All 400B parameters must reside in GPU memory (800 GB in float16) even though only ~70B activate per token. The per-token compute is proportional to the active parameters (~70B), not the total. This is the fundamental MoE tradeoff: you get the quality of a very large model at the compute cost of a smaller one, but the memory requirement reflects the total size. This is why MoE models benefit greatly from quantization and efficient serving infrastructure."
     },
     // Step 3: Info — MoE layer architecture

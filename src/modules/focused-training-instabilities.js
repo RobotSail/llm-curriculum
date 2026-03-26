@@ -62,12 +62,12 @@ export const trainingInstabilitiesLearning = {
       type: "mc",
       question: "During training of a 65B model, a loss spike occurs at step 120,000. The team restarts from the step 119,500 checkpoint and skips the batch that was processed at step 120,000. The spike does not recur. What does this tell us?",
       options: [
-        "The spike was caused purely by the data batch — any model encountering that batch at any training step would experience the same spike",
         "The spike resulted from an interaction between the specific data batch and the model's parameter state at that point — the batch triggered instability in a region of parameter space that the model happened to occupy",
+        "The spike was caused purely by the data batch — any model encountering that batch at any training step would experience the same spike",
         "The model's random seed was the cause — restarting with a different random state is what prevented the spike, not skipping the batch",
         "The spike was caused by a hardware error (bit flip) that corrupted the gradient computation for that specific batch"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "If the batch alone were the cause, it would cause spikes whenever encountered. If the model state alone were the cause, skipping the batch wouldn't help — other batches would trigger the same spike at similar parameter states. The fact that skipping the specific batch at the specific step prevents recurrence shows it's an interaction: the model reached a region of parameter space where this particular batch produced extreme gradients. This is consistent with the non-convex loss landscape — certain parameter configurations are more vulnerable to certain input patterns."
     },
     // Step 7: Learning rate warmup
@@ -82,11 +82,11 @@ export const trainingInstabilitiesLearning = {
       question: "A team trains a model with Adam ($\\beta_1 = 0.9$) and no warmup, jumping directly to the peak learning rate of $3 \\times 10^{-4}$. At step 1, Adam's bias correction divides $m_1$ by $(1 - 0.9^1) = 0.1$. What is the effective amplification of the gradient signal at step 1?",
       options: [
         "No amplification — Adam's denominator $\\sqrt{\\hat{v}_t}$ cancels out the numerator amplification exactly",
-        "10× amplification of the first moment estimate, combined with a full-sized learning rate, produces an effective step that is far larger than intended",
         "0.1× attenuation — the bias correction shrinks the gradient to prevent early instability",
-        "Exactly 1× — the bias correction is designed to produce an unbiased estimate, so the effective magnitude matches the true gradient moment"
+        "Exactly 1× — the bias correction is designed to produce an unbiased estimate, so the effective magnitude matches the true gradient moment",
+        "10× amplification of the first moment estimate, combined with a full-sized learning rate, produces an effective step that is far larger than intended"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "At step 1, the bias-corrected first moment is $\\hat{m}_1 = m_1 / (1 - 0.9^1) = m_1 / 0.1 = 10 \\cdot m_1$. The correction is mathematically correct — it produces an unbiased estimate of the true mean gradient. But the *variance* of that estimate is also amplified by 10×. When combined with a full learning rate (no warmup), this high-variance, amplified estimate produces update steps that are effectively much larger than intended. Warmup reduces the learning rate during this period so the large effective multiplier doesn't cause destructive updates."
     },
     // Step 9: Gradient clipping
