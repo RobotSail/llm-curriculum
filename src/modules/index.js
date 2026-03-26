@@ -56,7 +56,9 @@ import { scalingLawsLearning } from './focused-scaling-laws';
 import { loraLearning } from './focused-lora';
 import { trainingInstabilitiesLearning } from './focused-training-instabilities';
 import { mixedPrecisionLearning } from './focused-mixed-precision';
-import { modelParallelismLearning } from './focused-model-parallelism';
+import { tensorParallelismLearning } from './focused-tensor-parallelism';
+import { pipelineParallelismLearning } from './focused-pipeline-parallelism';
+import { zeroFsdpLearning } from './focused-zero-fsdp';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -108,7 +110,7 @@ export const MODULES = {
   "1.3": [nextTokenPredictionLearning, trainingInstabilitiesLearning, pretrainingAssessment],
   "1.4": [dataQualityLearning, dataAssessment],
   "1.5": [benchmarkDesignLearning, evaluationAssessment],
-  "1.6": [dataParallelismLearning, modelParallelismLearning, mixedPrecisionLearning, distributedTrainingAssessment],
+  "1.6": [dataParallelismLearning, zeroFsdpLearning, tensorParallelismLearning, pipelineParallelismLearning, mixedPrecisionLearning, distributedTrainingAssessment],
 
   // Branch A — Post-training & alignment
   "A.1": [sftMechanicsLearning, sftAssessment],

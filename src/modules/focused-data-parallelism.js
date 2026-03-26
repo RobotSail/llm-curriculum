@@ -1,130 +1,130 @@
-// Focused learning module: Data Parallelism and ZeRO
+// Focused learning module: Data Parallelism
 // Section 1.6: Distributed Training Infrastructure
-// Covers: why distribution is needed, data parallelism, gradient synchronization,
-// all-reduce, ZeRO stages, and FSDP.
-// Single-concept module: data-parallel training and its memory-efficient extensions.
+// Covers: memory wall motivation, data parallelism mechanics, ring all-reduce,
+// communication-computation overlap, batch size scaling, gradient accumulation.
+// Single-concept module: basic data-parallel training (ZeRO/FSDP covered separately).
 
 export const dataParallelismLearning = {
   id: "1.6-data-parallelism-learning-easy",
   sectionId: "1.6",
-  title: "Data Parallelism and ZeRO",
+  title: "Data Parallelism",
   moduleType: "learning",
   difficulty: "easy",
-  estimatedMinutes: 25,
+  estimatedMinutes: 20,
   steps: [
-    // Step 1: Why distribute?
+    // Step 1: Info — The Memory Wall
     {
       type: "info",
       title: "The Memory Wall: Why One GPU Isn't Enough",
-      content: "Training a large language model requires storing several components in GPU memory simultaneously:\n\n1. **Model parameters**: For a model with $\\Psi$ parameters in FP16, this is $2\\Psi$ bytes\n2. **Gradients**: Same size as parameters — $2\\Psi$ bytes in FP16\n3. **Optimizer states**: Adam stores FP32 master weights ($4\\Psi$), first moment $m$ ($4\\Psi$), and second moment $v$ ($4\\Psi$) = $12\\Psi$ bytes\n4. **Activations**: Intermediate values saved for backpropagation, scaling with batch size and sequence length\n\nFor a 7B parameter model: parameters = 14 GB, gradients = 14 GB, optimizer states = 84 GB. **Total: 112 GB just for the model** — before any activations. A single A100 has 80 GB of HBM.\n\nFor a 70B model: the optimizer states alone require **840 GB**. Even the most powerful single GPU can't hold this.\n\n**Distributed training** spreads this memory burden across multiple GPUs while ensuring they collectively compute the same result as a single (impossibly large) GPU would."
+      content: "Training a large language model requires storing several components in GPU memory simultaneously. For a model with $\\Psi$ parameters trained in mixed precision with Adam:\n\n1. **Parameters** (FP16): $2\\Psi$ bytes\n2. **Gradients** (FP16): $2\\Psi$ bytes\n3. **Optimizer states**: Adam maintains FP32 master weights ($4\\Psi$), first moment $m$ ($4\\Psi$), and second moment $v$ ($4\\Psi$) — totaling $12\\Psi$ bytes\n\nThe combined **model state** is therefore $2\\Psi + 2\\Psi + 12\\Psi = 16\\Psi$ bytes — and this excludes activations entirely.\n\nLet's make this concrete. For a **7B parameter model**:\n\n$$16 \\times 7 \\times 10^9 \\text{ bytes} = 112 \\text{ GB}$$\n\nA single A100 GPU has 80 GB of HBM. The model state alone exceeds that by 40%.\n\nFor a **70B parameter model**: $16 \\times 70 = 1{,}120$ GB — over **1 TB** of model state. No single accelerator comes close.\n\nActivation memory adds further pressure, scaling with batch size and sequence length. The conclusion is inescapable: training frontier models requires **distributing work across multiple GPUs**."
     },
     // Step 2: MC — memory calculation
     {
       type: "mc",
-      question: "A 13B parameter model is trained with Adam in mixed precision. What is the minimum number of 80 GB A100 GPUs needed just to hold the model state (parameters + gradients + optimizer states), ignoring activation memory entirely?",
+      question: "A 13B parameter model is trained with Adam in mixed precision. The total model state (parameters + gradients + optimizer states) is $16 \\times 13 = 208$ GB. Ignoring activation memory, what is the minimum number of 80 GB A100 GPUs needed to hold this model state?",
       options: [
-        "1 GPU — 13B parameters at 2 bytes each is 26 GB, which fits on a single 80 GB GPU with room to spare for gradients and optimizer states",
-        "2 GPUs — the model state totals $16 \\times 13B = 208$ GB when including optimizer states, so two 80 GB GPUs (160 GB total) aren't quite enough, but with some offloading it works",
-        "3 GPUs — the total model state is $(2 + 2 + 12) \\times 13 = 208$ GB, requiring at least $\\lceil 208/80 \\rceil = 3$ GPUs",
-        "8 GPUs — practical training requires 8-way parallelism as a minimum due to communication overhead, regardless of the memory arithmetic"
+        "2 GPUs — the 208 GB model state splits evenly across two 80 GB GPUs with memory-efficient partitioning, leaving 80 GB headroom for activations across the pair",
+        "3 GPUs — $\\lceil 208 / 80 \\rceil = 3$ GPUs providing 240 GB total, the minimum count where aggregate HBM exceeds 208 GB",
+        "4 GPUs — while 3 GPUs provide 240 GB total, each GPU must hold at least a contiguous shard, and alignment overhead pushes the requirement to 4 GPUs in practice",
+        "8 GPUs — distributed training frameworks require power-of-two GPU counts as a minimum, so the first feasible configuration above 208 GB is $8 \\times 80 = 640$ GB"
+      ],
+      correct: 1,
+      explanation: "The model state totals $16 \\times 13 = 208$ GB. Each GPU provides 80 GB, so the minimum count is $\\lceil 208 / 80 \\rceil = 3$ GPUs (providing 240 GB total). Note that this is a strict lower bound — it assumes perfect partitioning with no fragmentation. In practice you would want additional headroom for activations, temporary buffers, and memory fragmentation. The dominant cost is the optimizer states: $12 \\times 13 = 156$ GB, accounting for 75% of the total model state."
+    },
+    // Step 3: Info — Data Parallelism Basics
+    {
+      type: "info",
+      title: "Data Parallelism: Replicate the Model, Split the Data",
+      content: "**Data parallelism** (DP) is the simplest distributed training strategy. The recipe has five steps:\n\n1. **Replicate** the entire model (parameters, gradients, optimizer states) on every GPU\n2. **Partition** each global batch into equal shards — with $B$ samples and $N$ GPUs, each GPU gets $B/N$ samples\n3. **Compute** forward and backward passes independently on each GPU using its local data shard\n4. **Synchronize** gradients by averaging across all GPUs\n5. **Update** each GPU applies the identical averaged gradient to its local model copy\n\nBecause all GPUs start with the same parameters and apply the same update, they remain in sync.\n\nThe mathematical equivalence is exact. Let $\\mathcal{D}_i$ be the data shard on GPU $i$, with $|\\mathcal{D}_i| = B/N$. Each GPU computes a local gradient:\n\n$$g_i = \\frac{1}{|\\mathcal{D}_i|} \\sum_{j \\in \\mathcal{D}_i} \\nabla_\\theta \\ell_j$$\n\nThe synchronized gradient is:\n\n$$g_{\\text{sync}} = \\frac{1}{N} \\sum_{i=1}^{N} g_i = \\frac{1}{N} \\sum_{i=1}^{N} \\frac{1}{B/N} \\sum_{j \\in \\mathcal{D}_i} \\nabla_\\theta \\ell_j = \\frac{1}{B} \\sum_{j=1}^{B} \\nabla_\\theta \\ell_j$$\n\nThis is exactly the gradient computed over the full batch. Data parallelism scales **throughput** linearly (each GPU processes $B/N$ samples in parallel) but does **not** reduce per-GPU memory — every GPU still stores the full model state."
+    },
+    // Step 4: MC — gradient equivalence
+    {
+      type: "mc",
+      question: "A team trains a model with data parallelism across 64 GPUs using a global batch of 1M tokens. Each GPU processes approximately 15,600 tokens. After averaging the 64 local gradients, how does the resulting synchronized gradient relate to computing the gradient on all 1M tokens on a single GPU?",
+      options: [
+        "It is a stochastic approximation — averaging 64 sub-batch gradients introduces variance that wouldn't exist in the single-GPU full-batch gradient",
+        "It is exact in theory but accumulates floating-point errors during the all-reduce, making it unreliable for models larger than 10B parameters",
+        "It is mathematically identical — the average of per-shard mean gradients equals the mean gradient over the full batch, since the gradient of a sum is the sum of gradients",
+        "It is slightly biased because each GPU normalizes by $B/N$ instead of $B$, introducing a factor-of-$N$ scaling error that must be corrected in the optimizer"
       ],
       correct: 2,
-      explanation: "Total model state: FP16 params ($2 \\times 13 = 26$ GB) + FP16 gradients ($26$ GB) + Adam optimizer states ($12 \\times 13 = 156$ GB) = **208 GB**. With 80 GB per GPU, you need at least $\\lceil 208/80 \\rceil = 3$ GPUs. In practice you'd use more GPUs to also fit activations and to increase throughput. This calculation shows why optimizer states are the dominant memory cost — they account for $156/208 = 75\\%$ of the total model state."
+      explanation: "The synchronized gradient is mathematically identical to the full-batch gradient. Since $g_{\\text{sync}} = \\frac{1}{N}\\sum_i g_i = \\frac{1}{N}\\sum_i \\frac{N}{B}\\sum_{j \\in \\mathcal{D}_i} \\nabla_\\theta \\ell_j = \\frac{1}{B}\\sum_{j=1}^{B} \\nabla_\\theta \\ell_j$, the partitioning and re-averaging produces the exact same result. In practice, minor floating-point differences arise from non-deterministic reduction order, but these are negligible and do not constitute bias or approximation in any meaningful sense."
     },
-    // Step 3: Data parallelism basics
+    // Step 5: Info — Ring All-Reduce
     {
       type: "info",
-      title: "Data Parallelism: The Simplest Distribution Strategy",
-      content: "**Data parallelism** (DP) is the most straightforward distributed training approach:\n\n1. **Replicate** the entire model on every GPU\n2. **Split** each batch of data across GPUs — if the global batch has $B$ samples and there are $N$ GPUs, each GPU processes $B/N$ samples\n3. **Forward + backward** each GPU computes gradients on its local data shard independently\n4. **Synchronize** average the gradients across all GPUs\n5. **Update** each GPU applies the same averaged gradient to its local model copy\n\nAfter step 5, all GPUs have identical model parameters (they started identical and applied the same update). The process is mathematically equivalent to training on the full batch $B$ on a single device:\n\n$$g_{\\text{sync}} = \\frac{1}{N}\\sum_{i=1}^{N} g_i = \\frac{1}{N}\\sum_{i=1}^{N} \\frac{1}{B/N}\\sum_{j \\in \\mathcal{D}_i} \\nabla_\\theta \\ell_j = \\frac{1}{B}\\sum_{j=1}^{B} \\nabla_\\theta \\ell_j$$\n\nData parallelism scales **throughput** linearly with GPUs (ideally $N\\times$ samples per second), but does not reduce **per-GPU memory** — every GPU still holds the full model, full gradients, and full optimizer states."
+      title: "Ring All-Reduce: Efficient Gradient Synchronization",
+      content: "Gradient synchronization requires an **all-reduce** operation: given $N$ GPUs each holding gradient tensor $g_i$, compute $\\bar{g} = \\frac{1}{N}\\sum_i g_i$ and place the result on every GPU.\n\nThe **naive approach** sends all gradients to a single coordinator GPU, averages them, and broadcasts the result. This creates a bottleneck: the coordinator must receive $(N-1)|g|$ bytes and send $N|g|$ bytes, where $|g|$ is the gradient size. As $N$ grows, this single link becomes the limiting factor.\n\n**Ring all-reduce** eliminates this bottleneck. The $N$ GPUs are arranged in a logical ring, and the operation proceeds in two phases:\n\n**Phase 1 — Reduce-Scatter** ($N-1$ steps): Each GPU's gradient is split into $N$ chunks. In each step, every GPU sends one chunk to its right neighbor and receives one chunk from its left neighbor, accumulating partial sums. After $N-1$ steps, each GPU holds the fully reduced (summed) version of exactly one chunk.\n\n**Phase 2 — All-Gather** ($N-1$ steps): Each GPU broadcasts its fully reduced chunk around the ring. After $N-1$ steps, every GPU has the complete averaged gradient.\n\n**Total per-GPU communication**: Each GPU sends and receives exactly:\n\n$$2 \\cdot \\frac{N-1}{N} \\cdot |g| \\text{ bytes}$$\n\nAs $N \\to \\infty$, this approaches $2|g|$. The per-GPU communication cost is **nearly independent of GPU count** — this is what makes data parallelism scalable."
     },
-    // Step 4: MC — DP understanding
+    // Step 6: MC — ring all-reduce scaling
     {
       type: "mc",
-      question: "A team trains a model with data parallelism across 64 GPUs. They use a global batch size of 1M tokens. Which statement is correct about the gradient computation?",
+      question: "A training cluster is upgraded from 32 to 64 GPUs, keeping the same model. Using ring all-reduce for gradient synchronization, what happens to the per-GPU communication volume?",
       options: [
-        "Each GPU computes gradients on $1M/64 \\approx 15.6K$ tokens, and the averaged gradient is mathematically identical to computing the gradient on all 1M tokens on a single GPU",
-        "Each GPU computes gradients on all 1M tokens independently, and the averaging step removes noise by exploiting the redundancy of 64 independent gradient estimates",
-        "The 64 GPUs collectively compute a gradient that is 64x more accurate than a single-GPU gradient, enabling the use of a 64x larger learning rate",
-        "Each GPU computes gradients on $1M/64$ tokens, but the averaged result is only an approximation of the true gradient due to information loss during the all-reduce communication"
-      ],
-      correct: 0,
-      explanation: "Data parallelism is exact, not approximate. The gradient of a sum equals the sum of gradients: $\\nabla_\\theta \\frac{1}{B}\\sum_{j=1}^{B} \\ell_j = \\frac{1}{B}\\sum_{j=1}^{B} \\nabla_\\theta \\ell_j$. Splitting the sum across GPUs and averaging is algebraically identical. The all-reduce operation introduces no information loss (in exact arithmetic — floating-point reduction order can cause minor differences). Each GPU processes $\\sim$15.6K tokens, making each GPU's workload 64x smaller, which is why data parallelism provides near-linear throughput scaling."
-    },
-    // Step 5: All-reduce
-    {
-      type: "info",
-      title: "All-Reduce: The Communication Backbone",
-      content: "The gradient synchronization step uses an **all-reduce** operation: given $N$ GPUs each holding a tensor $g_i$, compute $\\sum_i g_i / N$ and distribute the result to all GPUs.\n\nThe naive approach — send all gradients to one GPU, average, broadcast back — creates a bottleneck at the central GPU and doesn't scale.\n\n**Ring all-reduce** is the standard solution. Arrange $N$ GPUs in a logical ring. Each GPU sends a chunk of its gradient to its neighbor. After $2(N-1)$ communication steps:\n- Phase 1 (reduce-scatter): Each GPU has a $1/N$-sized chunk containing the partial sum from all GPUs\n- Phase 2 (all-gather): Each GPU has the complete averaged gradient\n\nThe key property: **each GPU sends and receives exactly $2 \\cdot \\frac{N-1}{N} \\cdot |g|$ bytes total**, regardless of $N$. As $N \\to \\infty$, this approaches $2|g|$ bytes — the communication cost per GPU is nearly constant.\n\nFor a 7B model: $|g| = 14$ GB (FP16 gradients). Each GPU transfers about 28 GB of data. With NVLink at 600 GB/s between adjacent GPUs, this takes about 50 ms — during which time the GPUs are otherwise idle unless communication is overlapped with computation."
-    },
-    // Step 6: MC — all-reduce
-    {
-      type: "mc",
-      question: "Ring all-reduce synchronizes gradients across $N$ GPUs with each GPU transferring approximately $2|g|$ bytes (for gradient tensor size $|g|$). A team doubles their GPU count from 32 to 64 while keeping the same model. What happens to the per-GPU communication volume?",
-      options: [
-        "It doubles — each GPU must now communicate with twice as many peers, sending twice as much data through the ring",
-        "It stays approximately the same — the ring all-reduce formula is $2 \\cdot \\frac{N-1}{N} \\cdot |g|$, which is nearly $2|g|$ for both $N=32$ and $N=64$",
-        "It halves — with more GPUs, each GPU is responsible for a smaller chunk of the gradient, reducing the per-GPU data transfer proportionally",
-        "It increases by $\\sqrt{2}$ — the communication cost scales as $O(\\sqrt{N})$ per GPU in ring all-reduce due to the increasing number of ring hops"
-      ],
-      correct: 1,
-      explanation: "Per-GPU communication is $2 \\cdot \\frac{N-1}{N} \\cdot |g|$. For $N=32$: $2 \\times 31/32 \\times |g| = 1.94|g|$. For $N=64$: $2 \\times 63/64 \\times |g| = 1.97|g|$. The difference is negligible — this is why ring all-reduce scales so well. The total network bandwidth grows linearly with $N$, but the per-GPU cost stays flat. However, the **latency** does increase: the $2(N-1)$ sequential steps mean more round-trip delays. For very large $N$, hierarchical approaches (tree all-reduce, or 2D ring) are used to manage latency."
-    },
-    // Step 7: ZeRO motivation
-    {
-      type: "info",
-      title: "The Redundancy Problem: Why ZeRO Was Invented",
-      content: "Standard data parallelism has an obvious waste: **every GPU stores identical copies** of the model parameters, gradients, and optimizer states. With 64 GPUs, you have 64 copies of everything — 64x redundancy.\n\nFor a 7B model across 64 GPUs:\n- Optimizer states: $84$ GB $\\times$ 64 = **5,376 GB** (total system memory for optimizer states)\n- But only 84 GB of unique data!\n\n**ZeRO** (Zero Redundancy Optimizer, Rajbhandari et al., 2020) eliminates this redundancy by **partitioning** (sharding) the model state across GPUs instead of replicating it. The insight: each GPU only needs the full parameters during the forward/backward pass — it doesn't need full optimizer states or gradients at all times.\n\nZeRO is designed in three stages, each eliminating more redundancy:\n- **Stage 1**: Partition optimizer states\n- **Stage 2**: Partition optimizer states + gradients\n- **Stage 3**: Partition optimizer states + gradients + parameters\n\nEach stage trades more communication for more memory savings."
-    },
-    // Step 8: MC — ZeRO motivation
-    {
-      type: "mc",
-      question: "A 30B parameter model is trained on 8 GPUs using standard DDP (full replication). The total memory for optimizer states across all GPUs is $12 \\times 30B \\times 8 = 2{,}880$ GB. With ZeRO Stage 1 (partitioned optimizer states), the total system-wide optimizer memory is:",
-      options: [
-        "$2{,}880$ GB — ZeRO Stage 1 doesn't reduce total memory, it only redistributes it more evenly across GPUs to prevent any single GPU from running out",
-        "$360$ GB — each GPU stores $1/8$ of the optimizer states, and the total is $12 \\times 30B = 360$ GB, the same as a single GPU would need",
-        "$2{,}880 / 8 = 360$ GB total, which is also $360/8 = 45$ GB per GPU — a 64x total reduction compared to full replication",
-        "$12 \\times 30B / 8 = 45$ GB per GPU, totaling $45 \\times 8 = 360$ GB system-wide — the redundancy is eliminated, so the total equals what one GPU would store"
+        "It doubles from $2|g|$ to $4|g|$ — twice as many GPUs means twice as many ring steps, and each step transfers the same amount of data",
+        "It halves from $2|g|$ to $|g|$ — with 64 GPUs, each GPU holds a smaller chunk in the reduce-scatter phase, reducing per-GPU data movement proportionally",
+        "It increases by approximately 50% — ring all-reduce cost scales as $O(N \\log N)$ per GPU, so going from 32 to 64 adds roughly $\\log(2) \\approx 50\\%$ overhead",
+        "It remains approximately $2|g|$ — the formula $2 \\cdot \\frac{N-1}{N} \\cdot |g|$ yields $1.94|g|$ for $N=32$ and $1.97|g|$ for $N=64$, a negligible difference"
       ],
       correct: 3,
-      explanation: "With ZeRO Stage 1, the $12 \\times 30B = 360$ GB of optimizer states is partitioned into 8 equal shards of 45 GB each. The total system-wide memory is 360 GB (down from 2,880 GB with full replication). Each GPU stores only its 45 GB shard. The key insight: the redundancy factor dropped from 8x to 1x. Parameters ($2 \\times 30 = 60$ GB) and gradients (60 GB) remain fully replicated in Stage 1, so each GPU still needs $45 + 60 + 60 = 165$ GB. Stages 2 and 3 address the remaining redundancy."
+      explanation: "The per-GPU communication volume in ring all-reduce is $2 \\cdot \\frac{N-1}{N} \\cdot |g|$. For $N=32$: $2 \\times 31/32 \\times |g| = 1.9375|g|$. For $N=64$: $2 \\times 63/64 \\times |g| = 1.96875|g|$. The difference is less than 2%. This near-constant per-GPU cost is the fundamental reason ring all-reduce scales well. Note that while bandwidth cost is constant, **latency** grows — $2(N-1)$ sequential steps means more round trips. For very large clusters, hierarchical all-reduce (e.g., reduce within nodes, then across nodes) is used to manage latency."
     },
-    // Step 9: ZeRO stages
+    // Step 7: Info — Overlapping Communication with Computation
     {
       type: "info",
-      title: "ZeRO Stages: Progressive Memory Savings",
-      content: "For a model with $\\Psi$ parameters, Adam in mixed precision, and $N$ GPUs:\n\n| Stage | What's partitioned | Per-GPU memory | Communication vs DDP |\n|---|---|---|---|\n| DDP (baseline) | Nothing | $2\\Psi + 2\\Psi + 12\\Psi = 16\\Psi$ | $2\\Psi$ (all-reduce) |\n| **Stage 1** | Optimizer states | $2\\Psi + 2\\Psi + 12\\Psi/N$ | $2\\Psi$ (same as DDP) |\n| **Stage 2** | + Gradients | $2\\Psi + 2\\Psi/N + 12\\Psi/N$ | $2\\Psi$ (same as DDP) |\n| **Stage 3** | + Parameters | $(2\\Psi + 2\\Psi + 12\\Psi)/N = 16\\Psi/N$ | $3 \\times 2\\Psi$ (1.5x DDP) |\n\n**Stage 1** is nearly free — the optimizer update is local (each GPU updates only its shard), and the all-reduce for gradients is unchanged. The only added cost is an all-gather to broadcast updated parameters, which can overlap with computation.\n\n**Stage 2** replaces the gradient all-reduce with a reduce-scatter (each GPU gets its gradient shard), saving gradient memory. Communication volume is unchanged.\n\n**Stage 3** (equivalent to **FSDP** — Fully Sharded Data Parallel) is the most aggressive. Parameters are sharded; before each layer's computation, an all-gather reconstructs full parameters, and after backward, reduce-scatter distributes gradient shards. Communication increases by 1.5x, but memory drops to $16\\Psi/N$ — linear scaling with GPUs."
+      title: "Overlapping Communication with Computation",
+      content: "In a naive implementation, the training loop is strictly sequential: complete the entire backward pass, then run the all-reduce, then start the next forward pass. This leaves GPUs idle during the all-reduce.\n\n**Bucketed all-reduce** eliminates most of this idle time. The key observation: backpropagation computes gradients **last-to-first** — the gradient for the final layer is available long before the gradient for the first layer.\n\nThe strategy is:\n1. Group parameters into **buckets** (e.g., by layer or by size threshold)\n2. As soon as all gradients in a bucket are computed, **start its all-reduce immediately** — don't wait for the full backward pass to finish\n3. The all-reduce of later-layer buckets runs concurrently with the backward computation of earlier layers\n\nSince the last layers produce gradients first, their all-reduce begins while the backward pass is still computing gradients for earlier layers. By the time the first layer's gradients are ready and its all-reduce begins, the later layers' all-reduce is already complete or nearly so.\n\n**PyTorch DistributedDataParallel (DDP)** implements this automatically. It registers backward hooks on parameter groups that trigger all-reduce as soon as a bucket's gradients are ready. The bucket size (default: 25 MB) controls the granularity of the overlap.\n\nWith good overlap, the all-reduce time is almost entirely hidden behind backward computation, making data parallelism nearly communication-free in practice."
     },
-    // Step 10: MC — ZeRO stage selection
+    // Step 8: MC — bucketed all-reduce ordering
     {
       type: "mc",
-      question: "A team has 8 A100 (80 GB) GPUs and wants to train a 13B model with Adam. Per-GPU model state with DDP: $16 \\times 13 = 208$ GB (doesn't fit). Which is the minimum ZeRO stage needed to fit the model state on these GPUs?",
+      question: "In PyTorch DDP's bucketed gradient all-reduce, which layers' gradients begin their all-reduce communication first during the backward pass?",
       options: [
-        "Stage 1 — partitioning optimizer states gives per-GPU cost of $4 \\times 13 + 12 \\times 13 / 8 = 52 + 19.5 = 71.5$ GB, which fits in 80 GB",
-        "Stage 2 — Stage 1 gives $2 \\times 13 + 2 \\times 13 + 12 \\times 13 / 8 = 26 + 26 + 19.5 = 71.5$ GB, but adding activations pushes it over 80 GB, so Stage 2's gradient savings ($26 + 26/8 + 19.5 = 48.75$ GB) provides enough headroom",
-        "Stage 3 — only full sharding ($16 \\times 13 / 8 = 26$ GB) provides enough memory for model state plus activations",
-        "No ZeRO stage is sufficient — 8 GPUs cannot train a 13B model and the team needs at least 16 GPUs"
+        "The last (output-adjacent) layers, because backpropagation computes gradients from the loss backward through the network, making later layers' gradients available first",
+        "The first (input-adjacent) layers, because DDP processes layers in the same order as the forward pass to maintain consistency between forward and backward data flow",
+        "All layers simultaneously — DDP launches all-reduce for every bucket at the start of the backward pass and lets the network scheduler interleave them with gradient computation",
+        "The layers with the smallest parameter counts, because DDP prioritizes small buckets to minimize per-bucket latency and maximize the number of overlapping transfers"
       ],
       correct: 0,
-      explanation: "Let's compute each stage. Stage 1: params ($2 \\times 13 = 26$ GB) + gradients ($26$ GB) + optimizer shard ($12 \\times 13 / 8 = 19.5$ GB) = **71.5 GB**. This fits in 80 GB with 8.5 GB headroom for activations (tight but feasible with activation checkpointing). Stage 2 would give $26 + 3.25 + 19.5 = 48.75$ GB, more comfortable. Stage 3 gives $26$ GB, very comfortable. The minimum is Stage 1, though Stage 2 is more practical since it provides headroom for activations. This is why Stage 1 is the most commonly used — it provides the biggest savings relative to its zero additional communication cost."
+      explanation: "Backpropagation proceeds from the loss (output) toward the input. The last layers' gradients are computed first, so their buckets are ready for all-reduce first. While the all-reduce for these later-layer buckets is in flight over the network, the GPU continues computing gradients for earlier layers. This overlap is what makes DDP efficient — the communication is hidden behind computation. If the first layers' gradients were sent first, there would be nothing to overlap with since the backward pass would already be complete."
     },
-    // Step 11: FSDP and practical usage
+    // Step 9: Info — Batch Size Scaling
     {
       type: "info",
-      title: "FSDP: ZeRO Stage 3 in Practice",
-      content: "**FSDP** (Fully Sharded Data Parallel), implemented in PyTorch, is the practical realization of ZeRO Stage 3. It has become the standard approach for training large models.\n\nThe execution flow for each layer:\n\n**Forward pass**:\n1. All-gather: Reconstruct full parameters from shards across GPUs\n2. Compute: Run the layer's forward pass with full parameters\n3. Discard: Free the non-local parameter shards (only keep the local shard)\n\n**Backward pass**:\n1. All-gather: Reconstruct full parameters again (needed for gradient computation)\n2. Compute: Run the layer's backward pass\n3. Reduce-scatter: Compute gradient shards — each GPU gets $1/N$ of the gradient\n4. Discard: Free full parameters and non-local gradient data\n\nThe key optimization: **prefetching**. While GPU $i$ computes layer $l$, it starts the all-gather for layer $l+1$ in the background. This overlaps communication with computation, hiding much of the latency.\n\nFSDP also supports **mixed sharding**: shard within a node (e.g., 8 GPUs with fast NVLink) but replicate across nodes (slower interconnect). This balances memory savings with communication efficiency."
+      title: "Batch Size Scaling: The Price of Parallelism",
+      content: "Data parallelism inherently increases the **effective batch size**. If each GPU processes a local batch of $b$ samples and there are $N$ GPUs:\n\n$$B_{\\text{effective}} = N \\times b$$\n\nWith 32 GPUs each processing 256 samples, the effective batch is 8,192. This creates challenges.\n\n**The linear scaling rule** (Goyal et al., 2017): When multiplying the batch size by $k$, multiply the learning rate by $k$ as well. The intuition is that a $k\\times$ larger batch means $k\\times$ fewer parameter updates per epoch, so each update must take a proportionally larger step:\n\n$$\\text{lr}_{\\text{scaled}} = k \\times \\text{lr}_{\\text{base}}$$\n\n**Learning rate warmup** is critical when using large batches. Starting with a large learning rate causes instability in the early training phase when the loss landscape is poorly conditioned. The standard approach: linearly ramp the learning rate from a small value to $\\text{lr}_{\\text{scaled}}$ over the first few thousand steps.\n\n**The gradient noise scale** $\\mathcal{B}_{\\text{noise}}$ (McCandlish et al., 2018) provides a principled upper bound on useful batch size. It measures the signal-to-noise ratio of the stochastic gradient:\n\n$$\\mathcal{B}_{\\text{noise}} = \\frac{\\text{tr}(\\Sigma)}{|G|^2}$$\n\nwhere $\\Sigma$ is the gradient covariance and $G$ is the true gradient. When $B \\ll \\mathcal{B}_{\\text{noise}}$, doubling the batch nearly halves training time (linear scaling). When $B \\gg \\mathcal{B}_{\\text{noise}}$, doubling the batch barely helps — the gradient is already accurate, and additional samples provide diminishing returns."
     },
-    // Step 12: MC — practical integration
+    // Step 10: MC — learning rate scaling
     {
       type: "mc",
-      question: "A 70B model is trained across 64 A100 GPUs using FSDP (ZeRO Stage 3). The per-GPU model state memory is $16 \\times 70 / 64 \\approx 17.5$ GB. The team notices that training throughput is 40% lower than expected from perfect scaling. Which factor most likely explains the throughput gap?",
+      question: "A model trains well on 1 GPU with batch size 256 and learning rate $\\text{lr} = 1 \\times 10^{-4}$. The team scales to 32 GPUs using data parallelism, with each GPU still processing 256 samples (global batch = 8,192). Applying the linear scaling rule, what learning rate and warmup strategy should they use?",
       options: [
-        "The model parameters are too large to fit in the GPU's L2 cache, causing memory bandwidth bottlenecks during the matrix multiplications that dominate both forward and backward compute",
-        "The FSDP all-gather and reduce-scatter communications for parameter reconstruction and gradient distribution cannot be fully overlapped with computation, especially for small layers where compute time is shorter than communication latency",
-        "Python's Global Interpreter Lock (GIL) prevents true parallelism across the 64 GPU processes, serializing the CPU-side orchestration of gradient synchronization and parameter updates",
-        "The optimizer update step is 64x slower because each GPU must wait for all other GPUs to complete their local optimizer shard updates before any GPU can begin the next forward pass"
+        "Use $\\text{lr} = 3.2 \\times 10^{-3}$ ($32 \\times$ base) with a warmup period that linearly ramps from a small learning rate — the larger batch gives a lower-variance gradient that supports larger steps, but early instability requires gradual ramping",
+        "Keep $\\text{lr} = 1 \\times 10^{-4}$ unchanged — the per-GPU batch size is the same, so each GPU's gradient has the same variance, and the averaging step reduces noise without requiring a larger step size",
+        "Use $\\text{lr} = 3.2 \\times 10^{-3}$ ($32 \\times$ base) from the start without warmup — the linear scaling rule accounts for the batch size increase, and warmup is only needed for batch sizes above 100K",
+        "Use $\\text{lr} = \\sqrt{32} \\times 10^{-4} \\approx 5.7 \\times 10^{-4}$ with warmup — the square-root scaling rule is correct because gradient noise decreases as $1/\\sqrt{N}$, not $1/N$"
+      ],
+      correct: 0,
+      explanation: "The linear scaling rule states: multiply lr by the batch size multiplier. The global batch grew from 256 to 8,192 ($32\\times$), so lr scales to $32 \\times 10^{-4} = 3.2 \\times 10^{-3}$. Warmup is essential — without it, the large initial learning rate causes optimization instability before the model has found a reasonable region of the loss landscape. The typical warmup schedule ramps linearly from $\\sim$0 to the target lr over the first 1,000-5,000 steps. Square-root scaling ($\\sqrt{k}$) has been proposed as an alternative but the linear rule ($k$) is the standard from Goyal et al. (2017) for SGD with momentum and remains the default starting point."
+    },
+    // Step 11: Info — Gradient Accumulation
+    {
+      type: "info",
+      title: "Gradient Accumulation: Large Batches Without More GPUs",
+      content: "Sometimes you need a larger effective batch size than $N \\times b_{\\text{max}}$ — either because you have few GPUs or because the target batch size is very large. **Gradient accumulation** solves this without additional hardware.\n\nThe idea: run $K$ forward-backward passes on micro-batches of size $b_{\\text{micro}}$, **accumulating** (summing) the gradients without updating parameters. After $K$ steps, average the accumulated gradient and perform a single optimizer step.\n\n$$g_{\\text{accumulated}} = \\frac{1}{K} \\sum_{k=1}^{K} g_k$$\n\nThe effective batch size becomes:\n\n$$B_{\\text{effective}} = N \\times K \\times b_{\\text{micro}}$$\n\nwhere $N$ is the number of data-parallel GPUs, $K$ is the accumulation steps, and $b_{\\text{micro}}$ is the per-GPU micro-batch size.\n\n**Combining with data parallelism**: When using gradient accumulation with DP, you can defer the all-reduce synchronization until after all $K$ micro-batches are processed. This means gradients are synchronized once per optimizer step rather than once per micro-batch, reducing communication overhead by a factor of $K$.\n\nGradient accumulation is mathematically equivalent to training with the full effective batch in a single pass. The only difference is that activation memory is determined by $b_{\\text{micro}}$ rather than the full batch, making it possible to simulate arbitrarily large batches on limited hardware."
+    },
+    // Step 12: MC — gradient accumulation calculation
+    {
+      type: "mc",
+      question: "A team wants an effective batch size of 4M tokens. They have 8 GPUs and each GPU can fit a maximum micro-batch of 32K tokens. How many gradient accumulation steps $K$ are needed?",
+      options: [
+        "$K = 8$ — the 8 GPUs collectively process $8 \\times 32\\text{K} = 256\\text{K}$ tokens per step, so $4\\text{M} / 256\\text{K} = 15.6$, which rounds down to 8 because accumulation steps must be a power of two",
+        "$K = 16$ — the per-step throughput is $N \\times b_{\\text{micro}} = 8 \\times 32\\text{K} = 256\\text{K}$ tokens, so $K = 4\\text{M} / 256\\text{K} = 15.625$, rounded up to $K = 16$",
+        "$K = 64$ — each GPU accumulates $4\\text{M} / 8 = 512\\text{K}$ tokens, requiring $512\\text{K} / 32\\text{K} = 16$ steps, but each step requires 4 sub-iterations for numerical stability, giving $K = 64$",
+        "$K = 128$ — gradient accumulation operates per-GPU without the data-parallel dimension, so $K = 4\\text{M} / 32\\text{K} = 125$, rounded up to the next power of two at $K = 128$"
       ],
       correct: 1,
-      explanation: "FSDP's communication-computation overlap is imperfect. The all-gather for layer $l+1$ must complete before layer $l+1$'s computation begins. For layers with small parameter counts (e.g., LayerNorm, small attention projections), the compute finishes before the next layer's all-gather completes, creating idle time. Additionally, the first layer's all-gather cannot be overlapped (no preceding computation to hide behind), and the last layer's reduce-scatter has the same issue. The 1.5x communication overhead of ZeRO-3 vs DDP contributes to the gap. Techniques like computation-communication co-scheduling and adaptive sharding granularity help reduce this."
+      explanation: "The effective batch size is $B = N \\times K \\times b_{\\text{micro}}$. Solving: $K = B / (N \\times b_{\\text{micro}}) = 4{,}000{,}000 / (8 \\times 32{,}000) = 4{,}000{,}000 / 256{,}000 = 15.625$. Since $K$ must be an integer, we round up to $K = 16$, giving an actual effective batch of $8 \\times 16 \\times 32\\text{K} = 4{,}096\\text{K} \\approx 4.1\\text{M}$ tokens. The data-parallel dimension absolutely counts — all 8 GPUs contribute their micro-batches to each accumulation step, and synchronization happens once after all $K$ steps."
     }
   ]
 };
