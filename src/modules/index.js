@@ -28,6 +28,7 @@ import { distributedTrainingAssessment } from './assess-distributed-training';
 import { sftAssessment, rewardModelingAssessment, rlhfAssessment, directAlignmentAssessment, frontierAlignmentAssessment } from './assess-branch-a';
 import { scalingLawsAssessment, architectureAssessment, dataCentricAssessment, trainingDynamicsAssessment, novelObjectivesAssessment } from './assess-branch-b';
 import { quantizationAssessment, decodingAssessment, servingAssessment, compressionAssessment, cotAssessment, testTimeComputeAssessment, toolUseAssessment, agenticAssessment } from './assess-branch-cd';
+import { quantizationLearning } from './focused-quantization';
 import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
 import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
@@ -124,7 +125,7 @@ export const MODULES = {
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment
-  "C.1": [quantizationAssessment],
+  "C.1": [quantizationLearning, quantizationAssessment],
   "C.2": [decodingAssessment],
   "C.3": [servingAssessment],
   "C.4": [compressionAssessment],
