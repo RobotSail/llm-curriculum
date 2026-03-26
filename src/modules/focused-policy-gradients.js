@@ -18,13 +18,13 @@ export const policyGradientsLearning = {
       type: "mc",
       question: "Why can't we compute $\\nabla_\\theta J(\\theta) = \\nabla_\\theta \\mathbb{E}_{y \\sim \\pi_\\theta}[r(y)]$ by simply backpropagating through the sampling process?",
       options: [
-        "The reward function $r(y)$ is typically not differentiable with respect to the tokens",
-        "Sampling discrete tokens creates a non-differentiable step — there is no gradient through $\\text{argmax}$ or categorical sampling",
-        "The expectation over exponentially many possible responses makes exact computation intractable",
-        "All of the above contribute, but the discrete sampling is the fundamental barrier"
+        "The reward function $r(y)$ is typically not differentiable with respect to the tokens, so gradients cannot flow through the reward computation",
+        "Sampling discrete tokens creates a non-differentiable step — there is no gradient through categorical sampling, regardless of whether the reward is differentiable",
+        "The expectation is over exponentially many possible responses, making exact gradient computation intractable even if each term were differentiable",
+        "The language model's softmax output is not differentiable at the token boundaries, preventing standard backpropagation through the vocabulary"
       ],
-      correct: 3,
-      explanation: "All three are real issues. The reward model may not be differentiable w.r.t. tokens, discrete sampling is non-differentiable, and the expectation is over an exponential space. But the fundamental barrier is the discrete sampling step — even with a differentiable reward and finite vocabulary, you can't backpropagate through categorical sampling. The log-probability trick (REINFORCE) solves exactly this."
+      correct: 1,
+      explanation: "The fundamental barrier is the discrete sampling step. Even with a differentiable reward and a manageable number of responses, you cannot backpropagate through the act of sampling a discrete token from a categorical distribution. The softmax itself IS differentiable — the problem is the argmax/sampling that selects one token. The log-probability trick (REINFORCE) sidesteps this by moving the gradient inside the expectation without differentiating through the sample."
     },
     {
       type: "info",
