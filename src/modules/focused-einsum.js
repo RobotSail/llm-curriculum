@@ -1,4 +1,4 @@
-// Module: Einsum Notation & Tensor Contractions
+// Module: Einsum Notation
 // Section 0.1: Einstein summation from first principles through applied patterns
 // Single-concept module: einsum fluency for deep learning
 // Proper learning module with alternating info/mc steps
@@ -6,7 +6,7 @@
 export const einsumLearning = {
   id: "0.1-einsum-learning-easy",
   sectionId: "0.1",
-  title: "Einsum Notation and Tensor Contractions",
+  title: "Einsum Notation",
   difficulty: "easy",
   moduleType: "learning",
   estimatedMinutes: 22,

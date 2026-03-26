@@ -1,15 +1,15 @@
-// Module: Eigendecomposition & Spectral Theory
-// Section 0.1: Eigenvalues, eigenvectors, PSD, spectral norm, matrix powers
+// Module: Eigendecomposition
+// Section 0.1: Eigenvalues, eigenvectors, PSD, matrix powers
 // Single-concept module following Goodfellow et al. Ch. 2.7
 // Proper learning module with alternating info/mc steps
 
 export const eigendecompositionLearning = {
   id: "0.1-eigen-learning-easy",
   sectionId: "0.1",
-  title: "Eigendecomposition and Spectral Theory",
+  title: "Eigendecomposition",
   difficulty: "easy",
   moduleType: "learning",
-  estimatedMinutes: 22,
+  estimatedMinutes: 18,
   steps: [
     {
       type: "info",
@@ -68,18 +68,6 @@ export const eigendecompositionLearning = {
     },
     {
       type: "info",
-      title: "The Spectral Norm",
-      content: "The **spectral norm** of a matrix is its largest singular value:\n\n$$\\|A\\|_2 = \\sigma_1(A) = \\max_{\\|x\\| = 1} \\|Ax\\|$$\n\nIt measures the **maximum stretching factor** of $A$ — how much $A$ can amplify the length of a unit vector. For a symmetric matrix, the spectral norm equals the largest absolute eigenvalue: $\\|A\\|_2 = \\max_i |\\lambda_i|$.\n\nThe spectral norm matters for training stability. When data flows through a sequence of layers with weight matrices $W_1, W_2, \\ldots, W_L$, the output scales as the product $\\|W_L\\| \\cdots \\|W_2\\| \\|W_1\\|$. If each $\\|W_i\\|_2 > 1$, this product grows exponentially with depth — **gradient explosion**. If each $\\|W_i\\|_2 < 1$, it shrinks exponentially — **gradient vanishing**.\n\nRelated norms you'll encounter:\n- **Frobenius norm**: $\\|A\\|_F = \\sqrt{\\sum_{ij} A_{ij}^2} = \\sqrt{\\sum_i \\sigma_i^2}$ — the \"total energy\" of the matrix\n- **Nuclear norm**: $\\|A\\|_* = \\sum_i \\sigma_i$ — promotes low-rank structure when used as a regularizer"
-    },
-    {
-      type: "mc",
-      question: "The **spectral norm** $\\|A\\|_2$ of a matrix equals:",
-      options: ["The sum of all singular values (the nuclear norm)", "The square root of the sum of all squared entries (the Frobenius norm)", "The largest singular value $\\sigma_1$ of the matrix", "The largest absolute eigenvalue of the matrix (for any matrix)"],
-      correct: 2,
-      explanation: "$\\|A\\|_2 = \\sigma_1$, the largest singular value. It equals $\\max_{\\|x\\|=1} \\|Ax\\|$, i.e., how much $A$ stretches a unit vector at most. The sum of singular values is the nuclear norm; the Frobenius norm is the root sum of squares. The largest absolute eigenvalue equals the spectral norm only for symmetric matrices — for general matrices, singular values (not eigenvalues) are the right measure of \"stretching.\""
-    },
-    {
-      type: "info",
       title: "Matrix Powers via Eigendecomposition",
       content: "One of the most useful consequences of eigendecomposition is efficient computation of **matrix powers**.\n\nSince $A = Q \\Lambda Q^\\top$:\n\n$$A^2 = (Q \\Lambda Q^\\top)(Q \\Lambda Q^\\top) = Q \\Lambda (Q^\\top Q) \\Lambda Q^\\top = Q \\Lambda^2 Q^\\top$$\n\nThe key: $Q^\\top Q = I$ (orthogonality) collapses the middle factors. By induction:\n\n$$A^k = Q \\Lambda^k Q^\\top$$\n\nRaising a diagonal matrix to a power is trivial — just raise each diagonal entry: $\\Lambda^k = \\text{diag}(\\lambda_1^k, \\ldots, \\lambda_n^k)$.\n\nThis extends to any matrix function:\n- $A^{-1} = Q \\Lambda^{-1} Q^\\top = Q \\, \\text{diag}(1/\\lambda_1, \\ldots, 1/\\lambda_n) \\, Q^\\top$\n- $\\exp(A) = Q \\, \\text{diag}(e^{\\lambda_1}, \\ldots, e^{\\lambda_n}) \\, Q^\\top$\n- $\\sqrt{A} = Q \\, \\text{diag}(\\sqrt{\\lambda_1}, \\ldots, \\sqrt{\\lambda_n}) \\, Q^\\top$ (when all $\\lambda_i \\geq 0$)\n\nThis trick is used in second-order optimizers that need to compute things like $H^{-1/2}$ (the inverse square root of the Hessian) efficiently."
     },
@@ -90,17 +78,5 @@ export const eigendecompositionLearning = {
       correct: 2,
       explanation: "$A^k = (Q \\Lambda Q^\\top)^k = Q \\Lambda^k Q^\\top$, since $Q^\\top Q = I$ collapses all the middle factors. This makes matrix powers cheap: just raise the diagonal entries to the $k$-th power. The same trick gives $\\exp(A) = Q \\exp(\\Lambda) Q^\\top$ and $A^{-1} = Q \\Lambda^{-1} Q^\\top$ (when $A$ is invertible)."
     },
-    {
-      type: "info",
-      title: "Spectral Normalization: Controlling the Spectral Norm",
-      content: "A direct application of spectral theory is **spectral normalization**, which divides a weight matrix by its spectral norm:\n\n$$\\hat{W} = \\frac{W}{\\sigma_1(W)}$$\n\nThis guarantees $\\|\\hat{W}\\|_2 = 1$, meaning the layer's **Lipschitz constant** is bounded by 1. The Lipschitz constant of a function $f$ measures how much it can amplify small changes in input:\n\n$$\\|f(x) - f(y)\\| \\leq L \\|x - y\\|$$\n\nFor a linear map $f(x) = Wx$, the Lipschitz constant is exactly $\\|W\\|_2 = \\sigma_1(W)$.\n\nIn a deep network with $L$ layers, the global Lipschitz constant is at most the **product** of per-layer Lipschitz constants. If each layer has Lipschitz constant $\\leq 1$ (via spectral normalization), the whole network's Lipschitz constant is $\\leq 1$ — preventing gradient explosion regardless of depth."
-    },
-    {
-      type: "mc",
-      question: "**Spectral normalization** divides each weight matrix by its spectral norm: $\\hat{W} = W / \\sigma_1(W)$, ensuring $\\|\\hat{W}\\|_2 = 1$. Why does this stabilize training?",
-      options: ["It makes the weight matrices orthogonal, ensuring gradients neither grow nor shrink", "It ensures the Jacobian of each layer is an isometry, preserving exact gradient norms", "It makes the loss landscape convex by restricting the weight space to a convex set", "It bounds the Lipschitz constant of each linear layer to 1, preventing gradient explosion"],
-      correct: 3,
-      explanation: "For a linear map $x \\mapsto Wx$, the Lipschitz constant is exactly $\\|W\\|_2 = \\sigma_1(W)$. After spectral normalization, $\\|\\hat{W}x - \\hat{W}y\\|_2 \\leq \\|x - y\\|_2$ for all $x, y$ (1-Lipschitz). In a deep network, the global Lipschitz constant is at most the product of per-layer Lipschitz constants — spectral normalization keeps each factor $\\leq 1$, preventing gradient explosion through deep chains of linear layers."
-    }
   ]
 };

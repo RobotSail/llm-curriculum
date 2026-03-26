@@ -1,5 +1,6 @@
 import { svdLearning } from './focused-svd';
 import { eigendecompositionLearning } from './focused-eigendecomposition';
+import { spectralNormLearning } from './focused-spectral-norm';
 import { matrixCalculusLearning } from './focused-matrix-calculus';
 import { einsumLearning } from './focused-einsum';
 import { easyModule, hardModule } from './info-theory-f-divergences';
@@ -73,7 +74,7 @@ function markOptional(...mods) {
 // Registry: maps curriculum section IDs to available modules
 export const MODULES = {
   // Tier 0 — Prerequisites
-  "0.1": [matrixCalculusLearning, eigendecompositionLearning, svdLearning, einsumLearning],
+  "0.1": [matrixCalculusLearning, eigendecompositionLearning, spectralNormLearning, svdLearning, einsumLearning],
   "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
