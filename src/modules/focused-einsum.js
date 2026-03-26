@@ -38,8 +38,8 @@ export const einsumLearning = {
     {
       type: "mc",
       question: "What does `torch.einsum('ij,ij->', A, B)` compute, where $A$ and $B$ are matrices?",
-      options: ["The matrix product $AB$, a matrix", "The element-wise product $A \\odot B$, a matrix", "The sum of all elements of the element-wise product: $\\sum_{i,j} A_{ij} B_{ij}$, a scalar", "The trace of $A$, a scalar"],
-      correct: 2,
+      options: ["The matrix product $AB$, a matrix", "The element-wise product $A \\odot B$, a matrix", "The trace of $A$, a scalar", "The sum of all elements of the element-wise product: $\\sum_{i,j} A_{ij} B_{ij}$, a scalar"],
+      correct: 3,
       explanation: "Both $i$ and $j$ appear in the inputs but the output is empty (scalar), so both are summed over: $\\sum_{i,j} A_{ij} B_{ij}$. This is the Frobenius inner product of two matrices — element-wise multiply, then sum everything. It generalizes the vector dot product to matrices. This equals $\\text{tr}(A^\\top B)$."
     },
     {

@@ -25,11 +25,11 @@ export const residualStreamsLearning = {
       question: "A 48-layer network without residual connections has layer Jacobians with average spectral norm 0.95. What is the approximate magnitude of the gradient signal reaching layer 1 relative to layer 48?",
       options: [
         "About $0.95 \\times 48 \\approx 46$ — linear decay with depth, so the gradient is roughly half its original magnitude",
-        "About $0.95^{48} \\approx 0.085$ — the gradient is reduced to about 8.5% of its value at the last layer, making early-layer learning very slow",
         "About $0.95^{48} \\approx 0.085$, but adaptive optimizers like Adam fully compensate for this by normalizing per-parameter gradients, so it has no practical effect",
-        "Exactly $0.95$ regardless of depth, because each layer independently scales the gradient and the total effect is determined by the worst single layer"
+        "Exactly $0.95$ regardless of depth, because each layer independently scales the gradient and the total effect is determined by the worst single layer",
+        "About $0.95^{48} \\approx 0.085$ — the gradient is reduced to about 8.5% of its value at the last layer, making early-layer learning very slow"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The gradient magnitude scales as $\\prod_{j} \\|J_j\\| \\approx 0.95^{47} \\approx 0.085$. This is the vanishing gradient problem: even with spectral norms close to 1, the exponential product over many layers causes severe attenuation. Adam helps by adapting per-parameter (dividing by $\\sqrt{v_t}$), but it cannot fully compensate — if the raw gradient is near zero, Adam's estimate of $v_t$ is also near zero, and the ratio can be noisy or unstable. Residual connections are the structural solution."
     },
     // Step 3: Residual connections
@@ -62,12 +62,12 @@ export const residualStreamsLearning = {
       type: "mc",
       question: "In the residual stream view, the final output is $x_{\\text{final}} = x_0 + \\sum_l \\text{attn}_l(\\cdot) + \\sum_l \\text{ffn}_l(\\cdot)$. If you could ablate (set to zero) the contribution of a single attention head in layer 10, what would happen?",
       options: [
-        "All subsequent layers would receive corrupted input, causing a cascade of failures that completely destroys the model's output quality",
         "Only the direct effect of that head is removed from the final output, but indirect effects (where later layers used that head's output) would also be affected — both direct and indirect contributions are lost",
+        "All subsequent layers would receive corrupted input, causing a cascade of failures that completely destroys the model's output quality",
         "Nothing would change because individual attention heads have negligible impact — the model has hundreds of heads and is robust to single-head removal",
         "Only the output of layer 10 changes — layers 11+ are computed from scratch using the new residual stream and are unaffected by the original head's contribution"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Ablating a head removes two types of contribution: (1) its **direct effect** — what it wrote to the stream that the final projection reads, and (2) its **indirect effects** — what later sub-layers read from the stream that included that head's contribution. A head that computes useful features may be relied upon by FFN layers in later blocks. In practice, importance varies enormously: some heads have large direct and indirect effects (e.g., induction heads), while others can be removed with minimal impact. This is the basis for attention head pruning."
     },
     // Step 7: Layer Normalization
@@ -120,11 +120,11 @@ export const residualStreamsLearning = {
       question: "A researcher trains two identical 48-layer transformers: one with Pre-LN and one with Post-LN. Both use the same hyperparameters — peak learning rate $3 \\times 10^{-4}$, cosine schedule, NO warmup. What outcome is most likely?",
       options: [
         "Both models train stably because 48 layers is below the critical depth threshold where Pre-LN and Post-LN diverge in behavior, which only matters above 100 layers",
-        "The Pre-LN model trains stably while the Post-LN model likely diverges in the first few hundred steps due to gradient instability, since Post-LN requires warmup to handle the poorly conditioned early gradients",
         "The Post-LN model converges to a better final loss because Post-LN provides stronger normalization at every step, and the lack of warmup only affects training speed, not final quality",
-        "Both models diverge because $3 \\times 10^{-4}$ is too high for any 48-layer model without warmup, regardless of normalization placement"
+        "Both models diverge because $3 \\times 10^{-4}$ is too high for any 48-layer model without warmup, regardless of normalization placement",
+        "The Pre-LN model trains stably while the Post-LN model likely diverges in the first few hundred steps due to gradient instability, since Post-LN requires warmup to handle the poorly conditioned early gradients"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "This is the key practical difference. Pre-LN was specifically shown by Xiong et al. (2020) to remove the need for learning rate warmup. The clean gradient path through the unnormalized residual stream provides stable gradients from the start. Post-LN routes gradients through LayerNorm operations at every step, and in early training — when activations are poorly conditioned — this can cause gradient explosions. Without warmup, the Post-LN model is very likely to diverge. The $3 \\times 10^{-4}$ learning rate is typical for LLM training but too aggressive for Post-LN without warmup."
     }
   ]

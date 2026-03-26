@@ -43,11 +43,11 @@ export const nextTokenPredictionLearning = {
       question: "A language model achieves a cross-entropy loss of 2.5 nats per token on a validation set. The true entropy of the language (an unknown constant) is approximately 1.5 nats per token. What is the KL divergence $D_{\\text{KL}}(p_{\\text{data}} \\| p_\\theta)$?",
       options: [
         "4.0 nats — the KL divergence is the sum of cross-entropy and entropy",
-        "1.0 nat — since $H(p_{\\text{data}}, p_\\theta) = H(p_{\\text{data}}) + D_{\\text{KL}}$, we get $D_{\\text{KL}} = 2.5 - 1.5 = 1.0$",
+        "Cannot be determined — the KL divergence depends on the full distribution, not just the per-token cross-entropy",
         "0.6 nats — the KL divergence is the ratio $H(p_{\\text{data}}) / H(p_{\\text{data}}, p_\\theta) = 1.5 / 2.5$",
-        "Cannot be determined — the KL divergence depends on the full distribution, not just the per-token cross-entropy"
+        "1.0 nat — since $H(p_{\\text{data}}, p_\\theta) = H(p_{\\text{data}}) + D_{\\text{KL}}$, we get $D_{\\text{KL}} = 2.5 - 1.5 = 1.0$"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "From the decomposition $H(p_{\\text{data}}, p_\\theta) = H(p_{\\text{data}}) + D_{\\text{KL}}(p_{\\text{data}} \\| p_\\theta)$, the KL divergence is simply the gap between cross-entropy and entropy: $D_{\\text{KL}} = 2.5 - 1.5 = 1.0$ nat per token. This means the model wastes on average 1.0 nat per token due to its imperfect modeling. In practice we cannot measure $H(p_{\\text{data}})$ directly, but we know that as the model improves, its cross-entropy approaches the true entropy from above. The lower bound $H(p_{\\text{data}})$ is never reached because language has irreducible uncertainty."
     },
     // Step 5: What the model actually computes
