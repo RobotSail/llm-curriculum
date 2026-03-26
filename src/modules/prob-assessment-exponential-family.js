@@ -85,6 +85,30 @@ export const exponentialFamilyAssessment = {
       options: ["Gradient descent on the log-likelihood directly, using automatic differentiation to handle the log-sum-exp and its derivatives without any special treatment", "Grid search over all parameter values in a discretized space, evaluating the likelihood at each grid point to find the global maximum by exhaustive enumeration", "Gibbs sampling from the joint posterior over parameters and latent assignments, producing a Markov chain whose stationary distribution is the exact posterior", "The EM (Expectation-Maximization) algorithm, which alternates between computing posterior cluster assignments (E-step) and updating parameters to maximize expected complete-data log-likelihood (M-step)"],
       correct: 3,
       explanation: "EM handles the intractable log-sum by introducing latent variables $z$ (cluster assignments). The E-step computes $q(z) = P(z \\mid x, \\theta^{\\text{old}})$, and the M-step maximizes $\\mathbb{E}_q[\\log p(x, z \\mid \\theta)]$. Each iteration is guaranteed to increase the log-likelihood. EM is a special case of variational inference where the E-step is exact."
+    },
+    {
+      type: "mc",
+      question: "A researcher fits a Poisson regression (an exponential family GLM) to predict token counts per document. The model's predicted mean is $\\hat{\\mu} = \\exp(\\mathbf{w}^\\top \\mathbf{x})$. Why is the exponential link function $\\exp(\\cdot)$ the **canonical** choice for the Poisson family?",
+      options: [
+        "The exponential ensures predicted counts are always positive, which is the only reason it's used — any monotonic positive function would work equally well for optimization",
+        "The canonical link maps the linear predictor directly to the natural parameter $\\eta = \\mathbf{w}^\\top \\mathbf{x} = \\log \\mu$, making the sufficient statistic appear linearly in the log-likelihood and simplifying the gradient to $\\nabla \\ell = \\sum_i (y_i - \\hat{\\mu}_i)\\mathbf{x}_i$",
+        "The exponential link is required by the Neyman-Pearson lemma for hypothesis testing in count data, ensuring the test statistic has the correct null distribution",
+        "The canonical link ensures the Fisher information matrix equals the identity, which makes stochastic gradient descent converge at the optimal rate without preconditioning"
+      ],
+      correct: 1,
+      explanation: "For exponential families, the canonical link maps the linear predictor to the natural parameter: $\\eta = g(\\mu) = \\mathbf{w}^\\top \\mathbf{x}$. For Poisson, $\\eta = \\log \\mu$, so $\\mu = \\exp(\\eta)$. This isn't just about positivity — the canonical link makes the gradient take the elegant form $(y - \\hat{\\mu})\\mathbf{x}$, analogous to the gradient of cross-entropy loss for logistic regression. Non-canonical links work but produce more complex gradients and can have less favorable optimization geometry."
+    },
+    {
+      type: "mc",
+      question: "A language model's softmax output defines a categorical distribution (exponential family). During training, the model sees 1000 sequences where token $w_5$ appears as the correct next token 300 times. At convergence, what does the moment-matching property of MLE predict about the model's average predicted probability for $w_5$ at those positions?",
+      options: [
+        "Exactly 0.3 — moment matching forces the model's average predicted probability to equal the empirical frequency, though individual predictions will vary based on context",
+        "Strictly greater than 0.3 — the softmax can never assign zero probability to any token, so probability mass from rare tokens inflates the predictions for common ones",
+        "Approximately 0.3 but systematically lower due to the softmax normalization constraint, which redistributes some probability mass to unseen tokens in the vocabulary",
+        "The MLE property only constrains the logits, not the probabilities — so the predicted probability for $w_5$ is determined entirely by the model architecture and cannot be characterized analytically"
+      ],
+      correct: 0,
+      explanation: "MLE moment matching requires $\\mathbb{E}_{\\hat{\\theta}}[T(x)] = \\frac{1}{n}\\sum_i T(x_i)$. For a categorical distribution, the sufficient statistic for token $w_k$ is the indicator $\\mathbf{1}[x = w_k]$. Moment matching says the model's average predicted probability for $w_k$ (across training examples where it's the target) equals the empirical frequency. So $\\frac{1}{1000}\\sum_{i} \\hat{P}(w_5 \\mid x_i) \\approx 300/1000 = 0.3$ at convergence. Individual predictions vary with context, but they average to the empirical rate."
     }
   ]
 };

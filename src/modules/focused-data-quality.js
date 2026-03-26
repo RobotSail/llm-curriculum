@@ -55,10 +55,10 @@ export const dataQualityLearning = {
       type: "mc",
       question: "A perplexity filter trained on Wikipedia text is applied to a web crawl. Which of the following documents is MOST likely to be incorrectly filtered out (false positive)?",
       options: [
-        "A well-written news article about climate policy, since news prose is stylistically similar to Wikipedia's encyclopedic tone",
-        "A forum thread where experts debate the nuances of quantum computing, since it uses technical vocabulary the reference model recognizes",
-        "An auto-generated product listing with specs and prices, since it contains factual information similar to Wikipedia tables",
-        "A transcript of a casual podcast interview with informal speech, interruptions, and sentence fragments — high-quality content in a very different register from Wikipedia"
+        "A well-written news article about climate policy, since news prose uses a formal register that differs substantially from Wikipedia's encyclopedic conventions",
+        "A forum thread where domain experts debate quantum computing, since multi-speaker dialogue with nested quotes deviates from single-author encyclopedia structure",
+        "An auto-generated product listing with specifications and prices, since tabular commercial data has a very different token distribution from prose paragraphs",
+        "A transcript of a casual podcast interview with informal speech, interruptions, and sentence fragments that look unlike encyclopedic prose to the reference model"
       ],
       correct: 3,
       explanation: "The podcast transcript is high-quality content but has high perplexity under a Wikipedia-trained model because its language distribution (informal, fragmented, conversational) is very different from encyclopedic prose. The reference model assigns low probability to sentence fragments, filler words, and conversational structures, inflating perplexity regardless of content quality. This is the fundamental limitation of perplexity filtering: it measures stylistic similarity to the reference, not intrinsic quality."
@@ -123,10 +123,10 @@ export const dataQualityLearning = {
       type: "mc",
       question: "A model scores 92% on a popular benchmark. Investigation reveals that 15% of the benchmark's test questions appear verbatim in the training data. A colleague argues: \"85% of questions are uncontaminated, and the model still scores well on those, so the contamination doesn't matter.\" What is the flaw in this reasoning?",
       options: [
-        "The flaw is that 92% accuracy is impossible to achieve even with contamination, suggesting a measurement error in the contamination detection",
-        "The flaw is that contamination effects are binary — either the entire benchmark is valid or none of it is, with no middle ground",
-        "The flaw is that memorizing 15% of answers inflates the score by up to 15 percentage points AND the remaining 85% may be indirectly contaminated through shared source material, discussion posts, or paraphrased versions not caught by exact matching",
-        "The flaw is that the 15% contaminated questions are likely the easiest ones, so removing them would not change the overall score significantly"
+        "The 92% accuracy exceeds what contamination alone could produce, which means the contamination detection method has a high false-positive rate and the actual contamination level is much lower",
+        "Contamination effects are all-or-nothing — if any questions are contaminated, the entire benchmark must be discarded because partial validity is statistically incoherent",
+        "The contaminated 15% inflates the raw score, and the remaining 85% may suffer indirect contamination from benchmark discussions, solution walkthroughs, or paraphrased versions that exact matching misses",
+        "The 15% contaminated questions are disproportionately the easiest ones, so the model would have answered them correctly anyway and removing them would barely change the score"
       ],
       correct: 2,
       explanation: "Two issues: (1) Direct contamination inflates the score — the model may get those 15% correct through memorization rather than understanding, boosting the raw score. (2) More critically, the 85% \"uncontaminated\" questions may have indirect contamination: discussions of the benchmark, solution walkthroughs, or paraphrased versions in the training data that exact-match detection doesn't catch. The absence of exact matches does NOT guarantee the model hasn't seen related content. This is why contamination undermines the entire benchmark, not just the directly affected questions."

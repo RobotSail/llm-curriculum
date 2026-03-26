@@ -87,6 +87,18 @@ export const appliedInfoTheoryAssessment = {
       options: ["Clipping the log-probabilities to a minimum threshold value, preventing any single token from contributing more than a bounded amount to the total", "Using float64 instead of float32 for all intermediate computations, which provides sufficient dynamic range to avoid underflow in most practical cases", "Working in **log-space throughout** — using the log-sum-exp trick for normalization and accumulating log-probabilities additively, avoiding underflow from multiplying small values", "Truncating sequences to a fixed maximum length, ensuring the accumulated log-probability sum never exceeds the representable range of the floating-point format"],
       correct: 2,
       explanation: "Direct computation of $P(y|x) = \\prod_t P(y_t | y_{<t}, x)$ would underflow to zero for long sequences (multiplying many numbers < 1). Instead, we compute $\\log P(y|x) = \\sum_t \\log P(y_t | y_{<t}, x)$, keeping everything in log-space. The log-sum-exp trick $\\log \\sum_i e^{a_i} = A + \\log \\sum_i e^{a_i - A}$ (where $A = \\max_i a_i$) handles the softmax normalization. This is a universal pattern: always work in log-probability space."
+    },
+    {
+      type: "mc",
+      question: "Two LLMs are combined via **ensemble averaging**: $P_{\\text{ens}}(w) = \\frac{1}{2}[P_A(w) + P_B(w)]$. Compared to the individual models, the ensemble's entropy $H(P_{\\text{ens}})$ satisfies:",
+      options: [
+        "$H(P_{\\text{ens}}) = \\frac{1}{2}H(P_A) + \\frac{1}{2}H(P_B)$ — entropy is a linear function of the distribution, so the ensemble entropy equals the average of the individual entropies",
+        "$H(P_{\\text{ens}}) \\leq \\min(H(P_A), H(P_B))$ — mixing distributions always sharpens the result because the models reinforce each other's confident predictions",
+        "$H(P_{\\text{ens}}) \\geq \\frac{1}{2}H(P_A) + \\frac{1}{2}H(P_B)$ — entropy is concave, so the mixture has at least as much entropy as the average, with equality only when $P_A = P_B$",
+        "$H(P_{\\text{ens}}) = H(P_A) + H(P_B)$ — the entropies add because the ensemble considers the joint uncertainty of both models' predictions"
+      ],
+      correct: 2,
+      explanation: "Entropy is a concave function of the distribution: $H(\\sum_i \\lambda_i P_i) \\geq \\sum_i \\lambda_i H(P_i)$, with equality iff all $P_i$ are identical. Intuitively, mixing two different distributions creates more uncertainty than either alone — even if both models are confident, they may be confident about different tokens, so the mixture spreads mass. The gap $H(P_{\\text{ens}}) - \\frac{1}{2}[H(P_A) + H(P_B)]$ is exactly the Jensen-Shannon divergence $\\text{JSD}(P_A \\| P_B)$, quantifying how much the models disagree."
     }
   ]
 };

@@ -73,10 +73,10 @@ export const loraLearning = {
       type: "mc",
       question: "What would happen if both $A$ and $B$ were initialized randomly (instead of $B = 0$)?",
       options: [
-        "Training would fail completely because the random $BA$ product creates a rank-deficient Jacobian that blocks gradient flow through the adapted layers",
-        "The model would start with a random perturbation $\\Delta W = BA \\neq 0$ applied to the pretrained weights, potentially degrading the pretrained model's behavior at the start of training and requiring the optimizer to first undo the damage before learning useful adaptations",
-        "Performance would be identical because AdamW's momentum quickly corrects any initialization-dependent effects within the first few hundred steps",
-        "The model would converge faster because random initialization breaks symmetry between the rows of $B$ and columns of $A$, allowing each rank-1 component to specialize immediately"
+        "Training would fail entirely because the random $BA$ product creates a rank-deficient Jacobian that blocks gradient flow through the adapted layers permanently",
+        "The random $BA \\neq 0$ would corrupt pretrained representations from step 0, forcing the optimizer to waste early training undoing random damage before learning the task",
+        "Performance would be identical because AdamW's momentum corrects any initialization-dependent effects within the first few hundred optimization steps regardless",
+        "The model would converge faster because random $B$ breaks symmetry between rank-1 components, letting each component specialize toward different adaptation directions immediately"
       ],
       correct: 1,
       explanation: "With random $B$, the product $BA$ would be a random matrix added to $W_0$, corrupting the pretrained representations from step 0. The optimizer would need to spend early training steps undoing this random corruption before making useful task-specific updates. With $B = 0$, training starts from the exact pretrained model and every gradient step moves toward the task — no wasted compute fixing initialization damage. Empirically, $B = 0$ consistently outperforms random initialization."

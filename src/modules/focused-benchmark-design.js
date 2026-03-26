@@ -21,12 +21,12 @@ export const benchmarkDesignLearning = {
       type: "mc",
       question: "A team develops a new LLM and reports state-of-the-art perplexity on a held-out web corpus. Users report that its generated text is less coherent and useful than a competitor with higher perplexity. What best explains this discrepancy?",
       options: [
-        "Perplexity measures how well the model predicts the held-out data distribution, which may not reflect generation quality — a model can achieve low perplexity by being conservative (assigning moderate probability to many tokens) without producing coherent long-form text",
-        "The held-out corpus is contaminated with training data, artificially lowering the measured perplexity without improving true capability",
-        "Perplexity is computed on random token-level predictions and has no mathematical relationship to text generation quality",
-        "The users are biased toward the competitor's brand and are not evaluating output quality objectively"
+        "The held-out corpus is contaminated with training data, artificially deflating perplexity without any real improvement in the model's language capabilities",
+        "Perplexity measures token-level prediction with ground-truth prefixes, so a model can score well by hedging across tokens without producing coherent long-form text",
+        "Low perplexity always guarantees high generation quality, so the users must be evaluating the competitor's outputs using flawed subjective criteria",
+        "Perplexity penalizes models that commit to specific continuations, so the better-generating competitor is penalized for its more decisive token predictions"
       ],
-      correct: 0,
+      correct: 1,
       explanation: "Perplexity measures next-token prediction quality on held-out text, which is necessary but not sufficient for good generation. A model can achieve low perplexity by hedging — assigning reasonable probability to many plausible continuations without committing to coherent long-form structure. Generation quality depends on maintaining topic consistency, avoiding repetition, and producing informative content over hundreds of tokens — properties that token-level perplexity does not directly measure."
     },
     {
@@ -72,10 +72,10 @@ export const benchmarkDesignLearning = {
       type: "mc",
       question: "Model A scores 65% on a reasoning benchmark with zero-shot prompting and 82% with chain-of-thought prompting. Model B scores 75% zero-shot and 78% with chain-of-thought. A leaderboard ranks Model B higher based on zero-shot scores. What should we conclude?",
       options: [
-        "Model B is genuinely better — zero-shot evaluation is the fairest comparison because it requires no prompt engineering tricks",
-        "Model A is genuinely better — chain-of-thought scores reflect true capability, and the 82% vs 78% gap shows Model A has stronger reasoning that zero-shot evaluation fails to elicit",
-        "Neither comparison is valid — the 17-point gap for Model A suggests its chain-of-thought scores are inflated by prompt overfitting rather than genuine reasoning",
-        "The ranking depends on the use case — if users will prompt carefully, Model A is better; the zero-shot ranking reflects out-of-the-box usability while chain-of-thought reflects peak capability"
+        "Model B is genuinely better because zero-shot evaluation removes the confound of prompt engineering skill, providing a more controlled and reproducible comparison of raw model capability",
+        "Model A is genuinely better because chain-of-thought scores measure the model's full reasoning depth, and the 82% vs 78% gap reveals latent capability that zero-shot fails to elicit",
+        "Neither score is informative because the 17-point chain-of-thought gain for Model A indicates prompt overfitting — genuine reasoning improvements produce smaller, more consistent gains across evaluation methods",
+        "Both rankings are valid for different contexts: zero-shot measures out-of-the-box usability while chain-of-thought measures peak elicited capability, so the better model depends on deployment scenario"
       ],
       correct: 3,
       explanation: "Both rankings are valid but measure different things. Zero-shot measures out-of-the-box usability — how well the model performs with minimal user effort. Chain-of-thought measures peak elicited capability. Model A has higher ceiling but lower floor. The right comparison depends on the deployment context: an API serving expert prompters should use chain-of-thought rankings; a consumer product should weight zero-shot performance. A 17-point CoT improvement is within normal range and doesn't indicate overfitting."
@@ -89,10 +89,10 @@ export const benchmarkDesignLearning = {
       type: "mc",
       question: "Over 3 years, the top score on a popular LLM benchmark rises from 45% to 94%. The benchmark creators note that the questions haven't changed and contamination checks show no direct leakage. Does this prove that LLMs have dramatically improved in the capability the benchmark measures?",
       options: [
-        "Yes — if contamination checks pass and the questions are unchanged, score improvements must reflect genuine capability gains across all models tested",
-        "Not necessarily — indirect contamination (training on similar content, format-specific optimization, data mixing tuned to benchmark domains) can inflate scores without direct leakage, and Goodhart's Law suggests the metric has become less reliable as a target",
-        "No — benchmark scores are entirely unreliable once models exceed 80% accuracy, so the 94% score is meaningless and should be discarded",
-        "Yes — but only if the benchmark uses randomized question ordering and answer positions to prevent positional memorization"
+        "Yes — passing contamination checks with unchanged questions rules out all forms of benchmark gaming, so the score improvements must reflect proportional gains in the underlying capability",
+        "Partially — some gains are genuine capability improvements, but indirect contamination (benchmark-adjacent training data, format-specific tuning, domain-weighted data mixing) likely inflates scores beyond true progress",
+        "No — once a benchmark becomes a widely-tracked target, Goodhart's Law renders it completely uninformative, so the 94% score tells us nothing about the model's actual capability level",
+        "Yes — contamination is the only mechanism by which benchmark scores can mislead, and since direct leakage has been ruled out, the scores faithfully track the capability they were designed to measure"
       ],
       correct: 1,
       explanation: "Score improvements likely reflect a mix of genuine capability gains AND benchmark-specific optimization. Contamination checks only catch direct leakage — they miss indirect contamination (training on text discussing the benchmark, optimizing data mix for benchmark-relevant domains, format-specific fine-tuning). As the benchmark becomes a target, an increasing fraction of score gains come from optimization rather than capability. The scores are not meaningless, but they overestimate true improvement. This is why the community continuously develops new benchmarks."
@@ -123,10 +123,10 @@ export const benchmarkDesignLearning = {
       type: "mc",
       question: "A team deploys an LLM that scores 90% on a medical knowledge benchmark. In production, doctors report that the model gives dangerously wrong advice roughly 30% of the time on their specific queries. What is the most likely explanation?",
       options: [
-        "The benchmark is flawed and its scores are meaningless — a 90% score should not be interpreted as any indication of medical capability",
-        "The model has degraded since the benchmark was run due to concept drift in the model weights over time",
-        "Distribution shift between benchmark questions (clean, textbook-style, multiple-choice) and real clinical queries (complex, multi-condition, requiring nuanced judgment and caveats) makes the 90% score a poor predictor of deployment reliability",
-        "The doctors are using the model incorrectly — with proper prompting, the model would achieve close to 90% accuracy on their queries as well"
+        "The benchmark is fundamentally flawed in its question design, so the 90% score never measured medical knowledge in the first place and cannot predict any real-world outcome",
+        "The model's weights have degraded since the benchmark evaluation due to catastrophic forgetting triggered by continued serving of non-medical queries over time",
+        "Distribution shift between clean multiple-choice benchmark questions and complex real clinical queries means the 90% score measures textbook recall, not the clinical reasoning doctors need",
+        "The doctors are prompting the model suboptimally — with the same few-shot format used in the benchmark evaluation, the model would achieve close to 90% on their clinical queries"
       ],
       correct: 2,
       explanation: "Medical benchmarks test textbook knowledge in clean multiple-choice format. Real clinical queries involve complex patient histories, interacting conditions, ambiguous symptoms, and the need for appropriate hedging and referral recommendations. The model may have the factual knowledge (reflected in the 90% score) but fail at the reasoning and judgment required for real clinical scenarios. This is a classic distribution shift problem — the benchmark measures a necessary but insufficient component of the actual deployment task."
