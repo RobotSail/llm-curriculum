@@ -99,6 +99,9 @@ import { batchSizeScalingLearning } from './focused-batch-size-scaling';
 import { secondOrderMethodsLearning } from './focused-second-order-methods';
 import { emaAveragingLearning } from './focused-ema-averaging';
 import { constitutionalAILearning } from './focused-constitutional-ai';
+import { fisherInformationLearning } from './focused-fisher-information';
+import { fisherInformationMatrixLearning } from './focused-fisher-information-matrix';
+import { fisherInformationAssessment } from './assess-fisher-information';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -134,12 +137,16 @@ export const MODULES = {
     // 6. Bayesian & sampling methods
     bayesianAssessment,
     samplingAssessment,
-    // 7. Advanced — label smoothing, calibration, variational bounds
+    // 7. Fisher Information
+    fisherInformationLearning,
+    fisherInformationMatrixLearning,
+    fisherInformationAssessment,
+    // 8. Advanced — label smoothing, calibration, variational bounds
     labelSmoothingLearning,
     calibrationLearning,
     hardModule,
     appliedInfoTheoryAssessment,
-    // 8. Optional deep theory
+    // 9. Optional deep theory
     ...markOptional(exponentialFamilyAssessment),
     ...markOptional(concentrationAssessment),
   ],
