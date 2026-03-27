@@ -82,10 +82,10 @@ export const layerNormalizationLearning = {
       options: [
         "Both models train stably because 48 layers is below the critical depth threshold where Pre-LN and Post-LN diverge in behavior, which only matters above 100 layers",
         "The Post-LN model converges to a better final loss because Post-LN provides stronger normalization at every step, and the lack of warmup only affects training speed, not final quality",
-        "The Pre-LN model trains stably while the Post-LN model likely diverges in the first few hundred steps due to gradient instability, since Post-LN requires warmup to handle the poorly conditioned early gradients",
-        "Both models diverge because $3 \\times 10^{-4}$ is too high for any 48-layer model without warmup, regardless of normalization placement"
+        "Both models diverge because $3 \\times 10^{-4}$ is too high for any 48-layer model without warmup, regardless of normalization placement",
+        "The Pre-LN model trains stably while the Post-LN model likely diverges in the first few hundred steps due to gradient instability, since Post-LN requires warmup to handle the poorly conditioned early gradients"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "This is the key practical difference. Xiong et al. (2020) showed that Pre-LN removes the need for learning rate warmup. The clean gradient path through the unnormalized residual stream provides stable gradients from the start. Post-LN routes gradients through LayerNorm operations at every step, and in early training \u2014 when activations are poorly conditioned \u2014 this can cause gradient explosions. Without warmup, the Post-LN model is very likely to diverge. The $3 \\times 10^{-4}$ learning rate is typical for LLM training but too aggressive for Post-LN without warmup."
     },
     // Step 9: Pre-LN residual growth and the final norm

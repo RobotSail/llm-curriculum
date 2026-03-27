@@ -24,11 +24,11 @@ export const residualConnectionsLearning = {
       question: "A 48-layer network without residual connections has layer Jacobians with average spectral norm 0.95. What is the approximate magnitude of the gradient signal reaching layer 1 relative to layer 48?",
       options: [
         "About $0.95 \\times 48 \\approx 46$ \u2014 linear decay with depth, so the gradient is roughly half its original magnitude",
-        "About $0.95^{48} \\approx 0.085$, but adaptive optimizers like Adam fully compensate for this by normalizing per-parameter gradients, so it has no practical effect",
         "About $0.95^{48} \\approx 0.085$ \u2014 the gradient is reduced to about 8.5% of its value at the last layer, making early-layer learning very slow",
+        "About $0.95^{48} \\approx 0.085$, but adaptive optimizers like Adam fully compensate for this by normalizing per-parameter gradients, so it has no practical effect",
         "Exactly $0.95$ regardless of depth, because each layer independently scales the gradient and the total effect is determined by the worst single layer"
       ],
-      correct: 2,
+      correct: 1,
       explanation: "The gradient magnitude scales as $\\prod_{j} \\|J_j\\| \\approx 0.95^{47} \\approx 0.085$. This is the vanishing gradient problem: even with spectral norms close to 1, the exponential product over many layers causes severe attenuation. Adam helps by adapting per-parameter (dividing by $\\sqrt{v_t}$), but it cannot fully compensate \u2014 if the raw gradient is near zero, Adam's estimate of $v_t$ is also near zero, and the ratio can be noisy or unstable. Residual connections are the structural solution."
     },
     // Step 3: Residual connections
@@ -63,10 +63,10 @@ export const residualConnectionsLearning = {
       options: [
         "Training would proceed normally because the optimizer's learning rate already controls the magnitude of each layer's contribution, making the initialization scaling redundant",
         "The model would converge to a worse final loss but training would be stable, because residual connections still guarantee gradient flow regardless of activation magnitude",
-        "Activations in later layers would be $\\sim\\!11\\times$ larger than expected, likely causing overflow in float16, NaN losses, and immediate training divergence",
-        "Only the first layer would be affected since subsequent layers normalize their inputs, preventing any accumulation of magnitude across the network"
+        "Only the first layer would be affected since subsequent layers normalize their inputs, preventing any accumulation of magnitude across the network",
+        "Activations in later layers would be $\\sim\\!11\\times$ larger than expected, likely causing overflow in float16, NaN losses, and immediate training divergence"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Without the $1/\\sqrt{2L} = 1/\\sqrt{128} \\approx 0.088$ scaling, each sub-layer contributes full-variance outputs. With 128 sub-layers, the residual stream variance grows to $\\sim\\!128\\times$ the per-layer variance, meaning activations are $\\sqrt{128} \\approx 11\\times$ larger than intended. In float16 (max representable value $\\approx 65504$), this can cause overflow, especially after the softmax in attention or in the output logits. Even in float32, the large activations can make the initial loss enormous, producing gradient explosions in the first backward pass."
     },
     // Step 7: The residual stream
@@ -81,11 +81,11 @@ export const residualConnectionsLearning = {
       question: "In the residual stream view, the final output is $x_{\\text{final}} = x_0 + \\sum_l \\text{attn}_l(\\cdot) + \\sum_l \\text{ffn}_l(\\cdot)$. If you could ablate (set to zero) the contribution of a single attention head in layer 10, what would happen?",
       options: [
         "All subsequent layers would receive corrupted input, causing a cascade of failures that completely destroys the model's output quality",
-        "Nothing would change because individual attention heads have negligible impact \u2014 the model has hundreds of heads and is robust to single-head removal",
         "Only the direct effect of that head is removed from the final output, but indirect effects (where later layers used that head's output) would also be affected \u2014 both direct and indirect contributions are lost",
+        "Nothing would change because individual attention heads have negligible impact \u2014 the model has hundreds of heads and is robust to single-head removal",
         "Only the output of layer 10 changes \u2014 layers 11+ are computed from scratch using the new residual stream and are unaffected by the original head's contribution"
       ],
-      correct: 2,
+      correct: 1,
       explanation: "Ablating a head removes two types of contribution: (1) its **direct effect** \u2014 what it wrote to the stream that the final projection reads, and (2) its **indirect effects** \u2014 what later sub-layers read from the stream that included that head's contribution. A head that computes useful features may be relied upon by FFN layers in later blocks. In practice, importance varies enormously: some heads have large direct and indirect effects (e.g., induction heads), while others can be removed with minimal impact. This is the basis for attention head pruning."
     },
     // Step 9: Residual connections enable compositionality

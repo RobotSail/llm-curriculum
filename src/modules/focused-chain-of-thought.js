@@ -24,12 +24,12 @@ export const chainOfThoughtLearning = {
       type: "mc",
       question: "A 32-layer transformer is asked to solve a problem requiring 5 sequential reasoning steps. Without chain-of-thought, the model must fit all 5 steps into one forward pass. With CoT, the model writes each step as a token sequence before producing the answer. Why does this help?",
       options: [
-        "Each generated token triggers a full forward pass through all 32 layers, and the result is fed back as input — so 5 generated reasoning steps give the model $5 \\times 32 = 160$ effective layers of sequential computation",
+        "CoT works by increasing the model's parameter count at inference time through dynamic layer duplication for each reasoning step",
         "CoT tokens activate specialized reasoning circuits in the attention heads that are dormant during standard generation, enabling deeper processing within the same number of layers",
         "The additional tokens increase the sequence length, which expands the attention window and allows the model to attend to more context simultaneously",
-        "CoT works by increasing the model's parameter count at inference time through dynamic layer duplication for each reasoning step"
+        "Each generated token triggers a full forward pass through all 32 layers, and the result is fed back as input — so 5 generated reasoning steps give the model $5 \\times 32 = 160$ effective layers of sequential computation"
       ],
-      correct: 0,
+      correct: 3,
       explanation: "Each generated token requires a full autoregressive forward pass through all $L$ layers. The output token is appended to the input for the next generation step. So $T$ reasoning tokens give $T \\times L$ total sequential computation, with each step conditioned on all previous results. This is the **scratchpad hypothesis**: intermediate tokens serve as external working memory, allowing the model to decompose multi-step problems into a sequence of single-step computations, each within its $O(L)$ budget."
     },
     // Step 3: Few-shot CoT
@@ -100,12 +100,12 @@ export const chainOfThoughtLearning = {
       type: "mc",
       question: "An LLM is tested on two tasks: (1) multi-digit multiplication ($347 \\times 829$) and (2) translating common English phrases to French. On task 1, CoT improves accuracy from 12% to 68%. On task 2, CoT decreases accuracy from 94% to 91%. What explains this asymmetry?",
       options: [
-        "Multi-digit multiplication requires sequential carry operations that exceed single-pass depth, while translation is a parallel mapping that the model already handles within its layer budget",
+        "The multiplication improvement comes from the model using a different algorithm (long multiplication) that it can only access through CoT prompting",
         "CoT is specifically designed for mathematical operations and has no benefit for language tasks — the prompting format is incompatible with translation",
         "The translation task has a larger training data representation, so the model memorized more translation pairs and doesn't need additional computation",
-        "The multiplication improvement comes from the model using a different algorithm (long multiplication) that it can only access through CoT prompting"
+        "Multi-digit multiplication requires sequential carry operations that exceed single-pass depth, while translation is a parallel mapping that the model already handles within its layer budget"
       ],
-      correct: 0,
+      correct: 3,
       explanation: "Multiplication requires a chain of sequential operations (multiply digits, carry, accumulate) that exceed what 32-100 layers can compute in one pass. CoT externalizes these steps. Translation of common phrases is a well-learned mapping that the model executes comfortably within its layer budget — each input-output pair is a parallel lookup rather than a sequential computation. Adding reasoning steps to translation introduces unnecessary processing that can perturb the model's confident direct mapping, slightly degrading accuracy."
     },
     // Step 11: Faithfulness
