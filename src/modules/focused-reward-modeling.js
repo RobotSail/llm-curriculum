@@ -62,10 +62,10 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "During RM training, a pair $(y_w, y_l)$ has current rewards $r(y_w) = 0.5$ and $r(y_l) = 2.0$ — the model incorrectly ranks the rejected response higher. What is the magnitude of the gradient error signal $\\sigma(r_l - r_w) = \\sigma(1.5)$?",
       options: [
-        "Near zero ($\\approx 0.02$), because the sigmoid saturates for large inputs and produces vanishing gradients",
-        "Exactly $0.5$, because the sigmoid always outputs $0.5$ when the model is uncertain",
-        "Exactly $1.0$, because any incorrect ranking produces the maximum possible gradient signal",
-        "Near $0.82$, because $\\sigma(1.5) \\approx 0.82$ — the model gets a strong corrective gradient since it has the ranking wrong"
+        "Near zero ($\\approx 0.02$), because the sigmoid saturates for inputs of this magnitude and produces a vanishing gradient signal",
+        "Exactly $0.5$, because the model is maximally uncertain whenever it has the ranking wrong by any margin",
+        "Exactly $1.0$, because any incorrect ranking always produces the maximum possible gradient correction signal",
+        "Near $0.82$, because $\\sigma(1.5) \\approx 0.82$ — the wrong ranking produces a strong corrective gradient"
       ],
       correct: 3,
       explanation: "The error signal is $\\sigma(r_l - r_w) = \\sigma(2.0 - 0.5) = \\sigma(1.5) \\approx 0.82$. Since the model ranks the pair incorrectly (rejected response has higher reward), the error signal is large — close to 1 — producing a strong gradient that pushes $r(y_w)$ up and $r(y_l)$ down. If the model had the ranking correct with $r(y_w) \\gg r(y_l)$, then $\\sigma(r_l - r_w)$ would be close to 0 and the gradient would be small. This natural curriculum effect is a key property of the loss."
@@ -81,10 +81,10 @@ export const rewardModelingLearning = {
       type: "mc",
       question: "The reward model uses the same pretrained transformer backbone as the policy but replaces the language modeling head with a scalar head. A colleague suggests using the **average** of all token hidden states instead of just the last token's hidden state $h_T$. What is the main risk of this approach?",
       options: [
-        "Averaging dilutes the response signal with prompt tokens — the reward should primarily reflect response quality, but the prompt tokens (which are identical for both $y_w$ and $y_l$) dominate the average and wash out differences between responses",
-        "Average pooling produces a vector outside the distribution of individual token representations, causing the linear head to extrapolate to an untrained region of its input space",
-        "The averaged hidden state has lower L2 norm than individual token states, so the scalar output $r = w^\\top \\bar{h} + b$ is compressed toward zero and loses discriminative power",
-        "Averaging all token states increases the computational cost from $O(d)$ to $O(Td)$ per reward computation, where $T$ is sequence length, making RM training prohibitively expensive"
+        "Averaging dilutes the response signal with prompt tokens — the prompt is identical for $y_w$ and $y_l$, so it dominates the average and washes out the response differences that carry preference information",
+        "Average pooling produces a vector outside the distribution of individual token representations, causing the linear scalar head to extrapolate into an untrained region of its input space where predictions are unreliable",
+        "The averaged hidden state has a lower L2 norm than individual token states, so the scalar output $r = w^\\top \\bar{h} + b$ is compressed toward zero and loses the dynamic range needed to discriminate preferences",
+        "Averaging all token states increases the computational cost from $O(d)$ to $O(Td)$ per reward computation, where $T$ is the full sequence length, making RM training substantially more expensive per example"
       ],
       correct: 0,
       explanation: "When scoring $(x, y_w)$ vs $(x, y_l)$, the prompt $x$ is identical in both cases. An average over all token positions mixes prompt representations (which are the same) with response representations (which differ). If the prompt is long relative to the response, the average is dominated by the shared prompt signal, and the difference $r(x, y_w) - r(x, y_l)$ becomes tiny. Using the last token's hidden state focuses on the final representation, which has attended to the full sequence through causal attention and is most influenced by the response content."

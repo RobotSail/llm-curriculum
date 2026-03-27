@@ -73,9 +73,9 @@ export const dataQualityLearning = {
       question: "A heuristic filter removes documents where fewer than 20% of words are common English stop words (\"the\", \"is\", \"of\", etc.). Which legitimate document type is MOST likely to be incorrectly caught by this filter?",
       options: [
         "A structured data table listing country populations and GDP figures, where most tokens are proper nouns and numbers rather than function words",
-        "A literary essay using sophisticated vocabulary, since advanced English prose naturally reduces stop-word frequency below 20%",
-        "A children's book, since simplified language uses a smaller vocabulary with higher stop-word density",
-        "A scientific paper abstract, since academic writing follows standard English grammar with typical stop-word rates"
+        "A literary essay using sophisticated vocabulary and complex sentence structures, since advanced English prose naturally reduces stop-word frequency below the 20% threshold",
+        "A children's book with simplified language and short sentences, since a smaller working vocabulary produces higher stop-word density that easily clears the filter",
+        "A scientific paper abstract discussing experimental methods and results, since academic writing follows standard English grammar patterns with typical stop-word rates"
       ],
       correct: 0,
       explanation: "Structured data tables consist primarily of proper nouns, numbers, and column headers — very few function words like \"the\" or \"is\". The stop-word percentage would be far below 20%, triggering the filter despite the data being potentially useful. Literary essays, children's books, and scientific abstracts all use standard English grammar where function words appear at roughly normal rates (typically 25-35% of tokens). This illustrates why heuristic filters need exceptions for specific content types."

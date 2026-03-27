@@ -79,10 +79,10 @@ export const zeroFsdpLearning = {
       type: "mc",
       question: "ZeRO Stage 3 / FSDP requires $3\\Psi$ bytes of communication per GPU per step, compared to $2\\Psi$ for standard DDP. Where does the extra $\\Psi$ come from?",
       options: [
-        "The optimizer update in Stage 3 requires an additional all-reduce to reconcile the sharded master weights across GPUs before the next forward pass can begin",
-        "Stage 3 uses FP32 for gradient communication instead of FP16, doubling the gradient transfer cost from $\\Psi$ to $2\\Psi$ and adding $\\Psi$ net overhead",
-        "The extra $\\Psi$ is overhead from redundant checksum verification that FSDP performs to ensure sharded parameters are correctly reconstructed after each all-gather",
-        "Parameters must be all-gathered twice (once in forward, once in backward) instead of being locally available, adding $2\\Psi$ of all-gathers while replacing the $2\\Psi$ all-reduce with a $\\Psi$ reduce-scatter"
+        "The optimizer update in Stage 3 requires an additional all-reduce to reconcile the sharded master weights across GPUs, adding $\\Psi$ bytes of synchronization before the next forward pass",
+        "Stage 3 uses FP32 for gradient communication instead of FP16, doubling the gradient transfer volume from $\\Psi$ to $2\\Psi$ bytes and adding $\\Psi$ net overhead to the total",
+        "The extra $\\Psi$ comes from redundant checksum verification that FSDP runs on reconstructed parameters after each all-gather, adding a full parameter-sized transfer per verification step",
+        "Parameters must be all-gathered twice (forward and backward) for $2\\Psi$, while the gradient all-reduce ($2\\Psi$) is replaced by a reduce-scatter ($\\Psi$), netting $+\\Psi$"
       ],
       correct: 3,
       explanation: "In DDP, parameters are replicated so no parameter communication is needed — only the $2\\Psi$ gradient all-reduce. In Stage 3, parameters are sharded and must be reconstructed via all-gather before each use: once in the forward pass ($\\Psi$) and once in the backward pass ($\\Psi$). Gradients use a reduce-scatter ($\\Psi$) instead of a full all-reduce ($2\\Psi$). Total: $\\Psi + \\Psi + \\Psi = 3\\Psi$, which is $1.5\\times$ the DDP cost of $2\\Psi$. The extra $\\Psi$ is the net cost of the two parameter all-gathers minus the savings from using reduce-scatter instead of all-reduce for gradients."
@@ -117,10 +117,10 @@ export const zeroFsdpLearning = {
       type: "mc",
       question: "A team has 8 A100 80 GB GPUs and wants to train a 13B model. With ZeRO Stage 1, per-GPU model state is $4 \\times 13 + 12 \\times 13 / 8 = 71.5$ GB, leaving 8.5 GB free. What is the practical concern, and which stage addresses it?",
       options: [
-        "8.5 GB is insufficient for storing the model's embedding table, which at 13B parameters requires at least 20 GB — Stage 3 is needed to shard the embeddings across GPUs",
-        "8.5 GB leaves no room for activation memory during the forward pass — even with aggressive activation checkpointing, a 13B model needs 15-30 GB for activations, so Stage 2 ($\\sim$49 GB model state) provides adequate headroom",
-        "8.5 GB is more than enough for activations since activation checkpointing reduces memory to under 1 GB — the real concern is that Stage 1's all-gather adds 50% communication overhead, which Stage 2 eliminates",
-        "8.5 GB is insufficient for the CUDA context and kernel workspace allocations, which typically require 10-15 GB — Stage 3 at $16 \\times 13 / 8 = 26$ GB per GPU is the minimum viable option"
+        "8.5 GB is insufficient for the embedding table alone — at 13B parameters the embedding requires at least 20 GB of dedicated memory, so Stage 3 is needed to shard embeddings across GPUs and free space",
+        "8.5 GB leaves no room for activation memory — even with activation checkpointing a 13B model needs 15-30 GB for activations, so Stage 2 at $\\sim$49 GB model state frees adequate headroom",
+        "8.5 GB is more than enough since activation checkpointing reduces memory to under 1 GB — the real concern is Stage 1's all-gather adds 50% communication overhead, and Stage 2 eliminates that cost",
+        "8.5 GB is insufficient for CUDA context and kernel workspace allocations, which typically require 10-15 GB — Stage 3 at $16 \\times 13 / 8 = 26$ GB per GPU is the minimum viable option"
       ],
       correct: 1,
       explanation: "The 8.5 GB headroom must accommodate activation memory (intermediate tensors saved for backpropagation), CUDA context overhead (~1-2 GB), and any temporary buffers. For a 13B model with reasonable batch sizes and sequence lengths, activation memory typically requires 15-30 GB even with activation checkpointing. With only 8.5 GB free, training would either fail with out-of-memory errors or require impractically small batch sizes. Stage 2 reduces per-GPU model state to approximately $2 \\times 13 + 14 \\times 13 / 8 \\approx 49$ GB, leaving ~31 GB for activations — comfortable headroom. Stage 2 adds no communication overhead versus Stage 1, making it the right incremental step."
