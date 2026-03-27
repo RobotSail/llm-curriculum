@@ -46,7 +46,11 @@ import { probingAssessment } from './assess-probing';
 import { mechInterpAssessment } from './assess-mech-interp';
 import { trainingInterpAssessment } from './assess-training-dynamics-interp';
 import { formalTheoryAssessment } from './assess-formal-theory';
-import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
+import { peftAssessment } from './assess-peft';
+import { memoryEfficientAssessment } from './assess-memory-efficient';
+import { hardwareAwareAssessment } from './assess-hardware-aware';
+import { optimizationAssessment } from './assess-optimization';
+import { systemsAssessment } from './assess-systems';
 
 // Focused first-principles modules
 import { forwardKLLearning, reverseKLLearning } from './focused-kl-divergence';
