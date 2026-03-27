@@ -19,12 +19,12 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "AdamW maintains per-parameter moment estimates for gradient scaling. What structural information does this approach ignore about transformer weight matrices?",
       options: [
-        "The sparsity pattern of the weight matrix after training converges",
-        "The relationship between rows and columns of the gradient, which correspond to input and output representation directions",
-        "The total number of parameters in each layer of the network",
-        "The learning rate schedule applied across different training phases"
+        "The sparsity pattern that emerges in the weight matrix as training converges toward a local minimum",
+        "The total number of parameters allocated to each transformer layer, which affects relative gradient magnitudes",
+        "The learning rate schedule and its interaction with momentum across the different phases of training",
+        "The relationship between rows and columns of the gradient, which correspond to input and output representation directions"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "AdamW treats each parameter independently — it scales $G_{ij}$ based only on the history of that single entry. It ignores the fact that rows and columns of a weight gradient correspond to directions in the input and output representation spaces, meaning the gradient has matrix-level structure that element-wise processing discards."
     },
     {
@@ -36,10 +36,10 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "Steepest descent under the spectral norm replaces the gradient $G = U\\Sigma V^T$ with the update $UV^T$. What is the geometric effect of discarding $\\Sigma$?",
       options: [
-        "It makes the update sparse by zeroing out small singular values below a threshold",
-        "It rescales the gradient so its Frobenius norm matches the learning rate exactly",
-        "It equalizes the contribution of all singular value directions, preventing dominant directions from receiving disproportionately large updates",
-        "It projects the gradient onto the nearest low-rank approximation of the weight matrix"
+        "It makes the update sparse by zeroing out small singular values that fall below a learned threshold criterion",
+        "It rescales the gradient so that the Frobenius norm of the update matches the target learning rate exactly",
+        "It equalizes all singular value directions, preventing dominant directions from receiving disproportionately large updates",
+        "It projects the gradient onto the nearest low-rank approximation that best fits the current weight matrix"
       ],
       correct: 2,
       explanation: "The SVD decomposes $G$ into orthogonal directions weighted by singular values $\\sigma_i$. Setting all $\\sigma_i = 1$ (i.e., using $UV^T$) means every direction gets equal update magnitude. Without this, gradient descent would move mostly along the top singular directions while neglecting smaller but potentially important ones."
@@ -53,12 +53,12 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "Muon uses 5 iterations of a Newton-Schulz polynomial to approximate $UV^T$. Why is this preferred over computing the exact SVD of the gradient?",
       options: [
-        "The SVD is numerically unstable for matrices with repeated singular values, which gradients commonly have",
-        "Newton-Schulz iterations only require matrix multiplications, which are highly optimized on GPU hardware, while SVD requires sequential eigenvalue solvers",
-        "The SVD cannot handle non-square matrices, and transformer weight gradients are typically rectangular",
-        "Newton-Schulz iterations produce a better conditioned update than the exact SVD in the presence of gradient noise"
+        "Newton-Schulz iterations only require matrix multiplications, which map efficiently onto GPU hardware, while SVD requires sequential eigenvalue solvers",
+        "The SVD is numerically unstable for matrices with repeated singular values, a condition that gradient matrices commonly exhibit during training",
+        "The SVD cannot handle non-square matrices without expensive padding, and transformer weight gradients are typically rectangular in shape",
+        "Newton-Schulz iterations produce a better conditioned orthogonal update than exact SVD when applied in the presence of stochastic gradient noise"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The NS iteration consists entirely of matrix multiplications (GEMMs), which are the most optimized operations on modern GPUs. Full SVD requires iterative eigenvalue algorithms that are inherently more sequential and less GPU-friendly. SVD can handle rectangular matrices and is numerically stable — the advantage is purely computational efficiency."
     },
     {
@@ -70,12 +70,12 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "Shampoo preconditions gradients using running covariance matrices $L$ and $R$. Muon's orthogonalization $UV^T$ can be related to Shampoo by noting that $UV^T = G(G^TG)^{-1/2}$. What is the key practical difference?",
       options: [
-        "Muon converges to a sharper minimum because it uses the exact inverse rather than an approximation",
-        "Shampoo requires maintaining and periodically inverting large covariance matrices, while Muon only needs the current momentum-buffered gradient and a few NS iterations",
-        "Muon applies preconditioning along both the left and right dimensions simultaneously, while Shampoo only preconditions along one dimension",
-        "Shampoo cannot be distributed across multiple GPUs because the covariance matrices must be stored on a single device"
+        "Shampoo requires maintaining and periodically inverting large covariance matrices, while Muon only needs the current momentum-buffered gradient",
+        "Muon converges to a sharper minimum because it computes the exact matrix inverse rather than using a running approximation",
+        "Muon applies preconditioning along both the left and right dimensions simultaneously, while Shampoo only preconditions one dimension",
+        "Shampoo cannot be distributed across multiple GPUs because the covariance matrices must reside together on a single device"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Muon's main practical advantage is simplicity: it needs no running covariance estimates, no periodic matrix inversions, and no eigenbasis tracking. It just takes the current momentum-buffered gradient and orthogonalizes it via NS iterations. Shampoo achieves similar goals but with substantially more memory and bookkeeping overhead."
     },
     {
@@ -87,12 +87,12 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "A transformer has an attention projection matrix of shape $768 \\times 64$ and an MLP weight of shape $768 \\times 3072$. Under Muon, how do the spectral norms of these two layers' updates compare before the learning rate is applied?",
       options: [
-        "The MLP update has a larger spectral norm because the matrix has more parameters and thus a larger gradient",
-        "Both updates have spectral norm exactly 1, since orthogonalization normalizes all singular values regardless of matrix shape",
-        "The attention update has a larger spectral norm because the aspect ratio of the matrix amplifies small singular values more",
-        "The relative spectral norms depend on the batch size and cannot be determined from matrix shape alone"
+        "The MLP update has a larger spectral norm because the matrix contains more parameters and accumulates a larger gradient",
+        "The attention update has a larger spectral norm because the extreme aspect ratio of the matrix amplifies small singular values",
+        "The relative spectral norms depend on the batch size used during training and cannot be determined from matrix shape alone",
+        "Both updates have spectral norm exactly 1, since orthogonalization normalizes all singular values regardless of matrix shape"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "After orthogonalization, the update is $UV^T$ which has all singular values equal to 1, so $\\|UV^T\\|_\\sigma = 1$ regardless of the original matrix shape or gradient magnitude. This gives Muon automatic per-layer normalization — both the $768 \\times 64$ and $768 \\times 3072$ layers receive updates with identical spectral norms."
     },
     {
@@ -104,10 +104,10 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "A 7B parameter transformer is trained with AdamW, requiring roughly 14B floats of optimizer state (first + second moments). If switched to Muon (with Adam only on the ~2% of parameters that are 1D), approximately how much optimizer state memory is needed?",
       options: [
-        "About 14B floats — Muon needs the same two moments but computes them differently",
-        "About 7.3B floats — one momentum buffer for the 98% of parameters using Muon, plus two moments for the 2% using Adam",
-        "About 3.5B floats — Muon uses half-precision momentum while Adam uses full-precision moments",
-        "About 21B floats — Muon adds a third buffer for the Newton-Schulz intermediate states"
+        "About 14B floats — Muon still needs two moment buffers per parameter but computes them using a different algorithm",
+        "About 7.3B floats — one momentum buffer for the 98% using Muon, plus two moment buffers for the 2% using Adam",
+        "About 3.5B floats — Muon stores momentum in half-precision format while Adam retains its moments in full precision",
+        "About 21B floats — Muon adds a third persistent buffer to store the Newton-Schulz iteration intermediate states"
       ],
       correct: 1,
       explanation: "Muon needs 1 momentum buffer for the ~98% of parameters it handles: $0.98 \\times 7B = 6.86B$ floats. For the ~2% using Adam: $0.02 \\times 7B \\times 2 = 0.28B$ floats. Total: ~7.14B floats, roughly half of AdamW's 14B. The NS iteration intermediates are temporary and don't persist in optimizer state."
@@ -116,12 +116,12 @@ export const muonOptimizerFundamentals = {
       type: "mc",
       question: "In distributed training with data parallelism, gradient all-reduce must happen before Muon's Newton-Schulz iterations. Why can't the NS iterations be applied to gradient shards independently and then combined?",
       options: [
-        "The NS polynomial has nonlinear terms like $(XX^T)X$, so applying it to parts of $X$ and summing the results does not equal applying it to the sum",
-        "GPU memory constraints prevent storing the intermediate matrices on individual workers",
+        "GPU memory constraints on individual workers prevent storing the full intermediate matrices needed during the iteration",
         "The Newton-Schulz convergence rate depends on having the full gradient spectrum, which individual shards cannot provide",
-        "The communication bandwidth required for intermediate matrices exceeds the bandwidth for raw gradients"
+        "The NS polynomial has nonlinear terms like $(XX^T)X$, so applying it to shards and summing does not equal applying it to the full sum",
+        "The communication bandwidth required for the intermediate matrices exceeds the bandwidth needed for the raw gradient tensors"
       ],
-      correct: 0,
+      correct: 2,
       explanation: "The NS iteration applies polynomial functions involving $XX^T$ — these are nonlinear operations. For a nonlinear function $f$, $f(G_1 + G_2) \\neq f(G_1) + f(G_2)$ in general. So you must first sum (all-reduce) the gradient shards to get the full gradient $G$, then apply the NS iterations to $G$. This is a fundamental mathematical constraint, not a hardware limitation."
     }
   ]
