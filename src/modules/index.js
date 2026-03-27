@@ -31,8 +31,14 @@ import { sftAssessment, rewardModelingAssessment, rlhfAssessment, directAlignmen
 import { scalingLawsAssessment, architectureAssessment, dataCentricAssessment, trainingDynamicsAssessment, novelObjectivesAssessment } from './assess-branch-b';
 import { quantizationAssessment, decodingAssessment, servingAssessment, compressionAssessment, cotAssessment, testTimeComputeAssessment, toolUseAssessment, agenticAssessment } from './assess-branch-cd';
 import { quantizationLearning } from './focused-quantization';
-import { vlmAssessment, imageGenAssessment, audioAssessment, videoAssessment } from './assess-branch-e';
-import { probingAssessment, mechInterpAssessment, trainingInterpAssessment, formalTheoryAssessment } from './assess-branch-f';
+import { vlmAssessment } from './assess-vlm';
+import { imageGenAssessment } from './assess-image-generation';
+import { audioAssessment } from './assess-audio-speech';
+import { videoAssessment } from './assess-video';
+import { probingAssessment } from './assess-probing';
+import { mechInterpAssessment } from './assess-mech-interp';
+import { trainingInterpAssessment } from './assess-training-dynamics-interp';
+import { formalTheoryAssessment } from './assess-formal-theory';
 import { peftAssessment, memoryEfficientAssessment, hardwareAwareAssessment, optimizationAssessment, systemsAssessment } from './assess-branch-g-and-tier0';
 
 // Focused first-principles modules
