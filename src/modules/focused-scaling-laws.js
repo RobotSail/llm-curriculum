@@ -21,10 +21,10 @@ export const scalingLawsLearning = {
       type: "mc",
       question: "A lab trains models at 5 different compute budgets spanning $10^{18}$ to $10^{22}$ FLOPs and plots loss vs. compute on a log-log scale. They observe a straight line. This implies the relationship between loss and compute is:",
       options: [
-        "Linear — each doubling of compute gives a constant absolute loss reduction",
+        "Linear — $L \\propto -C$, each doubling of compute gives a constant absolute loss reduction, implying fixed marginal returns regardless of current scale",
         "A power law — $L \\propto C^{-\\alpha}$ for some exponent $\\alpha$, meaning each doubling of compute gives a constant fractional reduction in reducible loss",
-        "Exponential — loss decreases exponentially with compute, meaning returns accelerate at larger scales",
-        "Logarithmic — loss decreases as $\\log C$, meaning returns diminish faster than a power law"
+        "Exponential — $L \\propto e^{-\\alpha C}$, loss decreases exponentially with compute, meaning returns actually accelerate at larger scales",
+        "Logarithmic — $L \\propto -\\log C$, loss decreases as the log of compute, meaning returns diminish significantly faster than a power law"
       ],
       correct: 1,
       explanation: "A straight line on a log-log plot is the signature of a power law: $\\log L = -\\alpha \\log C + \\text{const}$, which gives $L \\propto C^{-\\alpha}$. Each doubling of compute multiplies the reducible loss by $2^{-\\alpha}$ — a constant fractional (not absolute) reduction. This means diminishing absolute returns but smooth, predictable improvement."
@@ -140,10 +140,10 @@ export const scalingLawsLearning = {
       type: "mc",
       question: "A 3B model scores 2% on a math benchmark (exact-match accuracy), while a 30B model scores 45%. This looks like a sharp \"emergent\" capability. Schaeffer et al. (2023) would most likely explain this as:",
       options: [
-        "A real discontinuity — mathematical reasoning requires a critical mass of parameters that the 3B model lacks",
-        "The 30B model was trained on math-specific data that the 3B model didn't see, so it's a data effect rather than a scaling effect",
+        "A real discontinuity — mathematical reasoning requires a critical mass of parameters to represent multi-step logical chains, and the 3B model falls below this threshold",
+        "The 30B model was trained on math-specific data that the 3B model didn't see, making this a data composition effect rather than a genuine scaling effect",
         "The metric artifact explanation: the 3B model's per-token probabilities for math are only slightly worse, but exact-match magnifies this into 2% vs 45% because partial credit is impossible",
-        "Random variation — with different random seeds, the 3B model might also score 45%"
+        "Random variation — with different random seeds and initialization, the 3B model might also reach 45% since small models have high variance across training runs"
       ],
       correct: 2,
       explanation: "Exact-match accuracy is a hard threshold: the model must get every token in the answer correct. If the per-token accuracy is 90%, a 10-token answer has only $0.9^{10} \\approx 35\\%$ exact-match probability. At 80% per-token: $0.8^{10} \\approx 10\\%$. At 70%: $0.7^{10} \\approx 3\\%$. The difference between 70% and 90% per-token accuracy is modest, but exact-match amplifies it from 3% to 35%. The improvement is smooth at the token level; the metric creates the sharp transition."
