@@ -94,6 +94,7 @@ import { dataMixingLearning } from './focused-data-mixing';
 import { kvCacheLearning } from './focused-kv-cache';
 import { testTimeComputeLearning } from './focused-test-time-compute';
 import { lrSchedulesLearning } from './focused-lr-schedules';
+import { gradientClippingLearning } from './focused-gradient-clipping';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -106,7 +107,7 @@ function markOptional(...mods) {
 export const MODULES = {
   // Tier 0 — Prerequisites
   "0.1": [matrixCalculusLearning, eigendecompositionLearning, positiveDefinitenessLearning, spectralNormLearning, svdLearning, einsumLearning],
-  "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, lrSchedulesLearning, muonOptimizerFundamentals],
+  "0.3": [optimizationAssessment, adamLearning, weightDecayLearning, gradientClippingLearning, lrSchedulesLearning, muonOptimizerFundamentals],
   "0.4": [systemsAssessment],
   "0.2": [
     // 1. Foundations — gauge starting level

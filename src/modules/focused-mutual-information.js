@@ -30,7 +30,7 @@ export const mutualInformationLearning = {
     {
       type: "mc",
       question: "A summary $Z = f(X)$ is a deterministic function of $X$. Can $I(X; Z)$ be zero?",
-      options: ["Yes — if $f$ is a constant function that maps every input to the same value, then $I(X; Z) = 0$", "No — any deterministic function of $X$ always preserves at least some information about $X$", "Yes — if $f$ is a non-invertible function, the MI is always exactly zero", "It depends on the dimensionality of $Z$ relative to the dimensionality of $X$"],
+      options: ["Yes — if $f$ is a constant function that maps every input to the same output value", "No — any deterministic function of $X$ always preserves at least some information about $X$", "Yes — if $f$ is a non-invertible function then the mutual information is always exactly zero", "It depends on the dimensionality of $Z$ relative to the dimensionality of $X$"],
       correct: 0,
       explanation: "$I(X; Z) = 0$ requires $X \\perp Z$, meaning $Z$ carries no information about $X$. For a deterministic $Z = f(X)$, this happens only if $f$ is constant — $Z$ takes the same value regardless of input. Any non-constant deterministic function has $I(X; Z) > 0$, because knowing $Z$ eliminates at least some uncertainty about $X$. A non-invertible function that maps different inputs to different outputs would still have positive MI."
     },
@@ -97,7 +97,7 @@ export const mutualInformationLearning = {
     {
       type: "mc",
       question: "A deterministic function $Z = f(X)$ maps a high-dimensional input $X$ to a high-dimensional output $Z$, with true MI $I(X; Z) = 200$ bits. Why is reliably estimating this MI value fundamentally hard?",
-      options: ["Reliable MI estimation requires sample complexity that grows exponentially with the true MI value", "MI is not well-defined for continuous random variables and requires discretization to compute", "Deterministic functions always have infinite MI, so the estimate would diverge", "The MI between high-dimensional variables is always zero due to the curse of dimensionality"],
+      options: ["Reliable MI estimation requires sample complexity that grows exponentially with the true MI value", "MI is not well-defined for continuous random variables and requires discretization before computing", "Deterministic functions always have infinite MI, so any finite-sample estimate would necessarily diverge", "The MI between high-dimensional variables is always zero due to the curse of dimensionality in estimation"],
       correct: 0,
       explanation: "MI is well-defined for continuous variables (as a KL divergence between densities), but *estimating* it reliably is the problem. The McAllester-Statos impossibility result shows that any estimator providing a high-confidence lower bound needs exponentially many samples in the true MI. With true MI of 200 bits, the required sample size grows as $\\sim 2^{200}$ — astronomical. Even InfoNCE with batch size $N$ can only estimate up to $\\log N$ bits. This fundamental limitation means that high MI values in complex systems are essentially impossible to verify empirically."
     }

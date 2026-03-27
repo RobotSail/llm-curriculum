@@ -26,8 +26,8 @@ export const tensorParallelismLearning = {
       options: [
         "The ring all-reduce for gradient synchronization across 512 GPUs creates $O(N)$ latency that dominates over the $O(1/N)$ per-GPU compute, collapsing throughput",
         "Pure data parallelism requires a global batch size equal to the GPU count, and 512 samples per batch causes catastrophic convergence instability",
-        "Each GPU must hold the full model state — $(2 + 2 + 12) \\times 175 \\approx 2{,}800$ GB for fp16 params, gradients, and Adam state — far exceeding 80 GB",
-        "Data parallelism cannot scale beyond 64 GPUs because the ring all-reduce bandwidth cost grows linearly with GPU count past that threshold"
+        "Each GPU must hold the full model state — $(2+2+12) \\times 175 \\approx 2{,}800$ GB — far exceeding the 80 GB available per device",
+        "Data parallelism cannot scale beyond 64 GPUs because ring all-reduce bandwidth cost grows linearly with GPU count, saturating the interconnect past that point"
       ],
       correct: 2,
       explanation: "Pure data parallelism replicates the full model state on every GPU. With 175B parameters and Adam, each GPU needs $(2 + 2 + 12) \\times 175 \\approx 2{,}800$ GB — over 35x the 80 GB available. Adding more GPUs doesn't help because each one independently needs the full copy. The fundamental bottleneck is **memory per GPU**, not communication bandwidth or batch size constraints. This is the core motivation for model parallelism: distributing the model itself across devices."
@@ -62,10 +62,10 @@ export const tensorParallelismLearning = {
       type: "mc",
       question: "A training cluster has 8 GPUs per node connected by NVLink (600 GB/s) and nodes connected by InfiniBand (50 GB/s). Why must tensor-parallel GPUs be co-located within the same node?",
       options: [
-        "Tensor parallelism requires GPUs to share a unified memory address space, which is only possible with NVLink's memory-mapping capability",
-        "InfiniBand only supports point-to-point communication and cannot execute the collective all-reduce operations that tensor parallelism requires",
-        "NVLink's lower latency allows GPUs to synchronize their random number generators, which is essential for reproducible dropout in TP",
-        "Each transformer layer triggers multiple all-reduce operations transferring activation-sized tensors — the 12x bandwidth gap between NVLink and InfiniBand would make TP communication the dominant cost"
+        "Tensor parallelism requires GPUs to share a unified memory address space, which is only possible through NVLink's direct memory-mapping capability between devices",
+        "InfiniBand only supports point-to-point communication between nodes and cannot execute the collective all-reduce operations that tensor parallelism requires",
+        "NVLink's lower latency allows GPUs to synchronize their random number generators each step, which is essential for reproducible dropout masks in TP",
+        "Each transformer layer triggers multiple all-reduces transferring activation-sized tensors — the 12x NVLink-to-InfiniBand bandwidth gap would make TP communication dominant"
       ],
       correct: 3,
       explanation: "Tensor parallelism requires 4 all-reduce operations per transformer layer (2 forward, 2 backward), each moving tensors of size $O(s \\times d)$. For hidden dim $d = 8192$ and sequence length $s = 4096$, each all-reduce transfers tens of megabytes, repeated across every layer and every micro-batch. NVLink at 600 GB/s handles this with minimal overhead; InfiniBand at 50 GB/s (a 12x reduction) would turn these frequent all-reduces into a severe bottleneck, collapsing GPU utilization. The issue is bandwidth for high-frequency communication, not memory sharing or collective operation support."

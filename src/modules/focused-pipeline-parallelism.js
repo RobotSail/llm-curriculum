@@ -80,10 +80,10 @@ export const pipelineParallelismLearning = {
       type: "mc",
       question: "A pipeline with $P = 8$ stages and $M = 64$ micro-batches switches from GPipe to 1F1B scheduling. What changes?",
       options: [
-        "Bubble fraction drops from $22.6\\%$ to $11.1\\%$ because 1F1B overlaps forward and backward passes, but peak memory remains the same since the same total activations must be computed",
-        "Both bubble fraction and peak memory improve substantially — 1F1B achieves near-zero bubble by fully overlapping forward and backward computation on each GPU",
+        "Bubble fraction drops from $22.6\\%$ to $11.1\\%$ because 1F1B overlaps forward and backward passes, but peak activation memory stays the same since total activations computed are identical",
+        "Both bubble fraction and peak memory improve substantially — 1F1B achieves near-zero bubble by fully overlapping forward and backward computation on each individual GPU",
         "Peak memory drops from $O(M)$ to $O(P)$, but bubble fraction increases from $9.9\\%$ to $43.8\\%$ because interleaving forward and backward passes creates additional synchronization stalls",
-        "Peak activation memory drops from $O(M) = O(64)$ to $O(P) = O(8)$ because 1F1B releases activations during steady state, while the bubble fraction remains at $(P-1)/(M+P-1) \\approx 9.9\\%$ for both schedules"
+        "Peak activation memory drops from $O(M)$ to $O(P)$ since 1F1B releases activations during steady state, while bubble fraction stays at $(P-1)/(M+P-1) \\approx 9.9\\%$ for both"
       ],
       correct: 3,
       explanation: "1F1B and GPipe have the **same** bubble fraction: $(P-1)/(M+P-1) = 7/71 \\approx 9.9\\%$. The bubble depends on how many micro-batches fill the pipeline, not on the forward-backward ordering within the schedule. What changes is peak memory: GPipe stores all $M = 64$ micro-batches' activations during its all-forward phase, while 1F1B's steady-state interleaving means at most $P = 8$ micro-batches' activations are live simultaneously. This $8\\times$ memory reduction is 1F1B's key advantage and why it replaced GPipe in practice."
@@ -118,10 +118,10 @@ export const pipelineParallelismLearning = {
       type: "mc",
       question: "A 126-layer model uses $PP = 16$ with 1F1B scheduling and $M = 64$ micro-batches. The first and last pipeline stages include the embedding layer and language model head respectively, making them approximately $30\\%$ faster than the middle stages. What is the primary consequence?",
       options: [
-        "The theoretical bubble of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$ is achieved exactly, because 1F1B scheduling dynamically adjusts micro-batch routing to compensate for heterogeneous stage latencies",
-        "Training throughput improves by $30\\%$ overall because the faster first and last stages act as pipeline accelerators, pulling micro-batches through the system more quickly end-to-end",
-        "The model diverges because the faster stages apply optimizer updates before slower stages complete their backward passes, introducing stale parameter updates that compound across steps",
-        "The faster first and last stages idle while waiting for the slower middle stages, adding bubble time beyond the theoretical $15/79 \\approx 19\\%$ — the pipeline runs at the slowest stage's speed"
+        "The theoretical bubble of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$ is achieved exactly, because 1F1B dynamically adjusts micro-batch routing to compensate for heterogeneous stage latencies",
+        "Training throughput improves by $30\\%$ overall because the faster first and last stages act as pipeline accelerators, pulling micro-batches through the system more quickly",
+        "The model diverges because the faster stages apply optimizer updates before slower stages finish backward passes, introducing stale parameter updates that compound each step",
+        "The faster first and last stages idle waiting for slower middle stages, adding bubble time beyond the theoretical $15/79 \\approx 19\\%$ — the pipeline runs at the slowest stage's speed"
       ],
       correct: 3,
       explanation: "The pipeline moves at the speed of its **slowest stage**. When the first and last stages are $30\\%$ faster, they complete each micro-batch's computation sooner and then idle, waiting for middle stages to finish. This adds idle time on top of the theoretical bubble of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$. The 1F1B schedule cannot compensate — it determines the order of forward and backward passes, not their duration. In practice, teams address load imbalance by assigning fewer layers to stages that also handle embedding/LM head, or by profiling per-stage latencies and rebalancing. This load imbalance is one of the most significant practical challenges in deploying pipeline parallelism at scale."
