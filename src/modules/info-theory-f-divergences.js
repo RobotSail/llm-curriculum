@@ -146,10 +146,10 @@ export const hardModule = {
       type: "mc",
       question: "In the original GAN (JS divergence), when the discriminator becomes near-optimal and the generator distribution $Q_G$ has little overlap with the real distribution $P$, what happens to the generator's gradients?",
       options: [
-        "The gradients become large and unstable, causing the generator to overshoot and produce unrealistic samples",
-        "The gradients remain informative because JS divergence is bounded, so the generator can always improve",
+        "The gradients become large and unstable, causing the generator to overshoot and produce increasingly unrealistic samples each iteration",
+        "The gradients remain informative because JS divergence is bounded, so the generator always receives a useful learning signal",
         "The gradients vanish because JS divergence saturates at $\\log 2$ when distributions don't overlap, giving near-zero signal",
-        "The gradients oscillate between large positive and negative values, preventing convergence"
+        "The gradients oscillate between large positive and negative values, preventing the generator from converging to a stable solution"
       ],
       correct: 2,
       explanation: "When $P$ and $Q_G$ have disjoint supports, $\\text{JS}(P \\| Q_G) = \\log 2$ (its maximum). The discriminator achieves perfect classification, and $D(x) \\to 0$ for generated samples. The generator gradient $\\nabla_\\theta \\log(1 - D(G(z)))$ vanishes because $\\log(1 - D) \\to 0$ when $D \\to 0$. This **vanishing gradient** problem motivated Wasserstein GAN, which uses the Earth Mover's distance (not an f-divergence) to provide useful gradients even with non-overlapping supports."
@@ -165,8 +165,8 @@ export const hardModule = {
       options: [
         "Weight clipping biased the critic toward very simple functions (low capacity), providing weak gradients and slow convergence",
         "Weight clipping made the critic too powerful, causing it to memorize training examples rather than learn distributional structure",
-        "Weight clipping violated the Kantorovich-Rubinstein duality, making the Wasserstein estimate invalid",
-        "Weight clipping caused the critic to always output the same value regardless of input, making training impossible"
+        "Weight clipping violated the Kantorovich-Rubinstein duality conditions, producing systematically invalid Wasserstein distance estimates",
+        "Weight clipping caused the critic to always output the same value regardless of input, making training impossible to converge"
       ],
       correct: 0,
       explanation: "Clipping weights to $[-c, c]$ forces the critic to use only a small fraction of its capacity — it biases toward very simple, nearly linear functions. This means the critic provides **weak, uninformative gradients** to the generator. WGAN-GP (Gulrajani et al., 2017) replaced weight clipping with a **gradient penalty**: $\\lambda \\mathbb{E}_{\\hat{x}}[(\\|\\nabla_{\\hat{x}} T(\\hat{x})\\| - 1)^2]$, which directly enforces the Lipschitz constraint at interpolated points $\\hat{x}$ between real and generated samples. This allows the critic to use its full capacity while satisfying the constraint."
@@ -180,10 +180,10 @@ export const hardModule = {
       type: "mc",
       question: "You're designing a training objective for aligning a language model. You want the objective to (a) penalize the model for deviating from a reference distribution, and (b) provide informative gradients even when the model's distribution is far from the reference. Which approach best satisfies both requirements?",
       options: [
-        "Use reverse KL $\\text{KL}(\\pi \\| P_{\\text{ref}})$ with a Wasserstein regularizer — KL penalizes deviation while Wasserstein provides gradients in low-overlap regions",
-        "Use JS divergence — it's symmetric and bounded, so it handles both directions of mismatch equally",
-        "Use forward KL $\\text{KL}(P_{\\text{ref}} \\| \\pi)$ — it's mode-covering and always provides strong gradients when the model misses probability mass",
-        "Use chi-squared divergence — it directly measures importance sampling variance, which is the most relevant quantity for alignment"
+        "Combine reverse KL $\\text{KL}(\\pi \\| P_{\\text{ref}})$ with a Wasserstein regularizer — KL penalizes deviation, Wasserstein provides gradients in low-overlap regions",
+        "Use JS divergence $\\text{JS}(\\pi \\| P_{\\text{ref}})$ — it's symmetric and bounded, handling both directions of distributional mismatch equally well",
+        "Use forward KL $\\text{KL}(P_{\\text{ref}} \\| \\pi)$ — its mode-covering property ensures strong gradients whenever the model misses reference probability mass",
+        "Use chi-squared divergence $\\chi^2(\\pi \\| P_{\\text{ref}})$ — it directly measures importance weight variance, the most relevant quantity for alignment stability"
       ],
       correct: 0,
       explanation: "Forward KL satisfies (a) but can have infinite values that destabilize optimization. JS satisfies (b) via boundedness but actually *loses* gradient signal when distributions don't overlap (the vanishing gradient problem). Chi-squared is sensitive to density ratio variance but doesn't specifically address low-overlap gradients. Combining reverse KL (which directly penalizes the model for placing mass where the reference doesn't) with a Wasserstein term (which provides geometric gradient information even in low-overlap regimes) addresses both requirements. This hybrid approach reflects the general principle: different distances have complementary strengths, and practical objectives often combine them."

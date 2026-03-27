@@ -116,10 +116,10 @@ export const testTimeComputeLearning = {
       type: "mc",
       question: "Research shows that inference scaling laws for extended thinking (o1-style) exhibit different behavior from best-of-N scaling. Specifically, the relationship between thinking tokens and accuracy is:",
       options: [
-        "Strictly linear — each additional thinking token contributes a fixed marginal improvement until the problem is solved, with no diminishing returns",
-        "Exponentially decreasing — the first few thinking tokens provide nearly all the benefit, and extending reasoning beyond ~100 tokens is almost never worthwhile",
-        "Unpredictable and task-independent — the relationship between token count and accuracy varies randomly and cannot be characterized by any systematic pattern",
-        "S-shaped: minimal improvement during initial tokens (the model is \"setting up\"), rapid improvement during productive reasoning, then saturation as the model reaches its capability ceiling for that problem"
+        "Strictly linear — each additional thinking token contributes a fixed marginal improvement regardless of problem difficulty, with no diminishing returns observed empirically",
+        "Exponentially decreasing — the first few thinking tokens provide nearly all the benefit, and extending beyond ~100 tokens yields negligible gains across all task types",
+        "Unpredictable and task-independent — the relationship between token count and accuracy varies randomly, defying any systematic characterization across benchmarks",
+        "S-shaped — minimal improvement during initial setup tokens, rapid gains during productive reasoning, then saturation at the model's capability ceiling for that problem"
       ],
       correct: 3,
       explanation: "Extended thinking shows S-shaped (sigmoidal) scaling: the model needs some minimum number of tokens to \"understand\" the problem and set up its approach (low initial returns), then enters a productive phase where each additional step makes real progress (rapid improvement), then saturates as it either solves the problem or exhausts its effective strategies (diminishing returns). This differs from best-of-N's logarithmic scaling because sequential reasoning has dependencies between steps — early tokens enable later tokens to be more productive, creating the initial acceleration phase."

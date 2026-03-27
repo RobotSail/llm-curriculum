@@ -72,10 +72,10 @@ export const lrSchedulesLearning = {
       type: "mc",
       question: "A team is 80% through a cosine-decay training run when they receive additional compute and want to extend training by 50%. What is the core problem with their current schedule?",
       options: [
-        "Extending training beyond the original cosine period creates a discontinuity in the LR curve that causes immediate loss spikes and gradient instability",
-        "The model has already overfit to the training data by 80% of the run, so additional training regardless of schedule would only degrade generalization",
-        "The batch size must be simultaneously increased with the extended schedule, and the original cosine curve cannot accommodate both changes at once",
-        "The cosine schedule has already decayed the LR to near-minimum by 80% of the original budget, so the remaining 50% of training would occur at a nearly-zero learning rate with minimal progress"
+        "Extending beyond the original cosine period creates a discontinuity in the LR curve, causing immediate loss spikes and gradient instability that may not recover",
+        "The model has already overfit by 80% of the run, so additional training at any LR would only memorize noise and degrade generalization on held-out benchmarks",
+        "The batch size must be simultaneously increased to match the extended schedule, and the original cosine parameterization cannot accommodate both changes simultaneously",
+        "The cosine schedule has already decayed to near-minimum LR by 80%, so the extra 50% of training would all occur at near-zero learning rate with minimal progress"
       ],
       correct: 3,
       explanation: "At 80% of the original total steps, cosine decay has reduced the LR to approximately $\\alpha_{\\text{min}} + 0.1 \\cdot (\\alpha_{\\text{peak}} - \\alpha_{\\text{min}})$ — nearly at the minimum. The additional 50% of training steps would all occur at near-zero LR, wasting the extra compute. This is the inflexibility of cosine decay: the schedule is defined by the total step count, so extending the run provides almost no benefit. WSD avoids this by keeping LR at peak during the stable phase — the team would simply extend the stable phase and anneal when truly ready to stop."
