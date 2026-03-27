@@ -90,6 +90,7 @@ import { pipelineParallelismLearning } from './focused-pipeline-parallelism';
 import { zeroFsdpLearning } from './focused-zero-fsdp';
 import { mixtureOfExpertsLearning } from './focused-mixture-of-experts';
 import { chainOfThoughtLearning } from './focused-chain-of-thought';
+import { dataMixingLearning } from './focused-data-mixing';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -153,7 +154,7 @@ export const MODULES = {
   // Branch B — Pretraining & architecture research
   "B.1": [scalingLawsLearning, scalingLawsAssessment],
   "B.2": [mixtureOfExpertsLearning, architectureAssessment],
-  "B.3": [dataCentricAssessment],
+  "B.3": [dataMixingLearning, dataCentricAssessment],
   "B.4": [trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
 
