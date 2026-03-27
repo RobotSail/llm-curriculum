@@ -71,10 +71,10 @@ export const bayesianAssessment = {
       type: "mc",
       question: "The derivation of **DPO** (Direct Preference Optimization) starts from the KL-constrained RLHF objective and finds its closed-form optimal policy. The derivation critically uses:",
       options: [
-        "The Lagrangian dual of the KL constraint, yielding $\\pi^*(y|x) \\propto \\pi_{\\text{ref}}(y|x) \\exp(r(y,x)/\\beta)$ — a Gibbs/Boltzmann distribution where the partition function acts as a value function",
-        "Monte Carlo sampling of the reward function across multiple rollouts to estimate expected reward and its gradient with respect to the current policy's trainable parameters",
-        "The gradient of the JS divergence between the policy and reference distributions, which provides a symmetric and bounded training signal for stable policy optimization updates",
-        "The central limit theorem applied to token-level log-probabilities, allowing the sequence-level reward to be approximated as a Gaussian over individual token contributions"
+        "The Lagrangian dual of the KL constraint, yielding $\\pi^*(y|x) \\propto \\pi_{\\text{ref}}(y|x) \\exp(r(y,x)/\\beta)$ — a Gibbs/Boltzmann distribution with the partition function as a value function",
+        "Monte Carlo estimation via $\\hat{r} = \\frac{1}{N}\\sum_{i=1}^N r(y_i, x)$ with $y_i \\sim \\pi_\\theta$, using REINFORCE to differentiate through the sampling process",
+        "The JS divergence gradient $\\nabla_\\theta \\text{JS}(\\pi_\\theta \\| \\pi_{\\text{ref}}) = \\frac{1}{2}\\nabla_\\theta[\\text{KL}(\\pi_\\theta \\| M) + \\text{KL}(\\pi_{\\text{ref}} \\| M)]$ for symmetric bounded updates",
+        "The CLT applied to token-level log-ratios $\\sum_t \\log \\pi_\\theta(y_t|y_{<t}) / \\pi_{\\text{ref}}(y_t|y_{<t}) \\approx \\mathcal{N}(\\mu, \\sigma^2)$ for Gaussian reward approximation"
       ],
       correct: 0,
       explanation: "The RLHF objective $\\max_\\pi \\mathbb{E}[r] - \\beta \\text{KL}(\\pi \\| \\pi_{\\text{ref}})$ has the closed-form solution $\\pi^*(y|x) = \\frac{1}{Z(x)} \\pi_{\\text{ref}}(y|x) \\exp(r(y,x)/\\beta)$ where $Z(x) = \\sum_y \\pi_{\\text{ref}}(y|x) \\exp(r(y,x)/\\beta)$. This is derived by taking the functional derivative and solving. The key insight is rearranging to express $r$ in terms of $\\pi^*/\\pi_{\\text{ref}}$, then substituting into the Bradley-Terry preference model to eliminate the reward entirely."

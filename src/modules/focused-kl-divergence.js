@@ -69,12 +69,12 @@ export const forwardKLLearning = {
       type: "mc",
       question: "A researcher replaces their LLM's standard cross-entropy pretraining loss with a loss that minimizes $\\text{KL}(q_\\theta \\| p)$ instead. Compared to standard training, the resulting model would most likely:",
       options: [
-        "Learn a broader vocabulary but make more grammatical errors",
-        "Produce higher-perplexity text that covers more diverse topics",
-        "Generate more repetitive but higher-quality text by focusing on common patterns",
-        "Achieve identical performance since both KL directions are equivalent for training"
+        "Generate more repetitive but higher-quality text by focusing on the most common patterns in the data",
+        "Produce higher-perplexity text that covers more diverse topics and rare constructions uniformly",
+        "Learn a broader vocabulary but make more grammatical errors due to the reversed optimization target",
+        "Achieve identical performance since both KL directions converge to the same optimum at convergence"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Switching from $\\text{KL}(p \\| q_\\theta)$ (forward, mode-covering) to $\\text{KL}(q_\\theta \\| p)$ (reverse, mode-seeking) would make the model focus on confidently matching the highest-probability patterns rather than covering everything. This leads to more repetitive but locally higher-quality output. The two directions are NOT equivalent — this is the fundamental asymmetry of KL divergence."
     },
     {
@@ -86,12 +86,12 @@ export const forwardKLLearning = {
       type: "mc",
       question: "In the context of LLM pretraining, the oversmoothing problem caused by forward KL manifests as:",
       options: [
-        "The model assigns near-uniform probability across all tokens at every position",
-        "The model's per-token entropy is higher than the true distribution's entropy in contexts where few continuations are valid",
-        "The model consistently predicts the same token regardless of context",
-        "The model's loss converges to exactly $\\log(V)$ where $V$ is the vocabulary size"
+        "The model assigns near-uniform probability across all vocabulary tokens, failing to distinguish likely from unlikely continuations",
+        "The model consistently predicts the same high-frequency token regardless of input context, ignoring prompt information entirely",
+        "The model's training loss converges to exactly $\\log(V)$ where $V$ is vocabulary size, indicating no useful learning occurred",
+        "The model's per-token entropy exceeds the true distribution's entropy, spreading mass across too many tokens in constrained contexts"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Oversmoothing means the model's predicted distribution is broader than the true distribution — it assigns too much probability to incorrect tokens. This shows up as higher per-token entropy than the true distribution, especially in constrained contexts (like after 'The capital of France is' where only a few completions are valid). It does NOT converge to uniform ($\\log V$) — that would be zero learning. And it's the opposite of always predicting the same token."
     },
     {
@@ -103,12 +103,12 @@ export const forwardKLLearning = {
       type: "mc",
       question: "Why does RLHF use reverse KL ($\\text{KL}(\\pi_\\theta \\| \\pi_{\\text{ref}})$) rather than forward KL ($\\text{KL}(\\pi_{\\text{ref}} \\| \\pi_\\theta)$) as its penalty term?",
       options: [
-        "Reverse KL is computationally cheaper to estimate because its gradient involves fewer terms and avoids the log-partition function",
-        "Forward KL would require sampling from $\\pi_{\\text{ref}}$, but the RL loop generates samples from $\\pi_\\theta$, making reverse KL naturally estimable on-policy",
-        "Forward KL always produces larger gradient magnitudes that destabilize the policy update, so reverse KL is used for numerical stability",
-        "There is no practical difference between the two directions; the choice of reverse KL is a historical convention from the original PPO paper"
+        "Forward KL requires sampling from $\\pi_{\\text{ref}}$, but the RL loop samples from $\\pi_\\theta$, making reverse KL naturally estimable on-policy",
+        "Reverse KL is computationally cheaper to estimate because its gradient involves fewer terms and avoids computing the log-partition function",
+        "Forward KL always produces larger gradient magnitudes that destabilize the policy optimization, so reverse KL provides more stable updates",
+        "There is no practical difference between the two directions; the choice of reverse KL is an arbitrary convention from the original PPO paper"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "In the RL loop, we generate rollouts from $\\pi_\\theta$ (the current policy). Reverse KL $\\text{KL}(\\pi_\\theta \\| \\pi_{\\text{ref}})$ takes expectations under $\\pi_\\theta$, which means we can estimate it directly from our on-policy samples. Forward KL would require expectations under $\\pi_{\\text{ref}}$, needing separate samples from the reference policy. The choice is driven by what's naturally estimable in the on-policy RL setting."
     }
   ]

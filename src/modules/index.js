@@ -92,6 +92,7 @@ import { mixtureOfExpertsLearning } from './focused-mixture-of-experts';
 import { chainOfThoughtLearning } from './focused-chain-of-thought';
 import { dataMixingLearning } from './focused-data-mixing';
 import { kvCacheLearning } from './focused-kv-cache';
+import { testTimeComputeLearning } from './focused-test-time-compute';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -167,7 +168,7 @@ export const MODULES = {
 
   // Branch D — Reasoning, agents & test-time compute
   "D.1": [chainOfThoughtLearning, cotAssessment],
-  "D.2": [testTimeComputeAssessment],
+  "D.2": [testTimeComputeLearning, testTimeComputeAssessment],
   "D.3": [toolUseAssessment],
   "D.4": [agenticAssessment],
 
