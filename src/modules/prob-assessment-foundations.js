@@ -90,12 +90,12 @@ export const probabilityFoundationsAssessment = {
       type: "mc",
       question: "A token $w$ is drawn from a categorical distribution with probabilities $p_1 = 0.5, p_2 = 0.3, p_3 = 0.2$. What is $\\mathbb{E}[-\\log_2 p(w)]$, the expected number of bits needed to encode this draw?",
       options: [
-        "$-\\log_2(0.5) = 1$ bit, using only the most probable token",
         "$0.5 \\cdot 1 + 0.3 \\cdot \\log_2(10/3) + 0.2 \\cdot \\log_2(5) \\approx 1.49$ bits",
+        "$-\\log_2(0.5) = 1$ bit, using only the most probable token",
         "$\\log_2(3) \\approx 1.58$ bits, the entropy of a uniform three-outcome distribution",
         "$3$ bits, since there are three tokens and each requires one bit of encoding"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "This is the **entropy** $H(W) = -\\sum_i p_i \\log_2 p_i = 0.5(1) + 0.3(1.737) + 0.2(2.322) \\approx 1.49$ bits. It's less than $\\log_2(3) \\approx 1.58$ (the uniform case) because the distribution is non-uniform. Entropy is maximized when all outcomes are equally likely."
     },
     {

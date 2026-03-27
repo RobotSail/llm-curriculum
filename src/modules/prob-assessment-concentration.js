@@ -78,12 +78,12 @@ export const concentrationAssessment = {
       type: "mc",
       question: "The **empirical Bernstein bound** uses the sample variance $\\hat{\\sigma}^2$ instead of the range $(b-a)^2$ to get a tighter bound when the data has low variance. In the context of evaluating an LLM, when would empirical Bernstein provide the greatest improvement over Hoeffding?",
       options: [
-        "When the model gets close to 50% accuracy on binary questions, because the binomial variance $p(1-p)$ is maximized and the empirical Bernstein bound exploits this to tighten the interval",
         "When the model gets close to 100% or 0% accuracy, because the true variance $p(1-p)$ is much smaller than the worst-case $0.25$ that Hoeffding effectively assumes for $[0,1]$-bounded variables",
+        "When the model gets close to 50% accuracy on binary questions, because the binomial variance $p(1-p)$ is maximized and the empirical Bernstein bound exploits this to tighten the interval",
         "When the evaluation dataset is very small ($n < 50$), because empirical Bernstein corrects for the finite-sample bias that makes Hoeffding too conservative on small datasets",
         "When the questions have non-binary scores (e.g., partial credit on a 0-10 scale), because Hoeffding cannot handle non-binary bounded variables while empirical Bernstein can"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Hoeffding uses the range $(b-a)^2 = 1$ for $[0,1]$-bounded variables, implicitly assuming worst-case variance of $0.25$ (the variance of a Bernoulli with $p=0.5$). When the true accuracy is near 0% or 100%, the actual variance $p(1-p)$ is much smaller. The empirical Bernstein bound estimates the sample variance and uses it instead, giving a tighter bound precisely when the variance is low relative to the range. A model at 98% accuracy has variance $0.98 \\times 0.02 = 0.0196$, far below the $0.25$ Hoeffding assumes."
     },
     {
