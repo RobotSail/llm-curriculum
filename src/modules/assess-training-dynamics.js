@@ -1,4 +1,4 @@
-// B.4 Training Stability & Dynamics — per-section test (split from assess-branch-b.js)
+// Section B.4: Training Stability & Dynamics Assessment
 
 export const trainingDynamicsAssessment = {
   id: "B.4-assess",

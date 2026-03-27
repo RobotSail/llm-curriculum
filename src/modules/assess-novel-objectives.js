@@ -1,4 +1,4 @@
-// B.5 Novel Pretraining Objectives — per-section test (split from assess-branch-b.js)
+// Section B.5: Novel Pretraining Objectives Assessment
 
 export const novelObjectivesAssessment = {
   id: "B.5-assess",
