@@ -20,10 +20,10 @@ export const gradientClippingLearning = {
       type: "mc",
       question: "A 96-layer transformer is training stably with average gradient norm around 1.0. A single minibatch produces a gradient with norm 500. Without any gradient clipping, what is the most likely outcome?",
       options: [
-        "The optimizer's momentum buffer absorbs the spike, so the weight update remains close to normal size",
-        "The learning rate scheduler automatically reduces the step size to compensate for the large gradient",
-        "The large gradient causes a proportionally large weight update that can corrupt learned representations",
-        "Batch normalization rescales the gradient to unit norm before the weight update is applied to parameters"
+        "The optimizer's momentum buffer absorbs the spike entirely, keeping the actual weight update close to its normal magnitude",
+        "The learning rate scheduler detects the anomaly and automatically reduces the step size to compensate for the gradient",
+        "The large gradient causes a proportionally large weight update that can corrupt the model's learned representations",
+        "Batch normalization rescales the gradient to unit norm before the weight update is applied to each layer's parameters"
       ],
       correct: 2,
       explanation: "Without clipping, the weight update is proportional to the gradient magnitude. A gradient 500x larger than normal produces a weight update 500x larger than normal (modulo optimizer scaling). This single outsized update can push weights far from the learned basin, corrupting representations across the network. Adam's second moment provides some dampening but not enough for 500x spikes. Neither the LR scheduler nor batch normalization (which LLMs typically don't use) addresses this."
@@ -71,10 +71,10 @@ export const gradientClippingLearning = {
       type: "mc",
       question: "If gradient clipping is applied AFTER Adam's moment update instead of before, what problem arises during a gradient spike?",
       options: [
-        "The spike inflates Adam's second moment $v$, suppressing subsequent updates for hundreds of steps even after the spike passes",
-        "The learning rate becomes negative because the moment ratio $m/\\sqrt{v}$ can exceed the clipping threshold",
-        "Adam's bias correction terms become undefined because they assume unclipped gradient inputs",
-        "The weight decay term in AdamW is applied to the unclipped gradient, causing excessive regularization"
+        "The spike inflates Adam's second moment $v$, suppressing subsequent updates for hundreds of steps until the EMA decays back to normal",
+        "The learning rate becomes negative because the moment ratio $m/\\sqrt{v}$ can exceed the clipping threshold during gradient spikes",
+        "Adam's bias correction terms become numerically undefined because they assume unclipped gradient magnitudes as their input values",
+        "The weight decay term in AdamW is applied to the unclipped gradient, causing excessive regularization that shrinks all model weights"
       ],
       correct: 0,
       explanation: "The second moment $v$ tracks the EMA of squared gradients. If the spike gradient (say norm 500) enters the moment update before clipping, $v$ absorbs $500^2 = 250{,}000$ into its running average. With $\\beta_2 = 0.999$, it takes ~1000 steps for this inflated $v$ to decay, during which $1/\\sqrt{v}$ is artificially small, suppressing all updates. Clipping before Adam keeps the spike out of the moment estimates entirely."
@@ -105,10 +105,10 @@ export const gradientClippingLearning = {
       type: "mc",
       question: "A training run with gradient clipping at $c = 1.0$ experiences a loss spike. The gradient norm was clipped from 80 to 1.0, yet the loss still jumped. Why can clipping fail to prevent the spike?",
       options: [
-        "Clipping only bounds the gradient magnitude — the clipped direction can still point toward a destabilizing region of parameter space",
-        "Clipping introduces numerical errors in FP16 that accumulate and cause the loss computation to overflow",
-        "The clipping threshold of 1.0 is always too high to prevent spikes in models with more than 10B parameters",
-        "Clipping disables Adam's momentum on clipped steps, so the optimizer loses its trajectory and overshoots"
+        "Clipping only bounds gradient magnitude — the clipped direction can still point toward a destabilizing region of parameter space",
+        "Clipping introduces numerical errors in FP16 that accumulate across layers and cause the loss computation to overflow",
+        "The clipping threshold of 1.0 is inherently too high to prevent spikes in models with more than 10B trainable parameters",
+        "Clipping disables Adam's momentum on clipped steps, causing the optimizer to lose its trajectory and overshoot the basin"
       ],
       correct: 0,
       explanation: "Gradient norm clipping preserves the gradient direction while scaling down its magnitude. But the direction itself can be harmful — it may point toward a sharp, narrow valley or an unstable saddle point. Clipping ensures you take a smaller step in that bad direction, but even a small step in a bad direction can perturb weights enough to trigger a cascade of instabilities on subsequent steps. This is why clipping alone is insufficient — complementary techniques like warmup, z-loss, and QK-norm address the root causes of instability."

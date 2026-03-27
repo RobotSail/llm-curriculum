@@ -21,9 +21,9 @@ export const secondOrderMethodsLearning = {
       question: "A loss landscape has high curvature (eigenvalue $\\lambda = 1000$) along one direction and low curvature ($\\lambda = 0.01$) along another. The gradient has equal magnitude in both directions. How does the Newton step $H^{-1}g$ differ from the gradient step $g$?",
       options: [
         "The Newton step takes a $100{,}000\\times$ larger step in the flat direction than the curved direction, while the gradient step treats both equally",
-        "The Newton step ignores the flat direction entirely and only updates along the curved direction where the loss changes most rapidly",
-        "The Newton step and gradient step are identical because the Hessian inverse simply rescales the overall learning rate without changing the relative magnitudes",
-        "The Newton step takes equal-sized steps in both directions because the Hessian inverse exactly cancels the curvature differences"
+        "The Newton step ignores the flat direction entirely and focuses updates along the curved direction where each parameter change produces the largest loss reduction",
+        "The Newton step and gradient step produce identical updates because the Hessian inverse rescales the overall learning rate without changing relative direction magnitudes",
+        "The Newton step takes equal-sized steps in both directions because the Hessian inverse exactly cancels the curvature differences in the loss landscape"
       ],
       correct: 0,
       explanation: "$H^{-1}g$ scales each direction by the inverse eigenvalue. The high-curvature direction ($\\lambda = 1000$) gets scaled by $1/1000$, taking a tiny step (the curvature means even small moves change the loss a lot). The low-curvature direction ($\\lambda = 0.01$) gets scaled by $1/0.01 = 100$, taking a huge step (the flatness means large moves are safe). The ratio is $100/0.001 = 100{,}000\\times$. The gradient step, by contrast, takes equal steps in both directions — overshooting in the curved direction and understepping in the flat one."
@@ -37,10 +37,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "Two researchers parameterize the same language model differently: Researcher A uses raw logits, Researcher B uses log-softmax outputs. They both compute the natural gradient $F^{-1}g$. How do their updates compare?",
       options: [
-        "Researcher A gets faster convergence because raw logits have a simpler Fisher structure that produces larger and more informative update steps",
-        "The updates differ unpredictably because the Fisher matrix depends on the specific parameterization and changes the optimization trajectory",
-        "Both produce identical changes to the model's output distribution, because the natural gradient is invariant to how the parameters are expressed",
-        "Researcher B gets faster convergence because log-softmax outputs are closer to the probability simplex where the Fisher information is more numerically stable"
+        "Researcher A gets faster convergence because raw logits produce a simpler Fisher structure with larger eigenvalues and more informative update directions",
+        "The updates differ unpredictably because the Fisher matrix depends on the specific parameterization chosen, changing both the trajectory and convergence rate",
+        "Both produce identical changes to the model's output distribution, because the natural gradient is invariant to how the model parameters are expressed",
+        "Researcher B gets faster convergence because log-softmax outputs sit closer to the probability simplex, giving the Fisher better numerical conditioning"
       ],
       correct: 2,
       explanation: "This is the key property of natural gradient: **reparameterization invariance**. The Fisher metric measures distance in the space of output distributions, not in parameter space. Any change of coordinates in parameter space is automatically accounted for by the Fisher's transformation properties ($F$ transforms as a metric tensor). The ordinary gradient, by contrast, would give different update directions and magnitudes for the two parameterizations, because it measures steepest descent in the specific coordinate system chosen."
@@ -54,10 +54,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "Adam's second moment $v_t = \\beta_2 v_{t-1} + (1-\\beta_2) g_t^2$ (element-wise squared gradient) approximates what aspect of the Fisher information matrix?",
       options: [
-        "The off-diagonal entries that capture parameter correlations, because the EMA of squared gradients tracks how pairs of parameters co-vary during training",
-        "The eigenvalues of the Fisher, because the running average of gradient magnitudes converges to the spectrum of the curvature matrix as training progresses",
-        "The full Fisher inverse through a matrix-free implicit representation that avoids materializing any $N \\times N$ matrix during the update computation",
-        "The diagonal entries — the per-parameter curvature — since $\\mathbb{E}[g_i^2]$ equals the $(i,i)$ entry of the empirical Fisher for each parameter $i$"
+        "The off-diagonal entries that capture parameter correlations, since the EMA of squared gradients tracks how pairs of parameters co-vary during training",
+        "The eigenvalues of the full Fisher, since the running average of gradient magnitudes converges to the curvature spectrum as training progresses",
+        "The full Fisher inverse via a matrix-free implicit representation that avoids materializing any $N \\times N$ matrix during the optimizer update step",
+        "The diagonal entries — the per-parameter curvature — since $\\mathbb{E}[g_i^2]$ equals the $(i,i)$ entry of the empirical Fisher for each parameter"
       ],
       correct: 3,
       explanation: "The diagonal of the Fisher matrix is $F_{ii} = \\mathbb{E}[g_i^2]$ — the expected squared gradient for parameter $i$. Adam's $v_t$ tracks a running average of $g_i^2$, making it a stochastic approximation of $F_{ii}$. The update $g_i/\\sqrt{v_i}$ is therefore approximately $g_i/\\sqrt{F_{ii}}$ — a diagonal natural gradient step. This is why Adam works well despite being \"just\" a first-order method: it implicitly performs a crude second-order correction. The key limitation is that it ignores off-diagonal entries (parameter correlations), which can be substantial."
@@ -71,10 +71,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "K-FAC approximates the Fisher block for a layer as $A \\otimes G$ where $A$ is the input covariance and $G$ is the gradient covariance. What assumption makes this factorization possible?",
       options: [
-        "The layer activations must follow a Gaussian distribution, because the Kronecker factorization only holds for jointly normal random variables",
-        "The layer must use a ReLU activation, since other nonlinearities break the Kronecker product structure by introducing higher-order gradient correlations",
-        "The layer inputs $a$ and output gradients $\\delta$ are approximately statistically independent, so their joint covariance factorizes as a product of marginal covariances",
-        "The weight matrix $W$ must be square and orthogonally initialized, because the Kronecker structure arises from the orthogonal invariance of the Fisher metric"
+        "The layer activations must follow a Gaussian distribution, since the Kronecker factorization only holds when the input random variables are jointly normal",
+        "The layer must use a ReLU activation function, since other nonlinearities break the Kronecker product structure by introducing higher-order correlations",
+        "The layer inputs $a$ and output gradients $\\delta$ are approximately statistically independent, so their joint covariance factorizes into marginal products",
+        "The weight matrix $W$ must be square and orthogonally initialized, since the Kronecker structure arises from the orthogonal invariance of Fisher geometry"
       ],
       correct: 2,
       explanation: "The exact Fisher block for $\\text{vec}(W)$ involves the fourth moment $\\mathbb{E}[(a \\otimes \\delta)(a \\otimes \\delta)^\\top]$. If $a$ and $\\delta$ are independent, this factorizes exactly as $\\mathbb{E}[aa^\\top] \\otimes \\mathbb{E}[\\delta\\delta^\\top] = A \\otimes G$. In practice, $a$ and $\\delta$ are not strictly independent (the backprop signal $\\delta$ depends on the forward activations), but the correlation is weak enough that the approximation works well empirically. This independence assumption is K-FAC's central approximation."
@@ -88,10 +88,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "Shampoo uses $L^{-1/4}$ (the matrix fourth root of the inverse) instead of $L^{-1}$ for preconditioning. What practical advantage does this provide?",
       options: [
-        "The fourth root eliminates all curvature information, making Shampoo equivalent to Adam but with lower memory overhead per parameter tensor",
-        "It reduces the aggressiveness of the preconditioning — extreme eigenvalue ratios in $L$ are compressed by the fourth root, preventing oversized steps along low-curvature directions",
-        "The fourth root can be computed in closed form for any positive definite matrix, avoiding the expensive iterative methods required for the full matrix inverse",
-        "It makes the preconditioner orthogonal, which guarantees that the update direction is always perpendicular to the previous step and prevents oscillation"
+        "The fourth root eliminates all curvature information, reducing Shampoo to a diagonal scaling method equivalent to Adam with lower memory overhead",
+        "It compresses extreme eigenvalue ratios — the fourth root dampens aggressive preconditioning, preventing oversized steps along low-curvature directions",
+        "The fourth root has a closed-form expression for any positive definite matrix, avoiding the expensive iterative eigendecomposition the full inverse requires",
+        "It makes the preconditioner orthogonal, guaranteeing the update direction is perpendicular to the previous step and eliminating oscillation entirely"
       ],
       correct: 1,
       explanation: "If $L$ has eigenvalues $\\lambda_{\\text{max}} = 10^4$ and $\\lambda_{\\text{min}} = 1$, the inverse $L^{-1}$ has a condition ratio of $10^4$ — it amplifies the small-eigenvalue direction by $10^4\\times$. The fourth root $L^{-1/4}$ has a condition ratio of only $10^1 = 10$ — a much gentler correction. This prevents the preconditioner from taking dangerously large steps along flat directions while still providing meaningful curvature adaptation. The trade-off is slower convergence in theory (the correction is less aggressive) but better stability in practice."
@@ -105,10 +105,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "A team switches from Adam to K-FAC for training a 7B transformer. They observe 30% fewer steps to reach target loss, but total wall-clock time increases by 20%. What explains this?",
       options: [
-        "K-FAC's convergence advantage is illusory — the fewer steps reflect looser convergence criteria rather than genuine faster optimization toward the target loss level",
-        "K-FAC requires a different learning rate schedule that is inherently slower, adding warmup and decay phases that offset the per-step convergence improvement",
-        "The curvature information from K-FAC causes the model to converge to a sharper minimum that generalizes worse, requiring additional regularization steps to compensate",
-        "The per-step overhead of computing and inverting covariance matrices ($A$, $G$) exceeds the step-count savings — fewer steps but each step takes substantially longer"
+        "K-FAC's convergence advantage is illusory — the fewer steps reflect looser convergence criteria rather than genuinely faster optimization progress",
+        "K-FAC requires a fundamentally different learning rate schedule with longer warmup and decay phases that offset the per-step convergence gain",
+        "K-FAC's curvature information steers the model into a sharper minimum that generalizes worse, requiring extra regularization steps to recover",
+        "The per-step overhead of computing and inverting covariance matrices ($A$, $G$) exceeds the step-count savings — each step takes much longer"
       ],
       correct: 3,
       explanation: "K-FAC genuinely converges in fewer steps (the preconditioning directs updates more efficiently). But each step is more expensive: computing input/gradient covariances, periodically inverting them ($O(d^3)$), and the preconditioned update itself (matrix multiplies instead of element-wise operations). For large layers ($d = 4096+$), this overhead can be 1.5-2x per step. So 30% fewer steps at ~1.7x cost per step yields $0.7 \\times 1.7 \\approx 1.2\\times$ total wall time. This is the core practical challenge: step efficiency vs. wall-clock efficiency."
@@ -122,10 +122,10 @@ export const secondOrderMethodsLearning = {
       type: "mc",
       question: "Muon uses Newton-Schulz iteration to orthogonalize the gradient matrix instead of computing a full eigendecomposition for preconditioning. What is the key computational advantage?",
       options: [
-        "Newton-Schulz requires only matrix multiplications (no eigendecomposition), converging in ~5 iterations and running efficiently on GPU hardware optimized for matrix operations",
-        "Newton-Schulz produces an exact inverse square root of the covariance matrix in a single iteration, avoiding the iterative convergence that eigendecomposition requires",
-        "Newton-Schulz operates on scalar values rather than matrices, reducing the memory footprint from $O(d^2)$ to $O(d)$ for each parameter group in the model",
-        "Newton-Schulz bypasses the need for any curvature information entirely, achieving the same update direction through a fundamentally different mathematical approach"
+        "Newton-Schulz requires only matrix multiplications (no eigendecomposition), converging in ~5 iterations on GPU hardware optimized for dense matrix operations",
+        "Newton-Schulz produces an exact inverse square root of the covariance in a single iteration, avoiding the iterative convergence that eigendecomposition needs",
+        "Newton-Schulz operates on scalar values rather than full matrices, reducing the memory footprint from $O(d^2)$ to $O(d)$ for each parameter group",
+        "Newton-Schulz bypasses curvature information entirely, achieving the same update direction through a fundamentally different algebraic decomposition approach"
       ],
       correct: 0,
       explanation: "Newton-Schulz iteration computes $X_{k+1} = X_k(3I - X_k^\\top X_k)/2$, converging to the orthogonal polar factor of the gradient. Each iteration is pure matrix multiplication — the operation GPUs are most optimized for (tensor cores, high arithmetic intensity). No eigendecomposition, no special linear algebra routines needed. In ~5 iterations (15 matrix multiplies), it produces a well-conditioned orthogonal update. This is a fraction of the cost of eigendecomposition ($O(d^3)$ with large constants) while capturing the key benefit: making the update insensitive to the gradient matrix's condition number."

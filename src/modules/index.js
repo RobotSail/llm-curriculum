@@ -108,6 +108,8 @@ import { gaeLearning } from './focused-gae';
 import { actorCriticLearning } from './focused-actor-critic';
 import { trpoLearning } from './focused-trpo';
 import { mupLearning } from './focused-mup';
+import { toolUseLearning } from './focused-tool-use';
+import { superpositionLearning } from './focused-superposition';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -188,7 +190,7 @@ export const MODULES = {
   // Branch D — Reasoning, agents & test-time compute
   "D.1": [chainOfThoughtLearning, cotAssessment],
   "D.2": [testTimeComputeLearning, testTimeComputeAssessment],
-  "D.3": [toolUseAssessment],
+  "D.3": [toolUseLearning, toolUseAssessment],
   "D.4": [agenticAssessment],
 
   // Branch E — Multimodality
@@ -199,7 +201,7 @@ export const MODULES = {
 
   // Branch F — Interpretability & mechanistic understanding
   "F.1": [probingAssessment],
-  "F.2": [mechInterpAssessment],
+  "F.2": [superpositionLearning, mechInterpAssessment],
   "F.3": [trainingInterpAssessment],
   "F.4": [formalTheoryAssessment],
 
