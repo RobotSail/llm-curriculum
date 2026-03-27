@@ -1,4 +1,4 @@
-// B.3 Data-Centric Pretraining — per-section test (split from assess-branch-b.js)
+// Section B.3: Data-Centric Pretraining Assessment
 
 export const dataCentricAssessment = {
   id: "B.3-assess",
