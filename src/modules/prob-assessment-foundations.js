@@ -78,12 +78,12 @@ export const probabilityFoundationsAssessment = {
       type: "mc",
       question: "For a discrete random variable $X$ with PMF $p(x)$, the **variance** $\\text{Var}(X)$ can be computed as:",
       options: [
-        "$\\mathbb{E}[X]^2 - \\mathbb{E}[X^2]$",
         "$\\mathbb{E}[X^2] - \\mathbb{E}[X]^2$",
+        "$\\mathbb{E}[X]^2 - \\mathbb{E}[X^2]$",
         "$\\mathbb{E}[|X - \\mathbb{E}[X]|]$",
         "$\\sqrt{\\mathbb{E}[(X - \\mathbb{E}[X])^2]}$"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "$\\text{Var}(X) = \\mathbb{E}[X^2] - (\\mathbb{E}[X])^2$. This is the \"raw second moment minus squared first moment\" identity, essential for deriving variance of estimators, understanding gradient variance in SGD, and computing variance of importance weights in off-policy RL."
     },
     {
@@ -103,11 +103,11 @@ export const probabilityFoundationsAssessment = {
       question: "**Jensen's inequality** states that for a convex function $f$, $f(\\mathbb{E}[X]) \\leq \\mathbb{E}[f(X)]$. A language model computes token-level losses $\\ell_t = -\\log P(w_t \\mid w_{<t})$ and reports average loss $\\bar{\\ell} = \\frac{1}{T}\\sum_t \\ell_t$. The perplexity $e^{\\bar{\\ell}}$ relates to the per-token probabilities via Jensen's inequality as:",
       options: [
         "$e^{\\bar{\\ell}} = \\frac{1}{T}\\sum_t e^{\\ell_t}$ — perplexity is the arithmetic mean of the per-token exponential losses",
-        "$e^{\\bar{\\ell}} \\leq \\frac{1}{T}\\sum_t e^{\\ell_t}$ — perplexity (geometric mean of inverse probabilities) is at most the arithmetic mean, so hard tokens dominate less",
+        "$e^{\\bar{\\ell}} = \\left(\\frac{1}{T}\\sum_t e^{\\ell_t}\\right)^2$ — perplexity is the square of the arithmetic mean of per-token losses",
         "$e^{\\bar{\\ell}} \\geq \\frac{1}{T}\\sum_t e^{\\ell_t}$ — perplexity is always larger than the arithmetic mean of exponential losses due to the convexity of $\\exp$",
-        "$e^{\\bar{\\ell}} = \\left(\\frac{1}{T}\\sum_t e^{\\ell_t}\\right)^2$ — perplexity is the square of the arithmetic mean of per-token losses"
+        "$e^{\\bar{\\ell}} \\leq \\frac{1}{T}\\sum_t e^{\\ell_t}$ — perplexity (geometric mean of inverse probabilities) is at most the arithmetic mean, so hard tokens dominate less"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Since $\\exp$ is convex, Jensen's inequality gives $\\exp\\left(\\frac{1}{T}\\sum_t \\ell_t\\right) \\leq \\frac{1}{T}\\sum_t \\exp(\\ell_t)$. Perplexity (the geometric mean of $1/P(w_t)$) is bounded above by the arithmetic mean of per-token inverse probabilities. This means perplexity is less sensitive to individual hard tokens than the arithmetic mean would be — a single token with very low probability inflates the arithmetic mean more than the geometric mean."
     }
   ]

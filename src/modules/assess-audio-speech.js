@@ -91,10 +91,10 @@ export const audioAssessment = {
       type: "mc",
       question: "A speech-to-speech translation system must preserve the source speaker's voice characteristics in the target language output. Using a pipeline approach (ASR $\\to$ MT $\\to$ TTS) vs. a direct speech-to-speech model, what information is lost in the pipeline?",
       options: [
-        "No information is lost in the pipeline approach; each specialized stage preserves and forwards all relevant features from the source audio through text and into the final target language synthesis",
-        "The pipeline preserves more total information than a direct model because each independently optimized stage can retain its domain-specific features with minimal loss across the translation process",
-        "Only background noise and recording artifacts are lost at the text boundary, which is actually beneficial since the downstream TTS stage can synthesize cleaner and more intelligible audio than the original",
-        "The text bottleneck discards all paralinguistic information -- speaker identity, prosody, emotion, and speaking rate are lost at the ASR $\\to$ text boundary and must be artificially reconstructed by TTS without access to the source"
+        "No information is lost in the pipeline approach; each specialized stage preserves and forwards all relevant features from the source audio through text and into the final target language synthesis output faithfully",
+        "The pipeline preserves more total information than a direct model because each independently optimized stage retains its domain-specific features with minimal cross-stage loss throughout the full translation process",
+        "Only background noise and recording artifacts are lost at the text boundary, which is actually beneficial since the downstream TTS stage can synthesize cleaner, more intelligible audio output than the original source",
+        "The text bottleneck discards all paralinguistic information -- speaker identity, prosody, emotion, and speaking rate are lost at the ASR $\\to$ text boundary and must be artificially reconstructed by TTS"
       ],
       correct: 3,
       explanation: "The text transcript is a severe information bottleneck: it encodes *what* was said but not *how*. A transcript of \"I'm fine\" is identical whether spoken cheerfully or through tears. The TTS stage receives only text, so it cannot reproduce the source speaker's voice, emotional state, or speaking style. Direct speech-to-speech models (e.g., Translatotron, SeamlessM4T) map source audio features to target audio features without passing through text, potentially preserving paralinguistic information. However, this requires end-to-end training data with parallel speech, which is scarce."

@@ -39,11 +39,11 @@ export const concentrationAssessment = {
       question: "**Hoeffding's inequality** for i.i.d. bounded random variables $X_i \\in [a, b]$ states $P(|\\bar{X}_n - \\mu| \\geq t) \\leq 2\\exp\\left(-\\frac{2nt^2}{(b-a)^2}\\right)$. Compared to Chebyshev, this gives:",
       options: [
         "A weaker bound that uses stronger assumptions — the boundedness requirement restricts applicability without improving the convergence rate over Chebyshev",
-        "An exponentially decreasing tail bound in $n$ (vs. polynomial for Chebyshev) — the price is requiring bounded variables rather than just finite variance",
+        "A bound that does not depend on the range $[a, b]$ at all, since the exponential decay rate is determined entirely by the sample size and deviation",
         "The same asymptotic rate as Chebyshev but with a tighter multiplicative constant, providing marginal improvement for moderate sample sizes only",
-        "A bound that does not depend on the range $[a, b]$ at all, since the exponential decay rate is determined entirely by the sample size and deviation"
+        "An exponentially decreasing tail bound in $n$ (vs. polynomial for Chebyshev) — the price is requiring bounded variables rather than just finite variance"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Hoeffding gives $e^{-\\Theta(n)}$ decay vs. Chebyshev's $1/n$ decay. To achieve failure probability $\\delta$, Hoeffding needs $n = O(\\log(1/\\delta) / t^2)$ samples — logarithmic in $1/\\delta$ vs. Chebyshev's linear $O(1/\\delta)$. This exponential concentration is crucial in practice: it means evaluation metrics converge quickly and generalization bounds are meaningful."
     },
     {
@@ -90,12 +90,12 @@ export const concentrationAssessment = {
       type: "mc",
       question: "In SGD for LLM training, the gradient estimate from a mini-batch of size $B$ is a sum of i.i.d. per-example gradients. If the per-example gradient is sub-Gaussian with parameter $\\sigma_g$, how does the concentration of the mini-batch gradient estimate scale, and what does this imply for the critical batch size?",
       options: [
-        "Concentration scales as $e^{-B^2 t^2 / (2\\sigma_g^2)}$ (quadratic in $B$), meaning tiny batch sizes are sufficient and the critical batch size is always 1 for sub-Gaussian gradients",
-        "Concentration does not improve with $B$ for sub-Gaussian gradients because the sub-Gaussian parameter $\\sigma_g$ also increases with $B$ due to correlated training examples within each mini-batch",
         "Concentration scales as $e^{-Bt^2 / (2\\sigma_g^2)}$ (linear in $B$) — the critical batch size is the point where further increasing $B$ reduces gradient noise below the scale of the curvature, so additional variance reduction no longer speeds up convergence",
+        "Concentration does not improve with $B$ for sub-Gaussian gradients because the sub-Gaussian parameter $\\sigma_g$ also increases with $B$ due to correlated training examples within each mini-batch",
+        "Concentration scales as $e^{-B^2 t^2 / (2\\sigma_g^2)}$ (quadratic in $B$), meaning tiny batch sizes are sufficient and the critical batch size is always 1 for sub-Gaussian gradients",
         "Concentration is independent of $B$ entirely because the learning rate is scaled proportionally to $B$ (linear scaling rule), perfectly canceling any variance reduction from larger batches"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "The sample mean of $B$ i.i.d. sub-Gaussian($\\sigma_g$) variables is sub-Gaussian($\\sigma_g / \\sqrt{B}$), giving tail bound $e^{-Bt^2 / (2\\sigma_g^2)}$. This linear scaling in $B$ means doubling the batch halves the variance. The critical batch size $B_{\\text{crit}}$ is where gradient noise variance equals the \"signal\" from the expected gradient direction — beyond this, extra variance reduction doesn't help because the noise is already small relative to the curvature scale. McCandlish et al. (2018) showed $B_{\\text{crit}}$ scales with the loss value for LLM training."
     },
     {
@@ -103,11 +103,11 @@ export const concentrationAssessment = {
       question: "When evaluating an LLM on a benchmark with $n = 1000$ binary-scored questions, your model gets 72% accuracy. Using Hoeffding's inequality, a 95% confidence interval ($\\delta = 0.05$) for the true accuracy is approximately:",
       options: [
         "$72\\% \\pm 0.1\\%$ — extremely precise, since 1000 samples with exponential concentration yield a negligibly small confidence radius",
-        "$72\\% \\pm 2.7\\%$ — from $\\epsilon = \\sqrt{\\frac{\\log(2/\\delta)}{2n}} \\approx 0.027$ for bounded $[0,1]$ variables with Hoeffding's bound",
+        "$72\\% \\pm 1.4\\%$ — using the normal approximation $1.96\\sqrt{p(1-p)/n}$ which gives a tighter interval than Hoeffding for binary outcomes",
         "$72\\% \\pm 10\\%$ — because 1000 samples is insufficient for meaningful concentration when the true accuracy is far from 50\\%",
-        "$72\\% \\pm 1.4\\%$ — using the normal approximation $1.96\\sqrt{p(1-p)/n}$ which gives a tighter interval than Hoeffding for binary outcomes"
+        "$72\\% \\pm 2.7\\%$ — from $\\epsilon = \\sqrt{\\frac{\\log(2/\\delta)}{2n}} \\approx 0.027$ for bounded $[0,1]$ variables with Hoeffding's bound"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Hoeffding gives $P(|\\hat{p} - p| \\geq \\epsilon) \\leq 2e^{-2n\\epsilon^2}$. Setting $2e^{-2(1000)\\epsilon^2} = 0.05$ gives $\\epsilon = \\sqrt{\\log(40)/2000} \\approx 0.043$, so about $\\pm 4.3\\%$. The tighter Clopper-Pearson or normal approximation ($\\pm 1.96\\sqrt{p(1-p)/n} \\approx \\pm 2.8\\%$) gives a narrower interval. The point: even 1000 samples leave meaningful uncertainty in benchmark scores, which is why comparing models that differ by 1-2% is statistically dubious."
     }
   ]
