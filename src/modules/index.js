@@ -102,6 +102,9 @@ import { constitutionalAILearning } from './focused-constitutional-ai';
 import { fisherInformationLearning } from './focused-fisher-information';
 import { fisherInformationMatrixLearning } from './focused-fisher-information-matrix';
 import { fisherInformationAssessment } from './assess-fisher-information';
+import { mdpFoundationsLearning } from './focused-mdp-foundations';
+import { grpoLearning } from './focused-grpo';
+import { gaeLearning } from './focused-gae';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -162,7 +165,7 @@ export const MODULES = {
   // Branch A — Post-training & alignment
   "A.1": [sftMechanicsLearning, sftAssessment],
   "A.2": [rewardModelingLearning, rewardModelingAssessment],
-  "A.3": [rlhfAssessment, policyGradientsLearning, ppoMechanicsLearning, onOffPolicyLearning],
+  "A.3": [mdpFoundationsLearning, policyGradientsLearning, ppoMechanicsLearning, gaeLearning, grpoLearning, onOffPolicyLearning, rlhfAssessment],
   "A.4": [dpoLearning, directAlignmentAssessment],
   "A.5": [constitutionalAILearning, frontierAlignmentAssessment],
 
