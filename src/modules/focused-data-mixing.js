@@ -53,10 +53,10 @@ export const dataMixingLearning = {
       type: "mc",
       question: "In DoReMi, the reference model's loss is subtracted from the current model's loss to compute excess loss per domain. Why is this subtraction critical?",
       options: [
-        "It converts the absolute loss values into relative improvements, enabling fair comparison across domains with different baseline difficulties — without it, DRO would waste compute on inherently hard but unlearnable data",
-        "It normalizes the gradient magnitudes across domains to prevent any single domain from dominating the optimizer's update step",
-        "It ensures that the domain weights sum to exactly 1.0 at every training step, which is required for the DRO convergence guarantee",
-        "It implements a form of curriculum learning by scheduling easy domains first and hard domains later during the training process"
+        "It isolates learnable signal by removing baseline difficulty, preventing DRO from wasting compute on inherently hard but unlearnable domains like encrypted text",
+        "It normalizes the gradient magnitudes across domains, preventing any single domain from dominating the optimizer's update step during training",
+        "It ensures that the domain weights sum to exactly 1.0 at every training step, which is a required condition for DRO's convergence guarantee",
+        "It implements a form of curriculum learning that schedules easy domains early in training and hard domains later in the training process"
       ],
       correct: 0,
       explanation: "Some domains are inherently harder than others regardless of model quality — random byte sequences, encrypted text, or highly technical content may always have high loss. Without the reference subtraction, DRO would spend all its budget on these unlearnable domains. The excess loss (current minus reference) isolates the learnable component: domains where the current model is underperforming relative to what is achievable. This focuses the mixture on domains where additional training actually helps."

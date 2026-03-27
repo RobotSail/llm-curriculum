@@ -117,9 +117,9 @@ export const eigendecompositionLearning = {
       type: "mc",
       question: "In deep learning, the loss Hessian $H$ typically has a few large eigenvalues and many near-zero eigenvalues. When computing $H^{-1}g$ for a Newton-like update, what practical problem does this eigenvalue spectrum cause?",
       options: [
-        "The large eigenvalues make $H^{-1}$ numerically unstable because $1/\\lambda_i$ is very small for large $\\lambda_i$",
-        "The orthogonal matrix $Q$ from the eigendecomposition becomes ill-conditioned when eigenvalues vary widely",
-        "The eigendecomposition itself cannot be computed when eigenvalues span many orders of magnitude",
+        "The large eigenvalues make $H^{-1}$ numerically unstable because their inverses $1/\\lambda_i$ become vanishingly small, zeroing out important gradient directions",
+        "The orthogonal matrix $Q$ from the eigendecomposition becomes ill-conditioned when eigenvalues span many orders of magnitude, corrupting the basis vectors",
+        "The eigendecomposition itself fails to converge when eigenvalues span many orders of magnitude, making iterative eigensolvers numerically unreliable",
         "The near-zero eigenvalues produce enormous entries $1/\\lambda_i$ in $H^{-1}$, amplifying noise in those gradient directions and causing instability"
       ],
       correct: 3,
