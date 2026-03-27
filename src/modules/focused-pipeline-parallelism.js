@@ -61,12 +61,12 @@ export const pipelineParallelismLearning = {
       type: "mc",
       question: "A GPipe setup uses $P = 4$ stages. The team increases from $M = 4$ to $M = 32$ micro-batches. How do the bubble fraction and peak activation memory change?",
       options: [
-        "Bubble drops from $42.9\\%$ to $8.6\\%$; peak activation memory increases $8\\times$ because GPipe stores activations for all $M$ micro-batches during the all-forward phase",
-        "Bubble drops from $42.9\\%$ to $8.6\\%$; peak activation memory stays constant because each micro-batch is $8\\times$ smaller, canceling out the $8\\times$ more micro-batches",
         "Bubble drops from $75\\%$ to $8.6\\%$; peak activation memory doubles because each additional micro-batch adds only a marginal amount of stored activations",
-        "Bubble stays at $75\\%$ because it depends only on $P$, not $M$; peak activation memory increases $8\\times$ due to storing more micro-batches"
+        "Bubble drops from $42.9\\%$ to $8.6\\%$; peak activation memory increases $8\\times$ because GPipe stores activations for all $M$ micro-batches during the all-forward phase",
+        "Bubble stays at $75\\%$ because it depends only on $P$, not $M$; peak activation memory increases $8\\times$ due to storing more micro-batches",
+        "Bubble drops from $42.9\\%$ to $8.6\\%$; peak activation memory stays constant because each micro-batch is $8\\times$ smaller, canceling out the $8\\times$ more micro-batches"
       ],
-      correct: 0,
+      correct: 1,
       explanation: "Bubble fraction is $(P-1)/(M+P-1)$. With $M=4$: $3/7 \\approx 42.9\\%$. With $M=32$: $3/35 \\approx 8.6\\%$ — a major improvement. However, GPipe runs all forward passes before any backward passes, meaning activations for all $M$ micro-batches are stored simultaneously in the forward phase. Going from $M=4$ to $M=32$ means $8\\times$ more stored activations. The micro-batch size shrinks by $8\\times$ (keeping the total mini-batch fixed), but there are $8\\times$ more of them, so each stage still holds $8\\times$ more activation tensors at peak. This memory scaling is the fundamental limitation that 1F1B scheduling addresses."
     },
     // Step 7: 1F1B scheduling
@@ -100,11 +100,11 @@ export const pipelineParallelismLearning = {
       question: "A system uses $P = 8$ physical stages with $v = 4$ virtual stages per GPU and $M = 32$ micro-batches. What is the approximate bubble fraction, and what is the main cost of this approach compared to standard 1F1B ($v = 1$)?",
       options: [
         "Bubble is $\\approx 1.3\\%$ from $(P-1)/(v^2 \\times M + P-1) = 7/519$; the main cost is $16\\times$ more activation memory since virtual stages prevent activation reuse",
-        "Bubble is $\\approx 17.9\\%$ — same as standard 1F1B because virtual stages only reduce memory, not idle time; the main cost is load imbalance across non-contiguous layer groups",
+        "Bubble is $\\approx 5.2\\%$ from $(P-1)/(v \\times M + P-1) = 7/135$; the main cost is $4\\times$ more point-to-point communications because each micro-batch traverses $v \\times P$ stage boundaries instead of $P$",
         "Bubble is $\\approx 5.2\\%$ from $(P-1)/(v \\times M + P-1) = 7/135$; the main cost is $4\\times$ more peak activation memory since each GPU must store activations for $v$ separate layer groups",
-        "Bubble is $\\approx 5.2\\%$ from $(P-1)/(v \\times M + P-1) = 7/135$; the main cost is $4\\times$ more point-to-point communications because each micro-batch traverses $v \\times P$ stage boundaries instead of $P$"
+        "Bubble is $\\approx 17.9\\%$ — same as standard 1F1B because virtual stages only reduce memory, not idle time; the main cost is load imbalance across non-contiguous layer groups"
       ],
-      correct: 3,
+      correct: 1,
       explanation: "The interleaved bubble fraction is $(P-1)/(v \\times M + P-1) = 7/(4 \\times 32 + 7) = 7/135 \\approx 5.2\\%$, a significant improvement over standard 1F1B's $7/39 \\approx 17.9\\%$. The cost is communication: with $v = 4$ virtual stages per GPU, there are $v \\times P = 32$ virtual stage boundaries instead of 8 physical ones, meaning $4\\times$ more point-to-point transfers per micro-batch. Each transfer moves an activation tensor between GPUs, adding latency and bandwidth consumption. This is why $v$ is kept small (2-4) in practice — beyond that, the communication overhead outweighs the bubble reduction."
     },
     // Step 11: PP in 3D parallelism
@@ -118,12 +118,12 @@ export const pipelineParallelismLearning = {
       type: "mc",
       question: "A 126-layer model uses $PP = 16$ with 1F1B scheduling and $M = 64$ micro-batches. The first and last pipeline stages include the embedding layer and language model head respectively, making them approximately $30\\%$ faster than the middle stages. What is the primary consequence?",
       options: [
-        "The theoretical bubble fraction of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$ is achieved exactly, because 1F1B scheduling automatically compensates for heterogeneous stage compute times by adjusting micro-batch routing",
-        "The faster first and last stages finish their micro-batches early and idle while waiting for slower middle stages, creating additional bubble time beyond the theoretical $15/79 \\approx 19\\%$ — load imbalance is the dominant practical challenge",
-        "Training throughput improves by $30\\%$ overall because the faster first and last stages act as accelerators, processing micro-batches more quickly and reducing pipeline latency end-to-end",
-        "The model diverges during training because the faster stages apply gradient updates before slower stages have finished their backward passes, causing stale parameter updates"
+        "The theoretical bubble of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$ is achieved exactly, because 1F1B scheduling dynamically adjusts micro-batch routing to compensate for heterogeneous stage latencies",
+        "Training throughput improves by $30\\%$ overall because the faster first and last stages act as pipeline accelerators, pulling micro-batches through the system more quickly end-to-end",
+        "The model diverges because the faster stages apply optimizer updates before slower stages complete their backward passes, introducing stale parameter updates that compound across steps",
+        "The faster first and last stages idle while waiting for the slower middle stages, adding bubble time beyond the theoretical $15/79 \\approx 19\\%$ — the pipeline runs at the slowest stage's speed"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The pipeline moves at the speed of its **slowest stage**. When the first and last stages are $30\\%$ faster, they complete each micro-batch's computation sooner and then idle, waiting for middle stages to finish. This adds idle time on top of the theoretical bubble of $(P-1)/(M+P-1) = 15/79 \\approx 19\\%$. The 1F1B schedule cannot compensate — it determines the order of forward and backward passes, not their duration. In practice, teams address load imbalance by assigning fewer layers to stages that also handle embedding/LM head, or by profiling per-stage latencies and rebalancing. This load imbalance is one of the most significant practical challenges in deploying pipeline parallelism at scale."
     }
   ]

@@ -24,12 +24,12 @@ export const tensorParallelismLearning = {
       type: "mc",
       question: "A team has 512 GPUs, each with 80 GB of memory. They want to train a 175B parameter model using pure data parallelism (no ZeRO, no model parallelism). Why does this fail?",
       options: [
-        "The all-reduce gradient synchronization across 512 GPUs introduces so much communication latency that training throughput drops to near zero",
-        "Each GPU must hold the full model state, which is $(2 + 2 + 12) \\times 175 \\approx 2{,}800$ GB — far exceeding any single GPU's 80 GB memory",
-        "Pure data parallelism requires a global batch size equal to the GPU count, and 512 samples per batch causes severe convergence issues",
-        "Data parallelism cannot scale beyond 8 GPUs because the ring all-reduce topology breaks down at higher GPU counts"
+        "The ring all-reduce for gradient synchronization across 512 GPUs creates $O(N)$ latency that dominates over the $O(1/N)$ per-GPU compute, collapsing throughput",
+        "Pure data parallelism requires a global batch size equal to the GPU count, and 512 samples per batch causes catastrophic convergence instability",
+        "Each GPU must hold the full model state — $(2 + 2 + 12) \\times 175 \\approx 2{,}800$ GB for fp16 params, gradients, and Adam state — far exceeding 80 GB",
+        "Data parallelism cannot scale beyond 64 GPUs because the ring all-reduce bandwidth cost grows linearly with GPU count past that threshold"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Pure data parallelism replicates the full model state on every GPU. With 175B parameters and Adam, each GPU needs $(2 + 2 + 12) \\times 175 \\approx 2{,}800$ GB — over 35x the 80 GB available. Adding more GPUs doesn't help because each one independently needs the full copy. The fundamental bottleneck is **memory per GPU**, not communication bandwidth or batch size constraints. This is the core motivation for model parallelism: distributing the model itself across devices."
     },
     // Step 3: Info — Splitting a Matrix Multiply
@@ -43,12 +43,12 @@ export const tensorParallelismLearning = {
       type: "mc",
       question: "In Megatron-style tensor parallelism, the MLP block uses column parallelism for the first linear layer ($d \\to 4d$) and row parallelism for the second ($4d \\to d$). How many all-reduce operations occur per MLP block in the **forward pass**?",
       options: [
-        "One — only the row-parallel second layer requires an all-reduce to sum the partial results, while the column-parallel first layer's sharded output feeds directly into the row-parallel input",
-        "Zero — the column-row pairing eliminates all communication because each GPU independently computes its portion of the output",
-        "Two — one all-reduce after each linear layer to recombine the sharded outputs",
-        "Four — each linear layer needs an all-gather before it and a reduce-scatter after it"
+        "Zero — the column-row pairing eliminates all communication because each GPU independently computes its full portion of the final output without synchronization",
+        "One — only the row-parallel second layer requires an all-reduce to sum partial results, since the column-parallel output is already correctly sharded",
+        "Two — one all-reduce after each linear layer, since both column-parallel and row-parallel outputs need to be recombined across all GPUs",
+        "Four — each linear layer needs an all-gather before it and a reduce-scatter after it, for a total of two collectives per layer"
       ],
-      correct: 0,
+      correct: 1,
       explanation: "Column parallelism gives each GPU the full input $X$ and produces a shard of the intermediate activation — no communication needed. This shard is exactly the input slice that row parallelism expects, so the transition is free. The row-parallel second layer computes partial sums $Y_i = X_i W_i$ that must be all-reduced to obtain the final output $Y = \\sum_i Y_i$. Total: **1 all-reduce per MLP block** forward. This elegant pairing is Megatron-LM's key contribution — it minimizes the communication-to-computation ratio."
     },
     // Step 5: Info — Tensor Parallelism in Attention Layers
@@ -81,12 +81,12 @@ export const tensorParallelismLearning = {
       type: "mc",
       question: "A model uses 8-way tensor parallelism. Adding sequence parallelism replaces all-reduce operations with all-gather and reduce-scatter pairs. What is the **primary** benefit of this change?",
       options: [
-        "Communication volume is cut by a factor of 8 because reduce-scatter only sends $1/N$ of the data compared to all-reduce",
-        "Training throughput doubles because the all-gather and reduce-scatter can overlap with computation, unlike all-reduce which blocks the pipeline",
-        "Activation memory for LayerNorm and dropout regions is reduced by $8\\times$ because each GPU stores only $s/8$ tokens in those regions, while total communication volume remains the same",
-        "Numerical precision improves because reduce-scatter avoids the floating-point accumulation errors inherent in all-reduce summation"
+        "Communication volume is cut by $8\\times$ because reduce-scatter only sends $1/N$ of the data, making inter-GPU transfers the primary bottleneck improvement",
+        "Training throughput doubles because the all-gather and reduce-scatter can overlap with computation, unlike all-reduce which fully blocks the GPU pipeline",
+        "Numerical precision improves because reduce-scatter accumulates partial sums in a deterministic tree order, avoiding the non-associative errors of ring all-reduce",
+        "Activation memory for LayerNorm and dropout drops by $8\\times$ since each GPU stores only $s/8$ tokens in those regions, while total communication volume is unchanged"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Sequence parallelism replaces all-reduce with all-gather + reduce-scatter. These have **identical total communication volume** — the data is simply reorganized, not reduced. The key win is **activation memory**: in the non-TP regions (LayerNorm, dropout), each GPU now stores activations for only $s/N$ tokens instead of the full $s$ tokens. With $N = 8$, this is an $8\\times$ memory reduction for those regions. This freed memory can be used for larger batch sizes or longer sequences. Communication cost is unchanged."
     },
     // Step 9: Info — Communication Analysis and Scaling
@@ -101,11 +101,11 @@ export const tensorParallelismLearning = {
       question: "A model uses 8-way tensor parallelism. The hidden dimension is doubled from 4096 to 8192 while keeping the TP degree and sequence length the same. What happens to the compute-to-communication ratio per GPU?",
       options: [
         "The ratio stays the same because both compute and communication scale linearly with hidden dimension",
-        "The ratio halves because the larger weight matrices require twice as much all-reduce communication, while the compute per GPU is unchanged",
+        "The ratio doubles because compute scales as $d^2$ (matrix multiply) while communication scales as $d$ (activation size), so larger models are more efficient with TP",
         "The ratio decreases because more parameters means more frequent synchronization between GPUs",
-        "The ratio doubles because compute scales as $d^2$ (matrix multiply) while communication scales as $d$ (activation size), so larger models are more efficient with TP"
+        "The ratio halves because the larger weight matrices require twice as much all-reduce communication, while the compute per GPU is unchanged"
       ],
-      correct: 3,
+      correct: 1,
       explanation: "The compute-to-communication ratio scales as $d/N$. With fixed $N = 8$: doubling $d$ from 4096 to 8192 **doubles** the ratio. Why? Compute per GPU scales as $O(s \\cdot d^2 / N)$ — the matrix multiply has $d^2$ in its cost. Communication scales as $O(s \\cdot d)$ — all-reduces transfer activation-sized tensors. The extra factor of $d$ in the numerator means **larger models extract more compute per byte of communication**, making tensor parallelism increasingly efficient. This is one reason why scaling up model size is relatively cheap in terms of parallelism overhead."
     },
     // Step 11: Info — Practical Considerations
