@@ -101,10 +101,10 @@ export const sftMechanicsLearning = {
       type: "mc",
       question: "An SFT run uses a learning rate of $3 \\times 10^{-4}$ (the same as pretraining) and trains for 10 epochs on 5,000 examples. The model quickly learns to follow instructions but loses its code generation ability. What is the most likely cause and fix?",
       options: [
-        "The dataset is too small — increasing to 50,000 examples would prevent forgetting by providing more diverse training signal",
-        "Code generation was never a robust capability of the pretrained model — it only appeared to work due to memorized examples that happened to overlap with evaluation benchmarks",
-        "The model architecture needs to be modified with adapter layers before SFT — full fine-tuning always causes catastrophic forgetting regardless of hyperparameters",
-        "The learning rate is too high and the number of epochs too large for SFT, causing excessive weight perturbation that overwrites pretrained capabilities. Reducing to $2 \\times 10^{-5}$ for 2 epochs would preserve more pretrained knowledge"
+        "The dataset is too small — scaling to 50,000 examples would prevent forgetting by providing enough diverse signal to reinforce all pretrained capabilities during fine-tuning",
+        "Code generation was never a robust pretrained capability — it only appeared to work because of memorized training examples that happened to overlap with the evaluation benchmarks used",
+        "Full fine-tuning inherently causes catastrophic forgetting regardless of hyperparameters — the architecture must be modified with frozen layers or adapter modules before any SFT",
+        "The learning rate is too high and epoch count too large for SFT — $3 \\times 10^{-4}$ for 10 epochs causes excessive weight perturbation; reducing to $2 \\times 10^{-5}$ for 2 epochs would help"
       ],
       correct: 3,
       explanation: "SFT learning rates are typically 10-100$\\times$ smaller than pretraining rates ($1\\text{-}5 \\times 10^{-5}$ vs. $10^{-3}\\text{-}10^{-4}$), and training usually lasts 1-3 epochs. Using $3 \\times 10^{-4}$ for 10 epochs is far too aggressive — the large weight updates rapidly overwrite the pretrained representations, including code generation capabilities. Reducing the learning rate and epochs shrinks the perturbation to the pretrained weights, preserving more of the original capabilities while still teaching the instruction-following format."
@@ -120,10 +120,10 @@ export const sftMechanicsLearning = {
       type: "mc",
       question: "A team fine-tunes a model on 100,000 SFT examples sourced from a crowdsourcing platform with minimal quality control. A second team fine-tunes the same base model on 1,000 examples that were expert-curated and carefully verified. Based on SFT research, what outcome is most likely?",
       options: [
-        "The 100K model performs significantly better because the larger dataset provides more diverse coverage that prevents overfitting to narrow patterns",
-        "Both models perform similarly because the base model's pretrained knowledge dominates the fine-tuning signal regardless of SFT data quality",
-        "The 1K expert-curated model likely performs comparably or better, because SFT teaches format rather than knowledge, and high-quality demonstrations of format are more effective than noisy ones",
-        "The 100K model outperforms on easy tasks while the 1K model outperforms on hard tasks, because large datasets provide breadth while small datasets provide depth"
+        "The 100K model performs significantly better because the larger dataset provides more diverse coverage that prevents overfitting and teaches the model a broader range of response patterns",
+        "Both models perform similarly because the base model's pretrained knowledge dominates the fine-tuning signal regardless of SFT data quality or the number of training examples used",
+        "The 1K expert-curated model likely matches or exceeds the 100K model, because SFT teaches format not knowledge, and clean demonstrations are more effective than noisy ones",
+        "The 100K model outperforms on easy tasks while the 1K model outperforms on hard tasks, because larger datasets provide breadth of coverage while smaller datasets provide depth",
       ],
       correct: 2,
       explanation: "Research consistently shows that data quality dominates quantity for SFT. The LIMA paper demonstrated that 1,000 high-quality examples can match models trained on much larger datasets. Since SFT primarily teaches the model a response format (the Superficial Alignment Hypothesis), clean demonstrations of that format are more valuable than noisy ones. A large but poorly curated dataset introduces inconsistent response styles, errors, and biases (like sycophancy) that can actually degrade performance compared to a small, clean dataset."
@@ -139,10 +139,10 @@ export const sftMechanicsLearning = {
       type: "mc",
       question: "Why is SFT typically performed before RLHF/DPO rather than skipping directly to preference-based training on the pretrained model?",
       options: [
-        "RLHF/DPO requires the model to already generate instruction-formatted responses for preference comparisons — without SFT, the model generates continuation-style text that cannot be meaningfully compared for quality",
-        "SFT is used solely to reduce the model size through pruning, making the subsequent RLHF optimization computationally feasible on standard hardware",
-        "RLHF/DPO algorithms have a mathematical requirement that the policy and reference policy share the same tokenizer, which is only guaranteed after SFT on the same vocabulary",
-        "SFT precomputes the reward model's output distribution, which RLHF uses as the initialization for the value function network"
+        "RLHF/DPO needs the model to already generate instruction-formatted responses — without SFT, the model produces continuation-style text that can't be meaningfully compared for quality",
+        "SFT reduces the model's effective parameter count through implicit pruning, making the subsequent RLHF optimization computationally feasible on standard training hardware",
+        "RLHF/DPO algorithms mathematically require the policy and reference policy to share the same tokenizer vocabulary, which is only guaranteed after SFT alignment",
+        "SFT precomputes the reward model's output distribution over response candidates, which RLHF uses as the initialization for the value function network"
       ],
       correct: 0,
       explanation: "SFT establishes the response format that preference training builds upon. A raw pretrained model generates text completions, not instruction responses — its outputs can't be meaningfully compared as \"which response is more helpful.\" SFT teaches the model to produce instruction-formatted responses, creating a reference policy ($\\pi_{\\text{ref}}$) that generates coherent, on-topic responses. RLHF/DPO then refines the quality of these responses through preference data. The pipeline is sequential by necessity: format first (SFT), then quality refinement (RLHF/DPO)."

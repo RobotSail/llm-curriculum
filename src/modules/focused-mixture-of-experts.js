@@ -43,10 +43,10 @@ export const mixtureOfExpertsLearning = {
       type: "mc",
       question: "In an MoE transformer, why are the attention layers kept dense (shared across all tokens) while only the FFN layers use mixture of experts?",
       options: [
-        "Attention layers have too few parameters to benefit from expert routing — the Q, K, V projections are small relative to the FFN",
-        "The attention mechanism already performs a form of conditional computation via the attention weights — each token selectively attends to different positions, so adding expert routing would be redundant",
-        "Attention layers require cross-token interaction that cannot be split across independent experts, while FFN layers process each token independently and can be naturally parallelized into expert copies",
-        "Hardware limitations prevent expert routing in attention — the softmax operation is incompatible with sparse gating"
+        "Attention layers have too few parameters to benefit from expert routing — the Q, K, V projections are small relative to the FFN, so duplicating them into experts wastes memory for negligible capacity gain",
+        "The attention mechanism already performs conditional computation via its attention weights — each token selectively attends to different positions, making additional expert-level routing redundant and unnecessary",
+        "Attention computes cross-token interactions that can't be split across independent experts, while FFN layers process each token independently and can be naturally parallelized into expert copies",
+        "Hardware limitations prevent expert routing in attention layers — the softmax normalization across sequence positions is incompatible with sparse per-token gating over independent expert modules"
       ],
       correct: 2,
       explanation: "FFN layers apply the same transformation to each token independently ($\\text{FFN}(x_t)$ for each position $t$). This makes them natural candidates for conditional computation: different tokens can be routed to different expert FFNs without interaction effects. Attention, by contrast, computes interactions between all token positions — splitting it into independent experts would break the cross-token information flow that is attention's purpose. Some recent work explores sparse attention variants, but standard MoE keeps attention dense."
@@ -81,10 +81,10 @@ export const mixtureOfExpertsLearning = {
       type: "mc",
       question: "The load balancing loss $\\mathcal{L}_{\\text{balance}} = \\alpha \\cdot N \\cdot \\sum_i f_i \\cdot p_i$ uses the product of token fraction $f_i$ and average probability $p_i$. Why is this product formulation used instead of simply penalizing the variance of $f_i$?",
       options: [
-        "Computing the variance of $f_i$ requires tracking per-expert statistics across the entire training corpus, which is infeasible for distributed training",
-        "The variance of $f_i$ is not differentiable because $f_i$ depends on discrete top-$k$ selection — the $f_i \\cdot p_i$ product is differentiable through $p_i$ (the soft router probabilities), allowing gradient flow to the router",
-        "The product formulation is numerically more stable than variance when the number of experts exceeds 64, preventing underflow in the loss computation",
-        "Penalizing variance would force all experts to process exactly the same number of tokens, preventing any specialization — the product formulation allows controlled imbalance"
+        "Computing the variance of $f_i$ requires tracking per-expert statistics across the entire training corpus and synchronizing them across all workers, which is infeasible for distributed training at scale",
+        "The token fraction $f_i$ depends on discrete top-$k$ selection and is not differentiable — the product $f_i \\cdot p_i$ is differentiable through the soft router probabilities $p_i$, enabling gradient flow to the router",
+        "The product formulation is numerically more stable than variance when the number of experts exceeds 64 — variance computations accumulate floating-point errors that cause underflow in the loss",
+        "Penalizing the variance of $f_i$ would force perfectly uniform token allocation across all experts, completely preventing any specialization — the product formulation allows controlled imbalance"
       ],
       correct: 1,
       explanation: "The core issue is differentiability. The token fraction $f_i$ depends on the discrete top-$k$ selection and is not differentiable with respect to the router parameters. However, $p_i$ (the average soft probability before top-$k$ selection) is differentiable. By multiplying $f_i \\cdot p_i$, the gradient flows through $p_i$: if expert $i$ is receiving too many tokens (high $f_i$), the loss pushes $p_i$ down, which discourages the router from selecting expert $i$. This avoids the need to differentiate through the discrete routing decision."
@@ -100,10 +100,10 @@ export const mixtureOfExpertsLearning = {
       type: "mc",
       question: "A researcher wants to create a code-specific model by identifying the \"code expert\" in an 8-expert MoE model and pruning the other 7 experts. Why is this unlikely to work?",
       options: [
-        "Expert specialization is soft and distributed — no single expert handles all code tokens, and each expert processes tokens from multiple domains, so removing 7 experts destroys representations needed for code",
-        "MoE models don't develop any specialization — tokens are routed uniformly at random, so all experts are interchangeable and removing any 7 would halve the model's capacity",
-        "The routing decisions are made by the attention layers, not the experts themselves, so pruning experts wouldn't affect which tokens go where",
-        "Code tokens always use top-1 routing (only one expert), while natural language uses top-2, so the experts are shared across both modalities equally"
+        "Specialization is soft and distributed — no single expert handles all code tokens, and every expert processes tokens from multiple domains, so pruning 7 experts destroys representations needed for code",
+        "MoE models don't develop any meaningful specialization — tokens are routed nearly uniformly at random, so all experts are interchangeable and removing 7 would reduce capacity by 87.5%",
+        "Routing decisions are computed by the attention layers not the experts themselves, so pruning experts changes the capacity but doesn't affect which tokens are routed where during inference",
+        "Code tokens always use top-1 routing while natural language uses top-2, so each expert participates equally in both modalities and pruning 7 removes capacity uniformly across tasks"
       ],
       correct: 0,
       explanation: "Empirical analyses of Mixtral and Switch Transformer consistently show that expert specialization is soft: a code-preferring expert might handle 30% of code tokens but also 15% of general text tokens. Code tokens are distributed across multiple experts, not concentrated in one. Pruning 7 of 8 experts would remove most of the routing destinations for code tokens (and all other tokens), causing catastrophic quality loss across all domains. Domain-specific model extraction from MoE requires more sophisticated techniques like distillation."
@@ -138,10 +138,10 @@ export const mixtureOfExpertsLearning = {
       type: "mc",
       question: "A team is choosing between training a 70B dense model and a Mixtral-style 8x7B MoE model (46.7B total, ~12.9B active). Both will be served on a single 80 GB GPU in float16. Which statement is most accurate?",
       options: [
-        "The dense model won't fit (140 GB) but the MoE model will (25.8 GB for active parameters), so MoE is the only viable option for single-GPU serving",
-        "Neither model fits — the dense model needs 140 GB and the MoE model needs ~93 GB for all parameters — but the MoE model is closer to fitting and benefits more from 4-bit quantization",
-        "Both models fit — the dense model uses 140 GB of virtual memory with GPU offloading, and the MoE model stores inactive experts on CPU",
-        "The MoE model requires 8x the memory of the dense model because each expert is a full 7B model, totaling 560 GB"
+        "The dense model won't fit (140 GB) but the MoE model will (25.8 GB for active parameters only), making MoE the only viable option for single-GPU deployment",
+        "Neither fits in float16 — dense needs 140 GB, MoE needs ~93 GB for all parameters — but MoE is closer to fitting and benefits more from 4-bit quantization",
+        "Both models fit — the dense model uses 140 GB of virtual memory with automatic GPU-CPU offloading, and the MoE model pages inactive experts to system RAM",
+        "The MoE model requires 8x the memory of the dense model because each of the 8 experts is a full 7B parameter network, totaling 560 GB in float16"
       ],
       correct: 1,
       explanation: "The dense 70B model needs $70 \\times 10^9 \\times 2 = 140$ GB — won't fit on 80 GB. The MoE 46.7B total needs $46.7 \\times 10^9 \\times 2 \\approx 93$ GB — also doesn't fit, but it's closer. With 4-bit quantization: the dense model drops to ~35 GB (fits), and the MoE model drops to ~23 GB (fits easily with room for KV cache). The key insight: MoE's memory cost is determined by **total** parameters, not active parameters — all experts must be in memory even though most are idle. But the compute per token is proportional to active parameters, so inference is fast once the model fits."
