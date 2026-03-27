@@ -53,9 +53,9 @@ export const emaAveragingLearning = {
       type: "mc",
       question: "A team trains a 7B model for 500,000 steps. They compare EMA at $\\alpha = 0.99$ vs $\\alpha = 0.9999$ by evaluating both EMA checkpoints at the final step. The $\\alpha = 0.99$ EMA checkpoint has slightly higher validation loss. Why?",
       options: [
-        "The $\\alpha = 0.99$ decay is too aggressive, causing the EMA to diverge from the true weights and drift toward the initial random parameter values over 500,000 steps",
-        "The $\\alpha = 0.9999$ EMA performs implicit regularization by heavily weighting earlier checkpoints, which prevents overfitting to late-training data distribution",
-        "Both EMAs produce identical weights at 500,000 steps because the exponential weighting converges regardless of $\\alpha$ given sufficient training duration",
+        "The $\\alpha = 0.99$ decay is too aggressive, causing the EMA to drift toward the initial random values over 500,000 steps as earlier checkpoints accumulate disproportionate weight",
+        "The $\\alpha = 0.9999$ EMA performs implicit regularization by weighting earlier checkpoints heavily, acting as a constraint that prevents overfitting to late-training data distribution shifts",
+        "Both EMAs produce identical weights at 500,000 steps because the exponential weighting converges to the same fixed point regardless of $\\alpha$ given sufficient training duration",
         "The $\\alpha = 0.99$ window (~100 steps) averages over too few checkpoints to smooth out SGD noise effectively, so the EMA weights are nearly as noisy as a single checkpoint"
       ],
       correct: 3,
@@ -70,10 +70,10 @@ export const emaAveragingLearning = {
       type: "mc",
       question: "A researcher considers Polyak averaging (uniform average from step $t_0$ to $T$) vs EMA for a training run where the model's loss improves rapidly until step 200K, then plateaus with small oscillations until step 500K. What challenge does Polyak averaging face that EMA avoids?",
       options: [
-        "Polyak averaging requires choosing $t_0$: set it too early and suboptimal pre-plateau weights dilute the average, set it too late and too few weights are averaged for effective smoothing",
+        "Polyak averaging requires choosing $t_0$: too early and suboptimal pre-plateau weights dilute the average, too late and too few weights are averaged for effective noise reduction",
         "Polyak averaging cannot be computed online and requires storing all checkpoints from $t_0$ to $T$ in memory, making it infeasible for models with billions of parameters",
-        "Polyak averaging produces a uniform distribution over weight space rather than concentrating on the minimum, so it always converges to a worse solution than EMA",
-        "Polyak averaging is incompatible with Adam because the adaptive learning rates create non-uniform step sizes that invalidate the equal-weighting assumption"
+        "Polyak averaging produces a uniform weighting over weight space rather than concentrating near the minimum, so it always converges to a worse optimum than EMA does",
+        "Polyak averaging is incompatible with Adam because adaptive per-parameter learning rates create non-uniform step sizes that invalidate the equal-weighting assumption for convergence"
       ],
       correct: 0,
       explanation: "The main practical challenge with Polyak averaging is choosing the start point $t_0$. If $t_0 < 200K$, the average includes rapidly-changing early weights that are far from the converged solution, pulling the average away from the minimum. If $t_0 = 400K$, only 100K steps are averaged — enough but sensitive to the choice. EMA sidesteps this entirely: old weights fade naturally with exponential decay, so pre-convergence weights automatically contribute negligibly regardless of when convergence happened. Note that Polyak averaging can be computed with a running sum (no need to store checkpoints), but the start-point sensitivity remains."
@@ -87,10 +87,10 @@ export const emaAveragingLearning = {
       type: "mc",
       question: "A team trains with EMA ($\\alpha = 0.9999$) and observes that their EMA checkpoint consistently has **higher** validation loss than the raw checkpoint throughout training. What is the most likely cause?",
       options: [
-        "The model is underfitting — EMA smoothing removes the noise that was helping the model escape suboptimal regions and explore the loss landscape more thoroughly",
-        "EMA is incompatible with the optimizer being used — certain adaptive methods like Adam produce weight trajectories where averaging degrades rather than improves performance",
-        "The EMA decay is too high for the training dynamics: the ~10,000 step window includes weights from much earlier when the model was significantly worse, pulling the average above the current optimum",
-        "The EMA update formula has a sign error — the shadow weights are moving away from rather than toward the training weights, causing systematic divergence"
+        "The model is underfitting — EMA smoothing removes beneficial gradient noise that was helping the model escape suboptimal local minima and explore the loss landscape more productively",
+        "EMA is incompatible with the Adam optimizer — the adaptive per-parameter learning rates produce weight trajectories where exponential averaging systematically degrades model quality",
+        "The EMA decay is too high: the ~10,000 step window includes weights from much earlier when the model was significantly worse, pulling the average above the current optimum",
+        "The EMA update formula has a numerical precision error — in bfloat16 the shadow weight updates round to zero, causing the EMA to stagnate at its initial values"
       ],
       correct: 2,
       explanation: "When EMA is worse than raw weights, the window is too long relative to the rate of improvement. A 10,000-step window averages in weights from a time when the model was meaningfully worse. The fix is to reduce $\\alpha$ (e.g., to 0.999 for a ~1,000-step window) or to restart the EMA shadow weights from the current training weights periodically. This issue is most common early in training or during phases of rapid improvement. EMA works with any optimizer — the issue is purely about the window length relative to the improvement rate."
@@ -104,10 +104,10 @@ export const emaAveragingLearning = {
       type: "mc",
       question: "Two training runs converge to different minima: Run A finds a sharp minimum (high Hessian eigenvalues), Run B finds a flat minimum (low Hessian eigenvalues). Both achieve identical training loss. EMA is applied to both. Which run benefits more from EMA, and why?",
       options: [
-        "Run A benefits more because EMA's smoothing effect dampens the sharp curvature, effectively reshaping the loss surface to make the minimum appear flatter to the optimizer",
-        "Run B benefits more because the flat basin means averaged weights still have low loss, while in Run A's sharp basin the averaged weights may sit at a higher-loss point away from the narrow optimum",
-        "Both benefit equally because EMA operates on the weights, not the loss surface, so the curvature of the minimum is irrelevant to the averaging effect",
-        "Neither benefits because EMA only helps during the non-convergent phase of training, and both runs have already converged to their respective minima"
+        "Run A benefits more because EMA's smoothing effect dampens the sharp curvature, effectively reshaping the loss surface to make the minimum appear flatter and more robust to perturbation",
+        "Run B benefits more because the flat basin means averaged weights still have low loss, while in Run A's sharp basin the averaged weights land at a higher-loss point off-center",
+        "Both benefit equally because EMA operates on the weights not the loss surface, so the curvature of the minimum is irrelevant to the quality of the averaged checkpoint",
+        "Neither benefits because EMA only helps during the non-convergent phase of training when the model is still descending, and both runs have already converged to stable minima"
       ],
       correct: 1,
       explanation: "Run B benefits more. In a flat basin, nearby points along the training trajectory all have similar loss, so their average (the EMA checkpoint) also has low loss. In Run A's sharp basin, the noisy trajectory visits points on the steep walls of the basin — their average may not sit at the narrow bottom, landing at a higher-loss point. EMA doesn't reshape the loss surface — it selects a point in weight space that is the centroid of the trajectory, and this centroid has low loss only if the basin is wide enough to contain the trajectory's spread."
@@ -116,10 +116,10 @@ export const emaAveragingLearning = {
       type: "mc",
       question: "A team uses EMA with $\\alpha = 0.999$ during training of a 13B model. They want to reduce memory overhead. Someone proposes updating the EMA only every 100 steps instead of every step, using $\\alpha_{\\text{eff}} = 0.999^{100}$ per update. What is the consequence?",
       options: [
-        "The effective window shrinks from ~1,000 steps to ~10 updates (1,000 steps), producing identical EMA weights since the mathematical equivalence is exact",
-        "The EMA loses all benefit because updating every 100 steps means the shadow weights are always 100 steps stale, introducing a fixed lag that cannot be compensated",
-        "The memory is halved because the EMA weights only need to exist during update steps and can be offloaded to CPU between updates, saving GPU memory",
-        "The effective window changes from ~1,000 steps to ~100 updates, but the EMA now only sees every 100th checkpoint, potentially missing short-lived weight configurations that occur between updates"
+        "The effective window shrinks from ~1,000 steps to ~10 updates (1,000 steps), producing identical EMA weights since the per-update decay $\\alpha^{100}$ perfectly compensates for the reduced frequency",
+        "The EMA loses all benefit because updating every 100 steps means the shadow weights are always 100 steps stale, introducing a fixed temporal lag that degrades the quality of the average",
+        "The memory is halved because the EMA weights only need to exist during the update steps and can be offloaded to CPU storage between updates, freeing GPU memory for training",
+        "The effective window stays at ~1,000 steps, but the EMA now only sees every 100th checkpoint, potentially missing short-lived weight configurations that occur between the sampled updates"
       ],
       correct: 3,
       explanation: "Updating every 100 steps with $\\alpha_{\\text{eff}} = 0.999^{100} \\approx 0.905$ gives an effective window of ~$1/(1-0.905) \\approx 10.5$ updates, or ~1,050 steps — close to the original ~1,000 step window. However, the EMA now samples every 100th checkpoint instead of every checkpoint. It misses the 99 intermediate positions. For slow-moving late training this barely matters, but it means the EMA is a coarser approximation. Memory is NOT saved — the shadow weights must persist in memory between updates. The approach saves compute (fewer EMA updates) but not memory."

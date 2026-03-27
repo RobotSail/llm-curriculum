@@ -20,10 +20,10 @@ export const batchSizeScalingLearning = {
       type: "mc",
       question: "A model is training with batch size $B = 64$ and gradient variance $\\sigma^2 = 100$. The team increases to $B = 256$. How does the gradient noise change, and what is the compute cost?",
       options: [
-        "Gradient variance drops by $16\\times$ because variance scales as $1/B^2$, making the $4\\times$ compute increase highly efficient per unit noise reduction",
-        "Gradient variance drops by $4\\times$ to $\\sigma^2/256 \\approx 0.39$, and compute per step increases $4\\times$ — cleaner gradients at proportionally higher cost per step",
-        "Gradient variance stays the same because each additional sample adds independent noise that cancels the noise-reduction benefit of averaging more samples",
-        "Gradient variance drops by $2\\times$ (square root scaling) to $\\sigma^2/128 \\approx 0.78$, meaning the noise reduction is less than the $4\\times$ compute increase"
+        "Gradient variance drops by $16\\times$ because variance scales as $1/B^2$, making the $4\\times$ compute increase highly efficient per unit of noise reduction achieved",
+        "Gradient variance drops by $4\\times$ to $\\sigma^2/256 \\approx 0.39$, and compute per step increases $4\\times$ — proportional noise reduction for proportional cost",
+        "Gradient variance stays the same because each additional sample introduces independent noise that offsets the noise-reduction benefit of averaging across more samples",
+        "Gradient variance drops by $2\\times$ (square root scaling) to $\\sigma^2/128 \\approx 0.78$, meaning noise reduction is sublinear relative to the $4\\times$ compute increase"
       ],
       correct: 1,
       explanation: "Gradient variance scales as $\\sigma^2/B$. Going from $B=64$ to $B=256$ (a $4\\times$ increase) reduces variance by $4\\times$: from $100/64 \\approx 1.56$ to $100/256 \\approx 0.39$. The compute cost per step also increases $4\\times$ (4x more forward/backward passes). At this point, the noise reduction is exactly proportional to the compute increase — each additional FLOP reduces noise by the same amount. This proportional regime is exactly where the critical batch size concept becomes important."
@@ -105,10 +105,10 @@ export const batchSizeScalingLearning = {
       type: "mc",
       question: "A team estimates $B_{\\text{crit}} \\approx 2M$ tokens for their 13B model. They have enough GPUs to run either $B = 500K$ tokens or $B = 8M$ tokens per step. Which choice is more compute-efficient, and why?",
       options: [
-        "$B = 8M$ is more efficient — larger batches always converge faster in total FLOPs because gradient estimates have lower variance and each step is more productive",
-        "$B = 500K$ is more efficient — it uses $4\\times$ fewer FLOPs per step while each step still reduces loss meaningfully, since $B_{\\text{crit}}$ only affects wall-clock time",
-        "Both are equally efficient in total FLOPs — the critical batch size only determines the optimal trade-off between wall-clock time and hardware utilization",
-        "$B = 500K$ is more compute-efficient: in the small-batch regime ($B < B_{\\text{crit}}$), total FLOPs to converge is nearly constant regardless of batch size, so fewer FLOPs per step is better"
+        "$B = 8M$ is more compute-efficient — larger batches always converge faster in total FLOPs because the cleaner gradient estimates make each optimization step more productive overall",
+        "$B = 500K$ is more compute-efficient — it uses $4\\times$ fewer FLOPs per step while each step still reduces the loss meaningfully, since $B_{\\text{crit}}$ only governs wall-clock time",
+        "Both are equally compute-efficient in total FLOPs — the critical batch size determines only the wall-clock vs hardware utilization trade-off, not the total compute required",
+        "$B = 500K$ is more compute-efficient — in the small-batch regime ($B < B_{\\text{crit}}$), total FLOPs to converge is nearly constant, so fewer FLOPs per step wastes less"
       ],
       correct: 3,
       explanation: "At $B = 500K \\ll B_{\\text{crit}} = 2M$, we are in the small-batch regime. Here, doubling the batch size roughly halves the number of steps needed, keeping total FLOPs approximately constant. So $B = 500K$ and $B = 2M$ use similar total FLOPs, but $500K$ has $4\\times$ less compute per step. At $B = 8M \\gg B_{\\text{crit}}$, we are in the large-batch regime where total FLOPs scale linearly with $B$ — the extra FLOPs don't proportionally reduce the step count. The $500K$ option is more compute-efficient (fewer total FLOPs), though it will take more wall-clock time due to more optimizer steps."

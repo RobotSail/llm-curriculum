@@ -37,10 +37,10 @@ export const constitutionalAILearning = {
       type: "mc",
       question: "In Constitutional AI, Phase 1 generates revised responses through self-critique. Why is this supervised phase necessary before moving to RLAIF in Phase 2?",
       options: [
-        "Phase 1 is only needed for computational efficiency — it reduces the number of RL steps required in Phase 2 by pre-training the policy closer to the desired distribution",
-        "Phase 1 is optional and included only for ablation purposes — the original CAI paper shows that Phase 2 alone achieves equivalent alignment quality",
-        "Phase 1 trains the constitutional principles into the AI judge model, which is then frozen and used as the preference labeler in Phase 2",
-        "Without Phase 1, the base model generates mostly harmful or low-quality responses, so Phase 2's AI judge would be comparing pairs of bad outputs and the learned preferences would be unreliable"
+        "Phase 1 is only needed for computational efficiency — it reduces the number of RL steps required in Phase 2 by initializing the policy closer to the desired distribution before optimization begins",
+        "Phase 1 is optional and included only for ablation purposes — the original paper shows Phase 2 alone achieves equivalent alignment quality without the supervised critique step",
+        "Phase 1 trains the constitutional principles into the AI judge model used in Phase 2, calibrating its judgment so it can reliably distinguish good from bad responses",
+        "Without Phase 1, the base model generates mostly harmful or low-quality responses, so Phase 2's AI judge compares pairs of bad outputs and the learned preferences are unreliable"
       ],
       correct: 3,
       explanation: "The base model (before any alignment) frequently generates harmful, unhelpful, or low-quality responses. If Phase 2 directly uses this model to generate preference pairs, many pairs would consist of two bad responses differing only in surface features. The AI judge's preferences over such pairs would provide a weak training signal — the reward model would learn to distinguish degrees of badness rather than learning what genuinely good responses look like. Phase 1's self-critique loop lifts the response distribution to a higher quality baseline, so Phase 2's preference pairs contain meaningful quality variation."
@@ -100,10 +100,10 @@ export const constitutionalAILearning = {
       type: "mc",
       question: "Compared to standard RLHF with human annotators, what does RLAIF sacrifice to achieve its scalability advantage?",
       options: [
-        "Training stability — RLAIF reward models have higher variance gradients than human-preference reward models, requiring more careful hyperparameter tuning and longer training",
-        "Mathematical convergence guarantees — the Bradley-Terry preference model requires independent preference labels, and the AI judge's correlated outputs violate this assumption",
-        "Model size flexibility — RLAIF only works with models above 50B parameters because smaller models cannot serve as reliable AI judges, while RLHF works at any scale",
-        "The guarantee that preferences reflect genuine human values — the AI judge's preferences may systematically diverge from what humans actually want, especially in domains requiring cultural context or subjective judgment"
+        "Training stability — RLAIF reward models have higher variance gradients than human-preference reward models, requiring more careful hyperparameter tuning and longer convergence periods",
+        "Mathematical convergence guarantees — the Bradley-Terry model requires independent preference labels, and the AI judge's systematically correlated outputs violate this independence assumption",
+        "Model size flexibility — RLAIF only works with models above 50B parameters because smaller models cannot serve as reliable AI judges for nuanced preference comparisons",
+        "Fidelity to human values — the AI judge's preferences may systematically diverge from what humans actually want, especially in domains requiring cultural context or subjective judgment"
       ],
       correct: 3,
       explanation: "The fundamental trade-off is fidelity to human values. Human annotators, despite being noisy and expensive, ground the alignment objective in actual human judgment. An AI judge applies constitutional principles through its own understanding, which may not match human intuitions in edge cases — especially ones involving cultural context, emotional nuance, subjective taste, or novel ethical dilemmas the AI hasn't encountered. RLAIF scales by removing humans from the feedback loop, but this means the aligned model optimizes for the AI judge's interpretation of the principles rather than for human satisfaction directly. RLAIF works at various model sizes, and the Bradley-Terry loss doesn't require independence."
@@ -112,10 +112,10 @@ export const constitutionalAILearning = {
       type: "mc",
       question: "A team wants to align a model for medical question answering using CAI. They write constitutional principles including: \"Prefer responses that provide accurate medical information\" and \"Prefer responses that recommend consulting a healthcare professional when appropriate.\" What is the most likely failure mode?",
       options: [
-        "The AI judge cannot evaluate medical accuracy because it lacks access to a medical database, so all preferences are random and the reward model learns nothing useful about medical quality",
-        "The constitution is too short — medical alignment requires at least 50 principles to cover all specialties, and two principles cannot capture the nuance needed for clinical contexts",
-        "The two principles conflict in practice — the model learns to always defer to a doctor rather than providing accurate information directly, satisfying the consultation principle at the cost of helpfulness",
-        "The model will memorize the exact constitutional principle text and repeat it verbatim in responses, rather than internalizing the underlying intent behind the principles"
+        "The AI judge cannot evaluate medical accuracy without access to a verified clinical knowledge base, so all its preferences are effectively random and the reward model learns noise",
+        "The constitution is too short — medical alignment requires at least 50 specialized principles to cover all clinical domains, and two principles cannot capture the necessary nuance",
+        "The two principles conflict in practice — the model learns to always defer to a doctor rather than answering directly, satisfying the consultation principle at the cost of helpfulness",
+        "The model memorizes the exact constitutional principle text and repeats it verbatim in responses, rather than internalizing the underlying intent that the principles are meant to convey"
       ],
       correct: 2,
       explanation: "When two principles pull in opposite directions, the model resolves the tension by optimizing whichever is easier to satisfy. \"Recommend consulting a professional\" is easy to satisfy by always deferring, while \"provide accurate information\" requires actual medical reasoning that the AI judge may not evaluate well. The path of least resistance is over-deferral — every response includes \"consult your doctor\" regardless of whether the question is about basic health literacy or a complex diagnosis. This is a concrete example of constitutional incompleteness: the principles need a third rule like \"provide direct factual answers for well-established medical knowledge while recommending professional consultation for diagnostic or treatment decisions.\""
