@@ -42,10 +42,10 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "In self-attention, why are there three separate projections (Q, K, V) rather than simply using the raw token embeddings $x_i$ for all three roles?",
       options: [
-        "Three projections reduce the total parameter count compared to using full $d_{\\text{model}}$-dimensional embeddings, since $d_k$ and $d_v$ are typically smaller than $d_{\\text{model}}$",
+        "Three projections reduce the total parameter count compared to using full $d_{\\text{model}}$-dimensional embeddings, since $d_k$ and $d_v$ are typically much smaller — this compression is the primary motivation for the factored design",
         "Using the same vector for querying and being queried creates a symmetric attention pattern ($\\alpha_{ij} = \\alpha_{ji}$), which prevents the model from learning directional relationships like 'adjective attends to its noun but not vice versa'",
-        "Separate projections allow the model to learn independent subspaces for matching (Q, K) and information transfer (V) — what makes two tokens relevant to each other is different from what information should flow between them",
-        "The three projections implement a form of dropout regularization by projecting into lower-dimensional spaces before computing attention, preventing overfitting to individual dimensions"
+        "Separate projections let the model learn independent subspaces for matching (Q, K) versus information transfer (V) — what makes tokens relevant to each other differs from what information should flow between them",
+        "The three projections implement a form of implicit regularization by projecting into lower-dimensional spaces before computing attention scores, preventing the model from overfitting to individual embedding dimensions"
       ],
       correct: 2,
       explanation: "The Q and K projections jointly determine *which* tokens attend to which (relevance), while the V projection determines *what information* flows from attended tokens. These are fundamentally different functions: a pronoun might attend to a noun because of syntactic structure (captured by Q/K), but the information it needs is the noun's semantic content (captured by V). Using raw embeddings for all three would force a single representation to serve all three roles, severely limiting the model's expressivity."
@@ -61,10 +61,10 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "Token $i$ has attention weights $\\alpha_{i,1} = 0.02, \\alpha_{i,2} = 0.91, \\alpha_{i,3} = 0.03, \\alpha_{i,4} = 0.04$. What is the output $o_i$?",
       options: [
-        "Exactly $v_2$, since token 2 has the highest attention weight and the softmax approximates argmax",
-        "The average of all four value vectors, since softmax ensures equal contribution from all positions regardless of the attention scores",
-        "A nonlinear transformation of $v_2$ determined by the attention weight magnitude 0.91",
-        "Approximately $v_2$ with small contributions from $v_1, v_3, v_4$ — specifically $o_i = 0.02 v_1 + 0.91 v_2 + 0.03 v_3 + 0.04 v_4$"
+        "Exactly $v_2$, since $\\alpha_{i,2} = 0.91$ dominates and softmax acts as a hard argmax selector at this confidence level",
+        "The unweighted average $(v_1 + v_2 + v_3 + v_4)/4$, since softmax normalizes contributions to be equal across positions",
+        "A nonlinear transformation $f(v_2, 0.91)$ where the weight 0.91 controls how much the value vector is scaled and rotated",
+        "The weighted sum $0.02 v_1 + 0.91 v_2 + 0.03 v_3 + 0.04 v_4$ — approximately $v_2$ with small contributions from others"
       ],
       correct: 3,
       explanation: "The output is always a weighted sum: $o_i = \\sum_j \\alpha_{ij} v_j$. With $\\alpha_{i,2} = 0.91$, token 2 dominates but the other tokens still contribute. The operation is purely linear in the values — the attention weights determine the convex combination. If the weights were exactly $[0, 1, 0, 0]$ then $o_i = v_2$ exactly, but softmax never produces exact zeros (though they can be numerically negligible)."
@@ -80,10 +80,10 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "A researcher removes the $\\sqrt{d_k}$ scaling from attention in a model with $d_k = 128$. During training, they observe that attention weights quickly become very peaked (near one-hot). What is the most direct consequence for learning?",
       options: [
-        "Gradients through the softmax vanish because $\\frac{\\partial \\alpha_i}{\\partial s_j} \\approx 0$ when attention weights are near 0 or 1, making the attention pattern unable to update",
-        "Training becomes unstable because the loss function becomes non-differentiable when attention weights are exactly one-hot",
-        "The model trains faster because hard attention creates cleaner gradient signals with less noise from irrelevant positions",
-        "The model uses more memory because peaked attention weights cannot be compressed as efficiently during mixed-precision training"
+        "Softmax gradients vanish: $\\frac{\\partial \\alpha_i}{\\partial s_j} \\approx 0$ when weights are near 0 or 1, freezing the attention pattern",
+        "The loss surface becomes non-differentiable at hard attention boundaries, causing NaN gradients in backpropagation",
+        "Hard attention creates cleaner gradient signals by eliminating noise from irrelevant positions, accelerating convergence",
+        "Peaked weights cause numerical overflow in the forward pass since $\\exp(s_j)$ exceeds float16 range for large scores"
       ],
       correct: 0,
       explanation: "The softmax Jacobian $\\frac{\\partial \\alpha_i}{\\partial s_j} = \\alpha_i(\\delta_{ij} - \\alpha_j)$ approaches zero when any $\\alpha_i$ is near 0 or 1. If $\\alpha_2 \\approx 1$ and all others $\\approx 0$, then $\\partial \\alpha_2 / \\partial s_j \\approx 1 \\cdot (0) = 0$ for $j=2$, and $\\approx 0$ for $j \\neq 2$. The attention pattern becomes frozen — gradients cannot flow through softmax to adjust which tokens attend where. With $d_k = 128$, unscaled dot products have std $\\approx 11.3$, pushing softmax deep into saturation."
@@ -99,10 +99,10 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "During training, a causal language model processes a sequence of $n$ tokens. The causal mask makes the attention matrix lower-triangular. How many next-token predictions does the model make in a single forward pass?",
       options: [
-        "Just 1 — the model only predicts the token after the last position, since all other positions are used as context",
-        "$n$ — every position predicts the next token, including position $n$ which predicts a special end-of-sequence token",
-        "$n^2 / 2$ — each entry in the lower-triangular attention matrix corresponds to one prediction",
-        "$n - 1$ — each position $t$ predicts $y_{t+1}$ using the causal context $y_1, \\ldots, y_t$, except the last position which has no target"
+        "Just 1 — only the final position produces a prediction, since earlier positions serve exclusively as context for the last token",
+        "$n$ — every position predicts the next token, and position $n$ additionally predicts a special end-of-sequence token appended to the target",
+        "$n^2 / 2$ — each entry in the lower-triangular attention matrix corresponds to one distinct next-token prediction task",
+        "$n - 1$ — position $t$ predicts $y_{t+1}$ from causal context $y_1, \\ldots, y_t$, but the last position has no target to predict"
       ],
       correct: 3,
       explanation: "With teacher forcing, position $t$ receives the ground-truth prefix $y_1, \\ldots, y_t$ (enforced by the causal mask) and predicts $y_{t+1}$. This gives $n - 1$ predictions: position 1 predicts $y_2$, position 2 predicts $y_3$, ..., position $n-1$ predicts $y_n$. Position $n$ has no next token to predict. This is why causal LMs are efficient to train — a single forward pass produces $n-1$ training signals, unlike an RNN that would need $n-1$ sequential forward passes."
@@ -137,10 +137,10 @@ export const selfAttentionLearning = {
       type: "mc",
       question: "In a 32-layer transformer processing the sentence \"The cat sat on the mat because it was tired\", which statement best describes how self-attention enables the model to resolve what \"it\" refers to?",
       options: [
-        "A single attention head in one layer learns to match pronouns to their antecedents — it assigns high attention weight from \"it\" to \"cat\" based on syntactic features encoded in the Q/K projections",
-        "The model does not use attention for coreference — instead, the FFN layers store a lookup table mapping pronouns to likely antecedents based on training data statistics",
-        "Across multiple layers and heads, the model builds up the resolution: early layers may encode syntactic structure and semantic features, while later layers compose these to route information from \"cat\" to \"it\" via the residual stream",
-        "The causal mask prevents \"it\" from attending to \"cat\" because \"cat\" appears later in the internal representation after the model reorders tokens by semantic importance"
+        "A single specialized attention head in one layer learns to match pronouns to antecedents by assigning high weight from \"it\" to \"cat\" using syntactic features encoded in Q/K projections",
+        "The FFN layers handle coreference by storing a learned lookup table that maps pronouns to statistically likely antecedents based on co-occurrence patterns observed during pretraining",
+        "Multiple layers and heads build up the resolution incrementally: early layers encode syntactic and semantic features, later layers compose these to route information from \"cat\" to \"it\"",
+        "The causal mask prevents \"it\" from attending to \"cat\" because the model internally reorders tokens by semantic importance, placing \"cat\" after \"it\" in the attention computation"
       ],
       correct: 2,
       explanation: "Coreference resolution in transformers is typically a multi-layer, multi-head process. Early heads may identify syntactic roles (subject, object), encode semantic features (animate vs inanimate), or track positional relationships. Later heads compose these features to perform the actual resolution. The residual stream accumulates these incremental contributions. This distributed, multi-step computation is why transformers handle complex linguistic phenomena well — no single attention head needs to solve the full problem."

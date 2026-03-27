@@ -21,10 +21,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "A 7B parameter model in float16 occupies 14 GB. During autoregressive decoding (one token at a time), the primary bottleneck is:",
       options: [
-        "The KV-cache lookup, which requires random memory access patterns that defeat the GPU's coalesced read optimizations",
-        "The embedding table lookup for the input token, since the full embedding matrix must be scanned linearly",
-        "The softmax computation over the vocabulary, which requires $O(V)$ exponentiations per token",
-        "Loading 14 GB of weights from HBM for each generated token, since the arithmetic intensity (FLOPs per byte loaded) is extremely low with a single token"
+        "The KV-cache lookup, which requires random memory access patterns that defeat the GPU's coalesced read optimizations and dominate latency",
+        "The embedding table lookup for the input token, since the full embedding matrix must be scanned linearly to find the correct row",
+        "The softmax computation over the entire vocabulary, which requires $O(V)$ exponentiations and a full normalization pass per generated token",
+        "Loading 14 GB of weights from HBM per generated token, since the arithmetic intensity (FLOPs per byte) is extremely low at batch size 1"
       ],
       correct: 3,
       explanation: "With batch size 1 (one token per step), each weight element participates in exactly one multiply-add. The arithmetic intensity is ~1 FLOP per 2 bytes loaded — far below the GPU's compute-to-bandwidth ratio of ~150 FLOPs/byte on an A100. The GPU spends most of its time waiting for weight data to arrive from HBM. This is why reducing weight size via quantization directly improves throughput: fewer bytes to load means less waiting."
@@ -38,10 +38,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "Float16 can represent values with variable spacing (finer near zero, coarser for large values), while INT8 uses uniform spacing. Why is uniform spacing a challenge for quantizing neural network weights?",
       options: [
-        "INT8 cannot represent the value zero exactly, which corrupts the bias terms in every layer",
-        "Uniform spacing prevents hardware from using fused multiply-add instructions, negating the speed benefit of lower precision",
-        "Weight distributions are typically bell-shaped with most values near zero — uniform spacing wastes resolution on the sparse tails while under-resolving the dense center",
-        "Neural network weights are always positive, so half the INT8 range (negative values) is wasted"
+        "INT8 cannot represent the value zero exactly, so every bias term and zero-initialized parameter accumulates a persistent rounding offset",
+        "Uniform spacing prevents the hardware from using fused multiply-add instructions, negating the throughput benefit of reduced precision",
+        "Weight distributions are bell-shaped with most values near zero — uniform spacing wastes grid points on sparse tails while under-resolving the dense center",
+        "Neural network weights are strictly positive after ReLU activations, so half the signed INT8 range (negative values) goes unused entirely"
       ],
       correct: 2,
       explanation: "Neural network weights typically follow a roughly Gaussian distribution centered near zero. Most weights are small, with a few outliers. A uniform grid allocates equal resolution across the entire range, but this means the same number of grid points covers the dense center as covers the sparse tails. Floating-point naturally gives more precision near zero (where most weights cluster). Quantization techniques like non-uniform quantization and group quantization address this mismatch."
@@ -72,10 +72,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "A weight matrix has shape $[4096, 4096]$ and is quantized to 4-bit with group size 128. How many scale/zero-point pairs are stored, and what is the approximate storage overhead compared to the raw 4-bit weights?",
       options: [
-        "16,777,216 pairs (one per weight) — the overhead exceeds the savings, making quantization pointless",
-        "$4096 / 128 = 32$ pairs (one per group in a single row) — negligible overhead since only one row is quantized at a time",
-        "4096 pairs (one per row) — negligible overhead since 4096 float16 values is only 8 KB compared to 8 MB of 4-bit weights",
-        "131,072 pairs ($4096 \\times 4096 / 128$) — each pair is 4 bytes (float16 scale + float16 zero-point), adding ~0.5 MB to the ~8 MB of 4-bit weights (~6% overhead)"
+        "16,777,216 pairs (one per weight) — each weight gets its own scale/zero-point, so the metadata exceeds the quantized data and negates the compression",
+        "$4096 / 128 = 32$ pairs total (one per group across the entire matrix) — minimal overhead because the groups span all rows jointly, sharing a single partition",
+        "4,096 pairs (one per row via per-channel quantization) — the 32 groups within each row share one scale, totaling 4,096 float16 pairs or ~16 KB overhead",
+        "131,072 pairs ($4096 \\times 4096 / 128$) — each pair is 4 bytes (float16 scale + float16 zero-point), adding ~0.5 MB to the ~8 MB of 4-bit weights (~6%)"
       ],
       correct: 3,
       explanation: "The matrix has $4096 \\times 4096 = 16{,}777{,}216$ weights. With group size 128, there are $16{,}777{,}216 / 128 = 131{,}072$ groups. Each group stores a float16 scale and float16 zero-point (4 bytes). That's $131{,}072 \\times 4 = 524{,}288$ bytes $\\approx 0.5$ MB. The raw 4-bit weights occupy $16{,}777{,}216 \\times 0.5 = 8{,}388{,}608$ bytes $\\approx 8$ MB. So the overhead is about 6% — a small price for much better per-group accuracy."
@@ -89,10 +89,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "At 8-bit precision, round-to-nearest (RTN) quantization loses $<0.1$ perplexity. At 4-bit, RTN often degrades perplexity by 1-5 points or more. The primary reason for this disproportionate degradation is:",
       options: [
-        "The per-weight quantization error is 16x larger at 4-bit, and these errors accumulate through matrix multiplies and across layers — particularly for outlier weights that carry disproportionate signal",
-        "4-bit quantization requires specialized hardware that introduces additional rounding errors not present in 8-bit computation",
-        "The model's loss landscape is convex at 8-bit precision but becomes non-convex at 4-bit, causing the quantized model to settle in a different local minimum",
-        "4-bit integers cannot represent negative numbers, so all negative weights are clamped to zero, destroying half the learned information"
+        "Per-weight error is 16x larger at 4-bit, and these errors accumulate through matrix multiplies and across layers — especially for outlier weights carrying disproportionate signal",
+        "4-bit quantization requires specialized hardware instructions that introduce additional rounding at each multiply-accumulate step beyond the initial weight quantization error",
+        "The loss landscape is convex near the float16 weights at 8-bit precision but becomes non-convex at 4-bit, causing the quantized model to land in a worse local minimum",
+        "4-bit signed integers can only represent values from -8 to 7, so the asymmetric range clips large positive weights that carry most of the learned information"
       ],
       correct: 0,
       explanation: "Going from 8-bit (256 levels) to 4-bit (16 levels) increases the step size by 16x, and thus the maximum per-weight error by 16x. In a $d$-dimensional dot product, the error in the output is roughly $\\sqrt{d}$ times the per-element error (by the central limit theorem for independent rounding errors). With $d = 4096$ and 16x larger per-weight error, the output error grows dramatically. Outlier weights exacerbate this: they set a wide scale, making the grid coarse for all other weights."
@@ -106,10 +106,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "GPTQ quantizes weight columns sequentially. After quantizing column $w_i$, it updates all remaining columns using $\\delta_i \\cdot H^{-1}_{i,:}$. Why is this compensation step critical?",
       options: [
-        "It re-normalizes the remaining weight columns so that the Frobenius norm of the weight matrix is preserved after each quantization step",
-        "It updates the calibration data $X$ to reflect the quantized column, allowing subsequent columns to be quantized against the modified input distribution",
-        "It shifts the remaining weights to compensate for the quantization error in column $i$, minimizing the layer's output error rather than just the per-weight error",
-        "It pre-quantizes the remaining columns to the same grid as column $i$, ensuring consistency across the weight matrix"
+        "It re-normalizes the remaining columns so the Frobenius norm $\\|W\\|_F$ is preserved after each step, preventing the weight magnitude from drifting during sequential quantization",
+        "It updates the calibration data $X$ to reflect the quantized column, allowing subsequent columns to be quantized against the modified input distribution from earlier rounding",
+        "It shifts remaining weights to compensate for the error in column $i$, minimizing the layer's output reconstruction error rather than just the per-weight rounding error",
+        "It pre-quantizes the remaining columns to the same grid as column $i$, ensuring consistent scale and zero-point parameters across the entire weight matrix"
       ],
       correct: 2,
       explanation: "Without compensation, each column's quantization error is independent and accumulates. GPTQ's compensation step uses the Hessian $H^{-1}$ to find the optimal adjustment to all remaining (unquantized) weights that minimizes the total reconstruction error $\\|WX - \\hat{W}X\\|^2$. Intuitively, if quantizing $w_i$ causes the output to shift in some direction, the compensation slightly adjusts other weights to shift it back. This is why GPTQ far outperforms naive RTN at 4-bit: it globally optimizes the layer output, not individual weight accuracy."
@@ -123,10 +123,10 @@ export const quantizationLearning = {
       type: "mc",
       question: "AWQ scales salient weight channels up and non-salient channels down before quantization (with inverse scaling on activations to preserve correctness). Within a quantization group that mixes salient and non-salient weights, what is the net effect on the model's output quality?",
       options: [
-        "No effect — the scaling and inverse-scaling cancel exactly, so quantization error is redistributed but the total output error is unchanged",
-        "Salient weights (connected to large activations) get better relative precision from the shared quantization grid, while non-salient weights get worse precision — but since non-salient channels contribute less to the output, the net output error decreases",
-        "All weights within the group get equal precision because they share the same scale factor, so per-channel scaling has no effect within groups",
-        "The scaling destabilizes training because the activation magnitudes are modified, causing batch normalization statistics to become stale"
+        "No net effect — the scaling and inverse-scaling cancel exactly, so quantization error is merely redistributed across channels without changing the total output error",
+        "Salient weights get better relative precision from the shared grid while non-salient weights get worse — but since non-salient channels contribute less to the output, net error decreases",
+        "All weights within a group receive equal precision because they share one scale factor, so per-channel scaling applied before grouping has no effect on within-group resolution",
+        "The scaling destabilizes inference because modified activation magnitudes cause the layer normalization running statistics to become stale, introducing systematic bias"
       ],
       correct: 1,
       explanation: "Within a quantization group, the scale is determined by the range of the largest weights. By scaling up salient channels, AWQ makes them occupy more of this range — they get more grid points and thus lower relative quantization error. Non-salient channels get compressed into fewer grid points, but they are connected to small activations, so their contribution to the output error is proportionally smaller. The net effect: quantization error is **redistributed** from high-impact channels (where it matters) to low-impact channels (where it doesn't). This is why AWQ achieves strong quality — it's not reducing total quantization error, but putting it where it hurts least."
