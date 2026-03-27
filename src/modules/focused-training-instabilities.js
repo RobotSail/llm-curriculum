@@ -24,13 +24,13 @@ export const trainingInstabilitiesLearning = {
       type: "mc",
       question: "A team training a 70B parameter model on 8,192 GPUs observes a sudden loss spike at step 50,000. They restart from their most recent checkpoint at step 48,000. Assuming 2 minutes per training step, approximately how much compute is lost?",
       options: [
-        "About 33 hours — 2,000 steps × 2 minutes, but only on a single GPU since checkpoints save all other GPU states",
-        "About 67 hours — 2,000 steps × 2 minutes × 8,192 GPUs worth of compute, but wall-clock time lost is only ~67 minutes",
-        "About 2 minutes — checkpoints save the exact optimizer state, so only the single step that caused the spike is lost",
-        "About 33 hours of wall-clock time — 2,000 steps × 2 minutes — and that time multiplied by 8,192 GPUs worth of compute is wasted"
+        "About 67 hours of wall-clock time — 2,000 steps × 2 min/step = 4,000 min — and all 8,192 GPUs are idle during recomputation, wasting ~550,000 GPU-hours total",
+        "About 67 minutes — the 2,000 lost steps can be reprocessed in parallel since each GPU independently recomputes its shard of the checkpoint state",
+        "About 4 hours — modern checkpoint systems save optimizer state every 100 steps, so only the final 120 steps since the last micro-checkpoint are truly lost",
+        "About 33 hours — data-parallel GPUs share the recomputation by splitting the 2,000 steps across shards, halving the effective wall-clock recovery time"
       ],
-      correct: 3,
-      explanation: "Restarting from step 48,000 means re-doing steps 48,000 through 50,000. That's 2,000 steps × 2 min/step = 4,000 minutes ≈ 67 hours of wall-clock time. But since all 8,192 GPUs were running in parallel, the total compute wasted is 67 hours × 8,192 GPUs. The wall-clock loss alone is ~67 hours (correcting the arithmetic: 2,000 × 2 min = 4,000 min ≈ 67 hours). This illustrates why preventing instabilities is critical — each spike can cost days of wall-clock time and enormous compute budgets."
+      correct: 0,
+      explanation: "Restarting from step 48,000 means re-doing steps 48,000 through 50,000. That's 2,000 steps × 2 min/step = 4,000 minutes ≈ 67 hours of wall-clock time. All 8,192 GPUs must redo these steps together (you can't parallelize sequential training steps), so total compute wasted is ~67 hours × 8,192 GPUs ≈ 550,000 GPU-hours. This illustrates why preventing instabilities is critical — each spike can cost days of wall-clock time and enormous compute budgets."
     },
     // Step 3: Gradient explosion and vanishing
     {
@@ -81,12 +81,12 @@ export const trainingInstabilitiesLearning = {
       type: "mc",
       question: "A team trains a model with Adam ($\\beta_1 = 0.9$) and no warmup, jumping directly to the peak learning rate of $3 \\times 10^{-4}$. At step 1, Adam's bias correction divides $m_1$ by $(1 - 0.9^1) = 0.1$. What is the effective amplification of the gradient signal at step 1?",
       options: [
-        "No amplification — Adam's denominator $\\sqrt{\\hat{v}_t}$ cancels out the numerator amplification exactly",
-        "0.1× attenuation — the bias correction shrinks the gradient to prevent early instability",
-        "Exactly 1× — the bias correction is designed to produce an unbiased estimate, so the effective magnitude matches the true gradient moment",
-        "10× amplification of the first moment estimate, combined with a full-sized learning rate, produces an effective step that is far larger than intended"
+        "No amplification — Adam's denominator $\\sqrt{\\hat{v}_t}$ cancels out the numerator amplification exactly, keeping the effective step size equal to the learning rate",
+        "0.1× attenuation — the bias correction factor of $0.1$ is applied multiplicatively, shrinking the first gradient to prevent early instability from noisy initial steps",
+        "10× amplification — dividing by $0.1$ multiplies the first moment by 10, and with the full learning rate this produces steps far larger than intended during the noisy early phase",
+        "Exactly 1× — the bias correction produces an unbiased estimate by construction, so the effective update magnitude matches what the true gradient moment would produce"
       ],
-      correct: 3,
+      correct: 2,
       explanation: "At step 1, the bias-corrected first moment is $\\hat{m}_1 = m_1 / (1 - 0.9^1) = m_1 / 0.1 = 10 \\cdot m_1$. The correction is mathematically correct — it produces an unbiased estimate of the true mean gradient. But the *variance* of that estimate is also amplified by 10×. When combined with a full learning rate (no warmup), this high-variance, amplified estimate produces update steps that are effectively much larger than intended. Warmup reduces the learning rate during this period so the large effective multiplier doesn't cause destructive updates."
     },
     // Step 9: Gradient clipping
@@ -138,12 +138,12 @@ export const trainingInstabilitiesLearning = {
       type: "mc",
       question: "A team observes recurring loss spikes every ~10,000 steps during training. Gradient norms spike 2-3 steps before each loss spike. They have gradient clipping at $\\tau = 1.0$ but spikes still occur. Which intervention is most likely to help?",
       options: [
-        "Removing gradient clipping entirely — the clipping is distorting the gradient direction and causing the optimizer to oscillate",
-        "Increasing the learning rate — the current rate is too small, causing the optimizer to get stuck in high-curvature regions where spikes occur",
-        "Lowering the clipping threshold to $\\tau = 0.3$ and reducing the peak learning rate — the current threshold is too permissive, allowing destructive updates even after clipping",
-        "Switching from Pre-LN to Post-LN architecture — Post-LN produces more stable gradients at the cost of slower convergence"
+        "Removing gradient clipping entirely — the clipping is distorting the gradient direction at each step, causing the optimizer to oscillate between opposing descent directions",
+        "Increasing the learning rate — the current rate is too small, trapping the optimizer in high-curvature saddle regions where local gradient magnitudes spike periodically",
+        "Switching from Pre-LN to Post-LN architecture — Post-LN produces more stable gradient norms at the cost of slower convergence and lower final model quality",
+        "Lowering the clipping threshold to $\\tau = 0.3$ and reducing the peak learning rate — the current threshold still permits destructive updates when gradient norms reach 25+"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "If gradient clipping at $\\tau = 1.0$ isn't preventing spikes, the clipped gradients are still producing updates large enough to push the model into unstable regions. Lowering the threshold to $\\tau = 0.3$ (a common value for large models) and reducing the peak learning rate together reduce the maximum possible step size. This is the standard first response to persistent instability. Removing clipping would make things worse. Increasing the learning rate would amplify instability. Post-LN is generally less stable than Pre-LN for deep transformers."
     }
   ]

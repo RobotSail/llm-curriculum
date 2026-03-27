@@ -39,10 +39,10 @@ export const loraLearning = {
       type: "mc",
       question: "A 355M parameter model has intrinsic dimensionality of ~500 for a sentiment classification task. This means:",
       options: [
-        "Fine-tuning needs at most ~500 free parameters to reach 90% of full fine-tuning performance — the adaptation lies in a ~500-dimensional subspace of the full parameter space",
-        "The model uses only 500 neurons during inference on sentiment examples, with the rest remaining inactive",
-        "The training dataset must contain at least 500 examples to avoid overfitting during fine-tuning",
-        "The model's hidden dimension should be reduced to 500 for optimal sentiment performance"
+        "Fine-tuning needs at most ~500 free parameters to reach 90% of full fine-tuning performance, because the adaptation lies in a ~500-dimensional subspace",
+        "The model activates only ~500 neurons per forward pass on sentiment inputs, with the remaining neurons contributing near-zero activations",
+        "The training set must contain at least 500 labeled examples for the fine-tuning loss to converge, since each free parameter needs one example",
+        "The model's hidden dimension should be reduced to 500 via pruning before fine-tuning, matching capacity to the task's complexity"
       ],
       correct: 0,
       explanation: "Intrinsic dimensionality measures the number of degrees of freedom actually needed for the task-specific adaptation. A value of ~500 means that a random 500-dimensional projection of the full parameter space captures enough variation to reach 90% of the quality achieved by updating all 355M parameters. This is strong evidence that the weight change $\\Delta W$ is approximately low-rank — it lives in a tiny subspace relative to the full space."
@@ -107,10 +107,10 @@ export const loraLearning = {
       type: "mc",
       question: "A serving system hosts a single 70B base model and needs to support 100 different fine-tuned variants for different customers. With LoRA (rank 16), approximately how much additional memory is needed for all 100 variants?",
       options: [
-        "~14 TB — each variant requires a full copy of the 70B model in BF16 (140 GB $\\times$ 100)",
-        "~14 GB — each variant requires 0.1% of the model parameters, stored at full precision",
-        "~70 GB — each variant requires a copy of the attention weights only, which are half the model",
-        "~700 MB — each LoRA adapter is ~7 MB (0.005% of model size), so 100 adapters total ~700 MB, all sharing the single 140 GB base model"
+        "~14 TB — each variant requires a full model copy in BF16 (140 GB), since LoRA weights must be merged before serving and cannot share a base",
+        "~14 GB — each variant stores 0.1% of the model parameters at full FP32 precision, giving 140 MB per adapter times 100 variants",
+        "~70 GB — each variant stores a copy of the attention projection weights (half the total parameters), since LoRA only adapts attention layers",
+        "~700 MB — each rank-16 adapter is ~7 MB (0.005% of model size), so 100 adapters total ~700 MB while all sharing the single 140 GB base"
       ],
       correct: 3,
       explanation: "With rank 16 applied to all linear layers, LoRA parameters are roughly $r(d_{\\text{in}} + d_{\\text{out}})$ per layer summed across all layers. For a 70B model this is typically 0.005-0.01% of total parameters — around 3.5-7M parameters per adapter, or ~7-14 MB in BF16. 100 adapters: ~700 MB-1.4 GB. All variants share the single 140 GB base model. This is the key serving advantage: 100 LoRA variants cost ~1% additional memory vs. 100x for full fine-tuned copies."

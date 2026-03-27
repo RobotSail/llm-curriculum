@@ -43,13 +43,13 @@ export const mixedPrecisionLearning = {
       type: "mc",
       question: "During backpropagation, a gradient value of 80,000 is computed. What happens when this value is stored in FP16 vs. BF16?",
       options: [
-        "FP16 overflows to infinity (max representable value is 65,504), corrupting all downstream computations. BF16 stores it with some rounding error but no overflow",
-        "Both formats store it correctly — 80,000 is within the representable range of all 16-bit formats",
-        "FP16 rounds it to 65,504 (the nearest representable value) while BF16 stores it exactly",
-        "Both formats underflow to zero because 80,000 requires more mantissa bits than either format provides"
+        "FP16 overflows to infinity (max value 65,504 from its 5-bit exponent), corrupting downstream computations; BF16 stores it with rounding error but no overflow",
+        "FP16 saturates to 65,504 (its max finite value) while BF16 represents it exactly, so FP16 introduces clipping bias but avoids catastrophic failure",
+        "Both formats round 80,000 to different nearby values — FP16 rounds to 81,920 and BF16 rounds to 79,872 — introducing small representable-grid errors",
+        "Both formats underflow to zero because 80,000 exceeds the mantissa precision of any 16-bit format, requiring at least 17 bits to store faithfully"
       ],
       correct: 0,
-      explanation: "FP16's maximum representable value is 65,504 (limited by its 5-bit exponent). A value of 80,000 exceeds this and overflows to infinity ($+\\infty$). Any computation involving infinity produces infinity or NaN, corrupting the entire training step. BF16 has the same 8-bit exponent as FP32, giving it a range up to $3.4 \\times 10^{38}$. It stores 80,000 with some rounding (only ~2.4 decimal digits of precision) but no overflow. This is why BF16 has largely replaced FP16 for LLM training — overflow is catastrophic, but rounding is tolerable."
+      explanation: "FP16's maximum representable value is 65,504 (limited by its 5-bit exponent). A value of 80,000 exceeds this and overflows to infinity ($+\\infty$), not to the max finite value. Any computation involving infinity produces infinity or NaN, corrupting the entire training step. BF16 has the same 8-bit exponent as FP32, giving it a range up to $3.4 \\times 10^{38}$. It stores 80,000 with some rounding (only ~2.4 decimal digits of precision) but no overflow. This is why BF16 has largely replaced FP16 for LLM training — overflow is catastrophic, but rounding is tolerable."
     },
     // Step 5: The mixed precision recipe
     {
@@ -62,10 +62,10 @@ export const mixedPrecisionLearning = {
       type: "mc",
       question: "A team accidentally stores master weights in BF16 instead of FP32. The learning rate is $3 \\times 10^{-4}$ and typical gradient magnitudes are $\\sim 0.01$. The typical parameter update is $\\sim 3 \\times 10^{-6}$. For a parameter with value $w = 2.0$ in BF16, the smallest representable increment is approximately $2^{-7} \\approx 0.0078$. What happens?",
       options: [
-        "Training proceeds normally — BF16's precision is sufficient because Adam's momentum accumulates many small updates into larger ones before applying them",
-        "Training immediately diverges because BF16 cannot represent the value 2.0 accurately",
-        "Training succeeds but takes exactly 2× longer because each update must be applied twice to overcome the rounding threshold",
-        "Training appears to proceed (loss decreases initially from large early updates) but eventually stalls, because gradient updates of $3 \\times 10^{-6}$ are below BF16's representable precision at $w = 2.0$ and are silently rounded away"
+        "Training proceeds normally — Adam's momentum accumulates many small updates into single larger steps that clear BF16's rounding threshold before being applied",
+        "Training immediately diverges — BF16 cannot represent 2.0 accurately, introducing a persistent bias that compounds multiplicatively through the forward pass each step",
+        "Training succeeds but takes exactly 2× longer — each update of $3 \\times 10^{-6}$ must be applied twice consecutively to exceed the $0.0078$ rounding threshold",
+        "Training stalls after initial progress — early large updates are captured, but as gradients shrink the $3 \\times 10^{-6}$ updates fall below BF16's precision and round to zero"
       ],
       correct: 3,
       explanation: "BF16 with 7 mantissa bits can represent values near 2.0 with a step size of about $2^{1-7} = 2^{-6} \\approx 0.016$. An update of $3 \\times 10^{-6}$ is ~5,000× smaller than this step size, so it rounds to zero. Early in training, updates are larger (learning rate warmup, initial large gradients) and may be captured. But as training progresses and updates shrink, progress silently stalls. This is a particularly insidious bug because the loss curve looks like normal plateauing rather than an error."
@@ -138,10 +138,10 @@ export const mixedPrecisionLearning = {
       type: "mc",
       question: "FP8 E4M3 format has a maximum representable value of 448. During a forward pass, a tensor has values ranging from -2,000 to +2,000. How is this handled in FP8 training?",
       options: [
-        "Values outside $[-448, 448]$ are clamped to the nearest representable value, introducing a hard ceiling on activations that the model must learn to stay within",
-        "FP8 training automatically switches to BF16 for any tensor whose values exceed the FP8 range, falling back to the safer format on a per-tensor basis",
-        "The model architecture is constrained so that no intermediate activation can exceed 448 — this is enforced by using sigmoid or tanh activations throughout",
-        "The tensor is multiplied by a per-tensor scale factor (e.g., $448/2000 = 0.224$) before casting to FP8, then the inverse scale is applied after the FP8 computation to recover the correct magnitude"
+        "Values outside $[-448, 448]$ are clamped to $\\pm 448$, introducing a hard saturation ceiling on activations that the network must learn to avoid through implicit regularization",
+        "The runtime automatically falls back to BF16 for any tensor whose value range exceeds FP8 limits, selecting the format dynamically on a per-tensor basis each forward pass",
+        "The architecture is constrained so that intermediate activations never exceed 448 — this is achieved by inserting tanh or sigmoid nonlinearities before every FP8 matmul",
+        "A per-tensor scale factor (e.g., $448/2000 = 0.224$) maps the tensor into FP8 range before casting, then the inverse scale recovers correct magnitudes after computation"
       ],
       correct: 3,
       explanation: "Per-tensor scaling is the standard approach for FP8 training. Before casting a tensor to FP8, the maximum absolute value is measured and a scale factor is computed to map the values into the FP8 representable range. After the FP8 computation, the inverse scale is applied. This is analogous to loss scaling in FP16 training but applied per-tensor rather than globally. The overhead of computing scale factors is small compared to the 2× speedup from FP8 matrix multiplications."
