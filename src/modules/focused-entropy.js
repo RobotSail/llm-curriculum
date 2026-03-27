@@ -92,10 +92,10 @@ export const entropyLearning = {
       type: "mc",
       question: "Shannon estimated that English has an entropy rate of about 1.0 to 1.5 bits per character. If you built a language model that assigned equal probability to each of the 26 letters and space, what would its per-character cross-entropy be?",
       options: [
-        "About 4.75 bits — $\\log_2(27)$, since the model treats all symbols as equally likely",
-        "About 1.3 bits — matching the entropy rate of English",
-        "About 8.0 bits — one byte per character",
-        "About 2.7 bits — half the alphabet size in bits"
+        "About 4.75 bits — $\\log_2(27)$, since the model treats all 27 symbols as equally likely",
+        "About 1.3 bits — matching Shannon's entropy rate, since cross-entropy of any model is bounded above by the true source entropy rate",
+        "About 8.0 bits — one full byte per character, because the model defaults to ASCII-level encoding of 8 bits per symbol",
+        "About 2.7 bits — $\\log_2(\\sqrt{27})$, since a uniform model over $K$ symbols achieves half of $\\log_2(K)$ entropy"
       ],
       correct: 0,
       explanation: "A uniform model over 27 symbols (26 letters + space) assigns probability $1/27$ to every character, giving cross-entropy $-\\log_2(1/27) = \\log_2(27) \\approx 4.75$ bits per character. This is far above Shannon's estimate of 1.0 to 1.5 bits, showing that more than 3 bits per character of redundancy remain unexploited. This gap is what statistical and neural language models progressively close."
@@ -111,10 +111,10 @@ export const entropyLearning = {
       type: "mc",
       question: "You know that a random variable $X$ takes values in $\\{1, 2, 3, 4, 5, 6\\}$ and has mean $\\mathbb{E}[X] = 3.5$. According to the maximum entropy principle, which distribution should you choose?",
       options: [
-        "A distribution concentrated equally on 3 and 4, since their average is 3.5",
+        "A distribution concentrated equally on 3 and 4, since their average is 3.5 and a two-point distribution minimizes assumptions about spread",
         "The uniform distribution $P(x) = 1/6$ for all $x$, since it has the highest entropy among distributions with this mean",
-        "A distribution placing most mass on 1 and 6 to maximize spread",
-        "A triangular distribution peaking at 3.5 with symmetric falloff"
+        "A distribution placing most mass on 1 and 6 to maximize the variance, which is equivalent to maximizing entropy for discrete variables",
+        "A triangular distribution peaking at 3.5 with symmetric linear falloff, since it best approximates a Gaussian on a bounded domain"
       ],
       correct: 1,
       explanation: "The uniform distribution over $\\{1, 2, 3, 4, 5, 6\\}$ has mean $(1+2+3+4+5+6)/6 = 3.5$, satisfying the constraint. Among all distributions on these six values with mean 3.5, the uniform distribution has maximum entropy $\\log_2 6 \\approx 2.58$ bits. Options A and D satisfy the mean constraint but have lower entropy because they concentrate mass. A triangular distribution also has lower entropy than uniform."
@@ -143,10 +143,10 @@ export const entropyLearning = {
       type: "mc",
       question: "Consider three random variables $X$, $Y$, and $Z$ forming a Markov chain $X \\to Y \\to Z$ (i.e., $Z$ is conditionally independent of $X$ given $Y$). Which statement about their conditional entropies is correct?",
       options: [
-        "$H(Z \\mid X) \\leq H(Z \\mid Y)$ because $X$ is farther back in the chain and carries more information about $Z$",
-        "$H(Z \\mid X) = H(Z \\mid Y) + H(Y \\mid X)$ by the chain rule applied along the Markov chain",
+        "$H(Z \\mid X) \\leq H(Z \\mid Y)$ because $X$ is farther back in the chain, so it carries strictly more cumulative information about the final variable $Z$",
+        "$H(Z \\mid X) = H(Z \\mid Y) + H(Y \\mid X)$ by applying the chain rule of entropy sequentially along each link of the Markov chain",
         "$H(Z \\mid X) \\geq H(Z \\mid Y)$ because $X$ can only inform $Z$ through $Y$, so knowing $X$ is never more useful than knowing $Y$ directly",
-        "$H(Z \\mid X, Y) = H(Z \\mid X)$ because once you know $X$, the intermediate variable $Y$ is redundant"
+        "$H(Z \\mid X, Y) = H(Z \\mid X)$ because once you condition on the source $X$, the intermediate variable $Y$ adds no further information about $Z$"
       ],
       correct: 2,
       explanation: "In the Markov chain $X \\to Y \\to Z$, all information $X$ has about $Z$ passes through $Y$. Formally, $Z \\perp X \\mid Y$, so $H(Z \\mid X, Y) = H(Z \\mid Y)$. Since conditioning on more variables can only reduce entropy: $H(Z \\mid X, Y) \\leq H(Z \\mid X)$, giving us $H(Z \\mid Y) \\leq H(Z \\mid X)$. Knowing $Y$ directly is at least as useful as knowing $X$, because $X$ can only influence $Z$ indirectly through $Y$."
