@@ -91,6 +91,7 @@ import { zeroFsdpLearning } from './focused-zero-fsdp';
 import { mixtureOfExpertsLearning } from './focused-mixture-of-experts';
 import { chainOfThoughtLearning } from './focused-chain-of-thought';
 import { dataMixingLearning } from './focused-data-mixing';
+import { kvCacheLearning } from './focused-kv-cache';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -160,7 +161,7 @@ export const MODULES = {
 
   // Branch C — Inference & deployment
   "C.1": [quantizationLearning, quantizationAssessment],
-  "C.2": [decodingAssessment],
+  "C.2": [kvCacheLearning, decodingAssessment],
   "C.3": [servingAssessment],
   "C.4": [compressionAssessment],
 
