@@ -103,10 +103,10 @@ export const forwardKLLearning = {
       type: "mc",
       question: "Why does RLHF use reverse KL ($\\text{KL}(\\pi_\\theta \\| \\pi_{\\text{ref}})$) rather than forward KL ($\\text{KL}(\\pi_{\\text{ref}} \\| \\pi_\\theta)$) as its penalty term?",
       options: [
-        "Reverse KL is computationally cheaper to estimate from policy samples",
-        "Forward KL would require sampling from $\\pi_{\\text{ref}}$, but the RL loop already generates samples from $\\pi_\\theta$, making reverse KL naturally estimable on-policy",
-        "Forward KL always produces larger gradient magnitudes, making training unstable",
-        "There is no practical difference; the choice is a historical convention"
+        "Reverse KL is computationally cheaper to estimate because its gradient involves fewer terms and avoids the log-partition function",
+        "Forward KL would require sampling from $\\pi_{\\text{ref}}$, but the RL loop generates samples from $\\pi_\\theta$, making reverse KL naturally estimable on-policy",
+        "Forward KL always produces larger gradient magnitudes that destabilize the policy update, so reverse KL is used for numerical stability",
+        "There is no practical difference between the two directions; the choice of reverse KL is a historical convention from the original PPO paper"
       ],
       correct: 1,
       explanation: "In the RL loop, we generate rollouts from $\\pi_\\theta$ (the current policy). Reverse KL $\\text{KL}(\\pi_\\theta \\| \\pi_{\\text{ref}})$ takes expectations under $\\pi_\\theta$, which means we can estimate it directly from our on-policy samples. Forward KL would require expectations under $\\pi_{\\text{ref}}$, needing separate samples from the reference policy. The choice is driven by what's naturally estimable in the on-policy RL setting."
