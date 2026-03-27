@@ -107,6 +107,7 @@ import { grpoLearning } from './focused-grpo';
 import { gaeLearning } from './focused-gae';
 import { actorCriticLearning } from './focused-actor-critic';
 import { trpoLearning } from './focused-trpo';
+import { mupLearning } from './focused-mup';
 
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
@@ -175,7 +176,7 @@ export const MODULES = {
   "B.1": [scalingLawsLearning, scalingLawsAssessment],
   "B.2": [mixtureOfExpertsLearning, architectureAssessment],
   "B.3": [dataMixingLearning, dataCentricAssessment],
-  "B.4": [trainingDynamicsAssessment],
+  "B.4": [mupLearning, trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
 
   // Branch C — Inference & deployment
