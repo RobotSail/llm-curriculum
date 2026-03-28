@@ -40,12 +40,12 @@ export const flashAttention3FP8Learning = {
       type: "mc",
       question: "Block-wise quantization assigns one scale factor per tile rather than one per tensor. In FlashAttention's tiling framework, when is the scale factor applied?",
       options: [
-        "Before the data is written to HBM during a preprocessing pass, requiring an extra kernel launch",
-        "During the TMA copy from HBM to shared memory, using Hopper's built-in format conversion",
         "After the FP8 matmul, by multiplying the FP32 accumulator by $s_{Q_i} \\cdot s_{K_j}$ to recover the correct magnitude",
+        "During the TMA copy from HBM to shared memory, using Hopper's built-in format conversion",
+        "Before the data is written to HBM during a preprocessing pass, requiring an extra kernel launch",
         "Inside the softmax function, where it adjusts the temperature to compensate for the scale factor"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "The FP8 matmul produces a result in a higher-precision accumulator (FP32). The per-block scale factors $s_{Q_i}$ and $s_{K_j}$ are scalar multipliers applied to this FP32 result: $\\mathbf{S}_{ij} = s_{Q_i} \\cdot s_{K_j} \\cdot \\text{fp8\\_matmul}(\\mathbf{Q}_i, \\mathbf{K}_j)$. This is a cheap operation on the already-computed tile. The quantization (casting to FP8 with scaling) can happen when loading data."
     },
     // Step 5: Info — The incoherent processing technique
@@ -59,12 +59,12 @@ export const flashAttention3FP8Learning = {
       type: "mc",
       question: "Incoherent processing applies a random rotation $\\mathbf{R}$ to Q and K before FP8 quantization. Why does this reduce the dot product error despite not changing the mathematical result?",
       options: [
-        "The rotation compresses the vectors, reducing their norm and making them fit better in FP8's limited range",
         "The rotation makes entries more uniform in magnitude, so the per-element quantization errors become uncorrelated and cancel in the dot product sum rather than accumulating coherently",
+        "The rotation compresses the vectors, reducing their norm and making them fit better in FP8's limited range",
         "The rotation aligns Q and K vectors with the FP8 grid points, eliminating rounding error entirely",
         "The rotation reduces the effective dimension of the dot product, requiring fewer FP8 multiplications"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Without rotation, Q and K entries may have outlier dimensions that dominate the dot product. Their quantization errors are correlated (same dimensions are poorly quantized in both Q and K), causing systematic error. The random rotation spreads information uniformly across dimensions, making each entry roughly the same magnitude. The quantization errors become independent across dimensions, and by the law of large numbers, they cancel in the $d$-dimensional sum: error scales as $O(\\epsilon/\\sqrt{d})$ instead of $O(\\epsilon)$."
     },
     // Step 7: Info — Practical implementation of incoherent processing
@@ -80,10 +80,10 @@ export const flashAttention3FP8Learning = {
       options: [
         "The incoherent processing dominates — $Nd \\log d > N^2 d$ for typical values",
         "They are comparable — both are roughly $10^8$ FLOPs for these dimensions",
-        "The incoherent processing is negligible — $N \\log d / (N^2) = \\log(128) / 4096 \\approx 0.17\\%$ of attention FLOPs",
-        "The comparison depends on whether FP8 or FP16 is used for the Hadamard transform"
+        "The comparison depends on whether FP8 or FP16 is used for the Hadamard transform",
+        "The incoherent processing is negligible — $N \\log d / (N^2) = \\log(128) / 4096 \\approx 0.17\\%$ of attention FLOPs"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Attention FLOPs: $N^2 d = 4096^2 \\times 128 \\approx 2.15 \\times 10^9$. Hadamard FLOPs: $2 \\times N \\times d \\log_2 d = 2 \\times 4096 \\times 128 \\times 7 \\approx 7.3 \\times 10^6$. The ratio is $\\approx 0.34\\%$ — the incoherent processing overhead is negligible. The factor of 2 accounts for applying the transform to both Q and K. As $N$ grows, the ratio shrinks further since attention scales as $N^2$."
     },
     // Step 9: Info — FP8 accuracy results
@@ -118,10 +118,10 @@ export const flashAttention3FP8Learning = {
       options: [
         "No — FP8 introduces quantization errors that will accumulate over thousands of training steps and degrade final model quality",
         "No — the Hadamard preprocessing doubles the total compute, negating the FP8 throughput advantage",
-        "Yes — the ~2× attention speedup significantly reduces training time, and incoherent processing keeps accuracy within ~$10^{-3}$ of FP16, with gradients maintained at higher precision",
-        "Yes, but only for the first half of training — switch to FP16 attention for the final phase to improve convergence"
+        "Yes, but only for the first half of training — switch to FP16 attention for the final phase to improve convergence",
+        "Yes — the ~2× attention speedup significantly reduces training time, and incoherent processing keeps accuracy within ~$10^{-3}$ of FP16, with gradients maintained at higher precision"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "This is an ideal scenario for FP8 attention: H100 GPUs provide FP8 tensor cores, 32K context makes attention a major bottleneck, and the model is large enough that training speed matters. Incoherent processing ensures attention output matches FP16 to ~$10^{-3}$ RMSE. The Hadamard preprocessing is $O(Nd\\log d)$ vs attention's $O(N^2d)$ — negligible at 32K context. Gradients stay at BF16/FP32, so training dynamics are unaffected."
     },
     // Step 13: MC — FP8 vs FP16 scaling

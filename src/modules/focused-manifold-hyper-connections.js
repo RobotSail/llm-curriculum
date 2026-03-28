@@ -41,11 +41,11 @@ export const manifoldHyperConnectionsLearning = {
       question: "Hyper-Connections use a learned $n \\times n$ mixing matrix $\\mathbf{H}^{\\text{res}}$ to combine $n$ residual streams. With $L = 60$ layers, the effective residual mapping is $(\\mathbf{H}^{\\text{res}})^{60}$. What happens when $\\|\\mathbf{H}^{\\text{res}}\\|_2 = 1.1$ (spectral norm slightly above 1)?",
       options: [
         "The signal is attenuated by a factor of $0.9^{60} \\approx 0.002$, causing vanishing gradients",
-        "The signal is amplified by $1.1^{60} \\approx 304$, potentially causing training instability",
+        "The mixing matrix is applied independently per layer, so the spectral norms don't compound",
         "The effect is negligible — a spectral norm of 1.1 is close enough to 1 to maintain stability",
-        "The mixing matrix is applied independently per layer, so the spectral norms don't compound"
+        "The signal is amplified by $1.1^{60} \\approx 304$, potentially causing training instability"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Matrix powers compound: $\\|(\\mathbf{H}^{\\text{res}})^L\\|_2 \\leq \\|\\mathbf{H}^{\\text{res}}\\|_2^L = 1.1^{60} \\approx 304$. Even a spectral norm slightly above 1 causes exponential amplification across layers. In practice, DeepSeek observed amplifications up to 3000× with unconstrained HC. This is the same instability mechanism as in RNNs (exploding gradients) — the mixing matrices play the role of the recurrent weight matrix."
     },
     // Step 5: Info — The Birkhoff polytope constraint
@@ -98,11 +98,11 @@ export const manifoldHyperConnectionsLearning = {
       question: "mHC expands the residual stream by $n = 4\\times$ but adds only 6.7% training time overhead. How is this possible if the hidden state is 4× larger?",
       options: [
         "The wider residual stream uses FP8 precision, which is 4× cheaper than BF16",
-        "The mixing operations are on $n \\times n = 4 \\times 4$ matrices, which are tiny; the expensive operations (attention, FFN) still operate on the original $C$-dimensional input after compression via $\\mathbf{H}^{\\text{pre}}$",
+        "The expansion is applied only to the KV cache, not to the full hidden state",
         "Only every 4th layer uses the expanded stream; the rest use standard residual connections",
-        "The expansion is applied only to the KV cache, not to the full hidden state"
+        "The mixing operations are on $n \\times n = 4 \\times 4$ matrices, which are tiny; the expensive operations (attention, FFN) still operate on the original $C$-dimensional input after compression via $\\mathbf{H}^{\\text{pre}}$"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The key insight is that $\\mathbf{H}^{\\text{pre}}$ compresses the $n$ streams back to 1 before the expensive layer computation ($f_l$). The attention and FFN blocks — which dominate compute — still operate on $C$-dimensional inputs, unchanged. The $n \\times n$ mixing and the $1 \\times n$ compression/expansion are applied per-channel using small learned scalars, adding negligible compute. The 6.7% overhead comes mainly from the 4× larger residual stream occupying more memory bandwidth."
     },
     // Step 11: Info — Connection to depth-wise attention

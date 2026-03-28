@@ -41,11 +41,11 @@ export const attentionResidualsLearning = {
       question: "AttnRes initializes the pseudo-queries $\\mathbf{w}_l$ to zero, so initial attention weights are $\\alpha_{i \\to l} = 1/l$ (uniform). Why is this initialization important?",
       options: [
         "Zero initialization is standard practice for all transformer parameters and has no special significance here",
-        "It ensures the model starts at a known-good configuration (equal-weight averaging, similar to standard residuals) and gradually deviates only where learned depth-weighting improves the loss",
+        "Uniform initial weights guarantee that gradients flow equally to all layers during the first training steps, preventing early-layer bias",
         "It forces the model to learn depth-wise attention from scratch, preventing interference from pretrained residual connection patterns",
-        "Uniform initial weights guarantee that gradients flow equally to all layers during the first training steps, preventing early-layer bias"
+        "It ensures the model starts at a known-good configuration (equal-weight averaging, similar to standard residuals) and gradually deviates only where learned depth-weighting improves the loss"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With uniform weights, the initial behavior is a running average of all layer outputs — close to (but not identical to) standard residual connections. This makes AttnRes a smooth generalization: it starts at a reasonable baseline and the model only develops non-uniform depth-weighting where it empirically helps. Starting with random or non-uniform weights would destabilize early training. This is analogous to how LoRA initializes one projection to zero to start at the pretrained model."
     },
     // Step 5: Info — Structured matrix perspective
@@ -59,12 +59,12 @@ export const attentionResidualsLearning = {
       type: "mc",
       question: "Under the structured matrix view, standard residual connections correspond to a lower-triangular all-ones matrix $\\mathbf{M}$. AttnRes replaces this with an input-dependent softmax attention matrix. What structural constraint does $\\mathbf{M}$ still satisfy in AttnRes?",
       options: [
-        "$\\mathbf{M}$ is symmetric, because depth-wise attention is bidirectional",
         "$\\mathbf{M}$ is lower-triangular (causal): layer $l$'s hidden state only depends on outputs from layers $0$ through $l-1$, not future layers",
+        "$\\mathbf{M}$ is symmetric, because depth-wise attention is bidirectional",
         "$\\mathbf{M}$ is orthogonal, preserving the norm of the stacked output vector",
         "$\\mathbf{M}$ is doubly stochastic, with both rows and columns summing to 1"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "AttnRes is causal in depth: $\\mathbf{h}_l = \\sum_{i=0}^{l-1} \\alpha_{i \\to l} \\mathbf{v}_i$ — layer $l$ only aggregates from layers before it (it can't attend to future layer outputs that haven't been computed yet). The matrix $\\mathbf{M}$ is lower-triangular. Each row sums to 1 (softmax normalization), but columns don't — it's row-stochastic, not doubly stochastic. The weights are input-dependent, unlike the fixed all-ones pattern."
     },
     // Step 7: Info — Depth-wise attention sinks
@@ -78,12 +78,12 @@ export const attentionResidualsLearning = {
       type: "mc",
       question: "Trained AttnRes models show \"depth-wise attention sinks\" — certain layers consistently receive high weight. This is analogous to sequence-wise attention sinks on early tokens. What does this imply about the structure of residual streams?",
       options: [
-        "Most layers are redundant and could be pruned without quality loss",
         "The transformer develops a hierarchical structure where certain layers produce broadly useful features that many later layers depend on, while others contribute more locally",
+        "Most layers are redundant and could be pruned without quality loss",
         "All layers produce equally important features, but the attention mechanism is biased toward early layers due to softmax saturation",
         "The sinks are an artifact of the zero initialization and would disappear with random initialization"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Depth-wise sinks indicate that some layers produce representations that are broadly useful across many contexts (\"infrastructure\" features), while others contribute more specialized processing that's relevant only to certain layers. This matches interpretability findings that early layers extract basic features (syntax, entity types) used throughout the network, while later layers perform more task-specific reasoning. The sinks persist across different initialization strategies, indicating they reflect genuine network structure."
     },
     // Step 9: Info — Block AttnRes: the practical variant
@@ -99,10 +99,10 @@ export const attentionResidualsLearning = {
       options: [
         "The norm still grows as $O(L)$ but with a smaller constant because the attention weights are less than 1",
         "The norm stays constant because softmax attention preserves the input norm exactly",
-        "The norm grows as $O(B)$ within each block of $B = 8$ layers, then is reset at block boundaries by the selective aggregation — limiting growth to $O(B)$ instead of $O(L)$",
-        "The norm grows as $O(\\sqrt{L})$ because block boundaries create independent random contributions"
+        "The norm grows as $O(\\sqrt{L})$ because block boundaries create independent random contributions",
+        "The norm grows as $O(B)$ within each block of $B = 8$ layers, then is reset at block boundaries by the selective aggregation — limiting growth to $O(B)$ instead of $O(L)$"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Within each block, standard residuals cause $O(B)$ growth ($B = 8$ layers). At block boundaries, softmax attention produces a convex combination of the block representations (weights sum to 1), which constrains the output norm to the weighted average of inputs — not a sum. This resets the accumulation. The overall growth is bounded by the within-block growth $O(B)$, not the total network depth $O(L = 64)$."
     },
     // Step 11: Info — Performance results

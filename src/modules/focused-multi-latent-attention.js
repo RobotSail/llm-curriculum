@@ -40,12 +40,12 @@ export const multiLatentAttentionLearning = {
       type: "mc",
       question: "GQA with $g = 8$ groups and $n_h = 64$ query heads reduces KV cache by 8×. Each group of 8 query heads shares one K and one V head. What expressiveness is lost compared to full MHA?",
       options: [
-        "No expressiveness is lost — the query heads within a group can still compute distinct attention patterns through their different query projections",
         "The 8 query heads in each group are forced to compute identical attention scores over the context, since they share the same keys; only the value mixing differs",
+        "No expressiveness is lost — the query heads within a group can still compute distinct attention patterns through their different query projections",
         "Each group can attend to different positions, but all 8 groups must agree on a single attention distribution",
         "GQA limits the model to attending to at most $g = 8$ distinct positions per layer"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Attention scores are $\\mathbf{q}^T \\mathbf{k} / \\sqrt{d}$. With shared keys, the 8 query heads in a group attend to the same key vectors. Despite having different $\\mathbf{q}$ projections, they compute $\\mathbf{q}_i^T \\mathbf{k}$ with the same $\\mathbf{k}$ for all $i$ in the group. The attention distributions are identical within a group because the softmax input is the same. Different groups (with different shared keys) can attend differently, but within each group, the 8 heads are constrained to the same attention pattern. In MHA, all 64 heads would be independent."
     },
     // Step 5: Info — MLA core idea: joint low-rank compression
@@ -79,11 +79,11 @@ export const multiLatentAttentionLearning = {
       question: "MLA decouples position encoding into a separate RoPE component with its own small key vector $\\mathbf{k}^R \\in \\mathbb{R}^{64}$, shared across all heads. Why can't RoPE be applied directly to the reconstructed keys $\\mathbf{k} = \\mathbf{W}^{UK} \\mathbf{c}^{KV}$?",
       options: [
         "RoPE rotations are only defined for specific dimensions (64 or 128), and the reconstructed keys may not match these dimensions",
-        "Applying RoPE after up-projection prevents the weight absorption optimization: the position-dependent rotation would prevent folding $\\mathbf{W}^{UK}$ into the query projection",
+        "RoPE requires the key to have the same dimension as the query, which isn't guaranteed after up-projection from the latent space",
         "The up-projection $\\mathbf{W}^{UK}$ would amplify the RoPE rotation angles, causing positional encodings to overflow",
-        "RoPE requires the key to have the same dimension as the query, which isn't guaranteed after up-projection from the latent space"
+        "Applying RoPE after up-projection prevents the weight absorption optimization: the position-dependent rotation would prevent folding $\\mathbf{W}^{UK}$ into the query projection"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Weight absorption (Section 9) folds $\\mathbf{W}^{UK}$ into $\\mathbf{W}^{UQ}$ so that attention operates directly on the latent $\\mathbf{c}^{KV}$ without explicit decompression. If RoPE is applied after up-projection, the product $(\\mathbf{R}_t \\mathbf{W}^{UQ})^T (\\mathbf{R}_s \\mathbf{W}^{UK})$ can't be collapsed into a single matrix because $\\mathbf{R}_t$ and $\\mathbf{R}_s$ depend on different positions. Decoupling RoPE into a separate additive component keeps the content path absorption-friendly."
     },
     // Step 9: Info — Weight absorption
@@ -117,11 +117,11 @@ export const multiLatentAttentionLearning = {
       question: "MLA achieves ~57× KV cache compression while maintaining per-head expressiveness. GQA with $g = 2$ groups achieves 32× compression. Why might MLA be preferred despite GQA's simpler implementation?",
       options: [
         "MLA is always faster because it eliminates the KV cache entirely during inference",
-        "GQA with $g = 2$ forces 64 query heads to share each KV head, severely limiting the model's ability to attend to different context features across heads; MLA gives every head independent key/value reconstructions from the shared latent",
+        "GQA cannot be combined with RoPE, while MLA can via decoupled positional encoding",
         "MLA uses less compute during training because the latent projection is cheaper than GQA's grouped projections",
-        "GQA cannot be combined with RoPE, while MLA can via decoupled positional encoding"
+        "GQA with $g = 2$ forces 64 query heads to share each KV head, severely limiting the model's ability to attend to different context features across heads; MLA gives every head independent key/value reconstructions from the shared latent"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With GQA $g = 2$, 64 query heads share each KV head — within each group, all heads compute identical attention patterns (same keys → same softmax). MLA's per-head up-projections ($\\mathbf{W}_i^{UK}$, $\\mathbf{W}_i^{UV}$) reconstruct distinct keys and values for each head from the shared latent, so all 128 heads can attend independently. GQA does work with RoPE, and MLA doesn't eliminate the cache — it compresses it. The key advantage is expressiveness at comparable compression."
     },
     // Step 13: MC — MLA latent dimension

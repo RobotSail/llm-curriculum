@@ -21,12 +21,12 @@ export const flashAttention4Learning = {
       type: "mc",
       question: "On Hopper, FlashAttention-3 is primarily limited by tensor core throughput. On Blackwell, tensor core throughput doubled but MUFU (exponential) throughput and shared memory bandwidth did not change. What is the new primary bottleneck?",
       options: [
-        "HBM bandwidth — Blackwell's larger tiles require more data movement from main memory",
-        "Register file capacity — the wider tensor core instructions consume more registers per operation",
         "Non-matmul operations (softmax exponentials via MUFU, shared memory reads for matmul operands) that run at the same speed as Hopper despite 2× faster matmuls",
+        "Register file capacity — the wider tensor core instructions consume more registers per operation",
+        "HBM bandwidth — Blackwell's larger tiles require more data movement from main memory",
         "Inter-SM communication — the new 2-CTA MMA mode requires cross-SM synchronization that didn't exist on Hopper"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Blackwell's tensor cores do 2.3× more FLOPS than Hopper, but the MUFU unit (which computes $e^x$ for softmax) and shared memory bandwidth are unchanged. The matmul completes in half the time but then waits for softmax exponentials and shared memory loads at the old speed. The bottleneck has shifted from compute to these auxiliary operations. FA4 addresses this by overlapping and partially replacing these bottlenecked operations."
     },
     // Step 3: Info — Software-emulated exponentials
@@ -60,11 +60,11 @@ export const flashAttention4Learning = {
       question: "FA4 skips ~90% of intermediate rescaling operations in the online softmax. How is the final output still exact?",
       options: [
         "The skipped rescalings are small enough ($< \\tau$) that the accumulated error is within BF16 rounding tolerance",
-        "A final correction step applies the true maximum and denominator after all tiles are processed, retroactively fixing any skipped rescalings",
+        "The warp-level decision ensures that rescaling is only skipped for rows where the attention distribution is flat, minimizing its impact",
         "The attention output is approximately correct, and the downstream layers are robust to the ~10% error",
-        "The warp-level decision ensures that rescaling is only skipped for rows where the attention distribution is flat, minimizing its impact"
+        "A final correction step applies the true maximum and denominator after all tiles are processed, retroactively fixing any skipped rescalings"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The online softmax maintains running statistics (max $m$ and sum $\\ell$) that are always updated, even when the output rescaling is skipped. After all tiles are processed, the final normalization $\\mathbf{O} / \\ell$ uses the correct cumulative statistics. The skipped intermediate rescalings accumulated an error in $\\mathbf{O}$ (using a slightly wrong normalization), but the final division corrects this exactly. The output matches what full rescaling would produce."
     },
     // Step 7: Info — TMEM: Tensor Memory
@@ -97,12 +97,12 @@ export const flashAttention4Learning = {
       type: "mc",
       question: "FA4's backward pass uses 2-CTA MMA mode where two CTAs cooperate on one matrix multiply. The primary motivation is that shared memory bandwidth is the backward-pass bottleneck. How does 2-CTA mode address this?",
       options: [
-        "It doubles the physical SMEM bandwidth by activating a second memory port on the SM",
         "Each CTA loads half the operand to SMEM, halving the per-CTA SMEM traffic while the hardware interleaves both CTAs' loads to keep the SMEM pipeline full",
+        "It doubles the physical SMEM bandwidth by activating a second memory port on the SM",
         "It caches frequently-used operands in TMEM, bypassing SMEM entirely for repeated reads",
         "The two CTAs compute independent MMAs on different tiles, doubling throughput without additional SMEM bandwidth"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The physical SMEM bandwidth is unchanged. Instead, 2-CTA mode splits the operand-staging workload: each CTA loads half the data. The hardware schedules both CTAs' loads on alternating cycles, effectively keeping the SMEM pipeline saturated without either CTA needing to provide the full bandwidth alone. The MMAs are cooperative (same tile), not independent — the two CTAs produce complementary halves of the result."
     },
     // Step 11: Info — Performance results
@@ -130,11 +130,11 @@ export const flashAttention4Learning = {
       question: "A team has access to both H100 and B200 GPUs. They want the fastest attention for training a 70B model with 32K context. Which FlashAttention configuration should they use on each GPU?",
       options: [
         "FA4 on both — it is strictly better than FA3 regardless of hardware",
-        "FA3 on H100 (designed for Hopper features: TMA, WGMMA) and FA4 on B200 (designed for Blackwell features: TMEM, 2-CTA MMA, software exp)",
+        "FA4 on H100 because its algorithmic improvements (conditional rescaling) are hardware-independent, and FA3 on B200 because it better utilizes the faster tensor cores",
         "FA2 on both — it has the widest hardware compatibility and the differences are marginal",
-        "FA4 on H100 because its algorithmic improvements (conditional rescaling) are hardware-independent, and FA3 on B200 because it better utilizes the faster tensor cores"
+        "FA3 on H100 (designed for Hopper features: TMA, WGMMA) and FA4 on B200 (designed for Blackwell features: TMEM, 2-CTA MMA, software exp)"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Each FA version is co-designed with specific hardware. FA3 uses Hopper-specific features (TMA for async loads, WGMMA for async matmuls, ping-pong scheduling) — these don't exist on Blackwell in the same form. FA4 uses Blackwell-specific features (TMEM, 2-CTA cooperative MMA, UMMA instructions). Using FA4 on H100 would fail to compile because the instructions don't exist. Hardware-specific kernel design is the entire point of the FA series."
     }
   ]

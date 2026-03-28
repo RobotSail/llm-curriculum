@@ -21,12 +21,12 @@ export const flashAttention3AsyncLearning = {
       type: "mc",
       question: "FlashAttention-2 achieves ~35% of H100 peak FLOPS despite reaching 50–73% on A100. What is the primary cause of this larger gap?",
       options: [
-        "The H100's higher clock speed causes more frequent cache misses, reducing effective bandwidth",
         "H100 peak FLOPS grew much faster than memory bandwidth, widening the compute-to-bandwidth ratio and making non-overlapped data loading more wasteful",
+        "The H100's higher clock speed causes more frequent cache misses, reducing effective bandwidth",
         "FA2's CUDA code is incompatible with Hopper's instruction set and falls back to emulation mode",
         "The H100's tensor cores require FP8 input, and FA2 only supports FP16"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The H100 has ~3× the FLOPS of A100 but only ~2× the bandwidth. The compute-to-bandwidth ratio increased from 156 to ~300 FLOPs/byte. FA2's synchronous load-compute-store pattern wastes a larger fraction of each cycle waiting for memory. The fix is overlapping loads with computation using Hopper's TMA, not changing precision — FA3's FP16 path also benefits."
     },
     // Step 3: Info — Warp specialization
@@ -61,10 +61,10 @@ export const flashAttention3AsyncLearning = {
       options: [
         "TMA loads data at higher bandwidth than individual thread loads, because it uses a dedicated memory bus",
         "TMA eliminates the need for shared memory entirely by placing tiles directly in registers",
-        "The issuing warp can continue executing compute instructions immediately rather than stalling, enabling overlap of loads and computation",
-        "TMA automatically applies quantization during the copy, converting FP16 data to FP8 on the fly"
+        "TMA automatically applies quantization during the copy, converting FP16 data to FP8 on the fly",
+        "The issuing warp can continue executing compute instructions immediately rather than stalling, enabling overlap of loads and computation"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "TMA's key advantage is asynchrony: after issuing a TMA instruction, the warp doesn't stall. It can immediately proceed with other work (like computing on previously loaded tiles). The bandwidth is similar — TMA uses the same HBM — but the overlap of load latency with computation is what drives FA3's speedup. TMA copies to shared memory, not registers, and doesn't change precision."
     },
     // Step 7: Info — Ping-pong scheduling
@@ -117,11 +117,11 @@ export const flashAttention3AsyncLearning = {
       question: "FA3 achieves ~2× speedup over FA2 on H100 for FP16 attention, reaching ~75% of peak FLOPS. If you disabled warp specialization but kept WGMMA and ping-pong scheduling, which bottleneck would return?",
       options: [
         "Matmul throughput would drop because WGMMA requires specialized warps to issue instructions",
-        "All warps would stall during HBM loads, creating bubbles where neither memory nor compute units are active — the same issue FA2 has",
+        "Ping-pong scheduling would fail because both thread blocks would try to load data simultaneously",
         "The softmax computation would move to HBM, increasing memory traffic by $O(N^2)$",
-        "Ping-pong scheduling would fail because both thread blocks would try to load data simultaneously"
+        "All warps would stall during HBM loads, creating bubbles where neither memory nor compute units are active — the same issue FA2 has"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Without warp specialization, every warp does both loading and computation. When a warp issues a TMA load, it can't compute until the load completes (TMA is async, but the warp needs the data in shared memory before it can issue WGMMA). This creates load-compute bubbles. WGMMA helps overlap matmul with softmax, and ping-pong helps at the block level, but neither addresses the fundamental load-compute serialization that warp specialization solves."
     },
     // Step 13: MC — When FA3 matters most

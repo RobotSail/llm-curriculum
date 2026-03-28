@@ -21,12 +21,12 @@ export const flashAttentionTilingLearning = {
       type: "mc",
       question: "Why can't you naively fuse the attention computation into tiles that each process a block of $K$ columns independently?",
       options: [
-        "Matrix multiplication requires the full matrices to be present in memory simultaneously",
         "Each tile produces partial attention scores, but softmax normalization requires the sum over ALL columns in the row, which isn't available until every tile has been processed",
+        "Matrix multiplication requires the full matrices to be present in memory simultaneously",
         "GPU hardware restricts shared memory access to one tile at a time, preventing overlapping computation",
         "The $\\mathbf{QK}^T$ products within each tile are not independent due to key-query cross-correlations"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The matmul $\\mathbf{QK}^T$ is trivially blockable — each block of columns can be computed independently. The bottleneck is softmax: to normalize attention score $s_j$, you need $\\sum_k e^{s_k}$ across ALL $N$ columns. After processing one tile, you only have a partial sum. The online softmax algorithm solves this by maintaining running statistics that allow corrections when new tiles arrive."
     },
     // Step 3: Info — Safe softmax (numerical stability)
@@ -60,11 +60,11 @@ export const flashAttentionTilingLearning = {
       question: "In the online softmax algorithm, after processing block 1 you have running max $m_1 = 5.0$ and running sum $\\ell_1 = 100.0$. Block 2 has a new maximum element of $8.0$. How must $\\ell_1$ be corrected before incorporating block 2's contribution?",
       options: [
         "No correction needed — just add block 2's partial sum directly to $\\ell_1$",
-        "Multiply $\\ell_1$ by $e^{5.0 - 8.0} = e^{-3}$ to rescale all previous terms to the new maximum",
+        "Subtract $e^{5.0}$ and add $e^{8.0}$ to replace the old maximum's contribution with the new one",
         "Divide $\\ell_1$ by $e^{8.0}$ to normalize it relative to the new maximum",
-        "Subtract $e^{5.0}$ and add $e^{8.0}$ to replace the old maximum's contribution with the new one"
+        "Multiply $\\ell_1$ by $e^{5.0 - 8.0} = e^{-3}$ to rescale all previous terms to the new maximum"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The running sum $\\ell_1 = \\sum_{k \\in \\text{block 1}} e^{s_k - m_1} = \\sum_k e^{s_k - 5}$. Under the new maximum $m_2 = 8$, each term should be $e^{s_k - 8} = e^{s_k - 5} \\cdot e^{5 - 8} = e^{s_k - 5} \\cdot e^{-3}$. So the entire sum is rescaled by $e^{m_1 - m_2} = e^{-3} \\approx 0.05$. This multiplicative correction is efficient — a single scalar multiply on the accumulated sum."
     },
     // Step 7: Info — The FlashAttention tiling scheme
@@ -97,12 +97,12 @@ export const flashAttentionTilingLearning = {
       type: "mc",
       question: "After processing KV blocks 1 and 2, you have $m^{(2)} = 10$, $\\ell^{(2)} = 500$, and unnormalized output $\\mathbf{O}^{(2)}$. Block 3 has row-max 7. What is the correction factor applied to $\\mathbf{O}^{(2)}$?",
       options: [
-        "$e^{10 - 7} = e^3 \\approx 20.1$ — the old accumulator is scaled up because the new block's max is smaller",
-        "$e^{7 - 10} = e^{-3} \\approx 0.05$ — the accumulator is scaled down to match the new, lower maximum",
         "$e^{0} = 1$ — the correction is always 1 because the running max $m^{(2)} = 10$ already exceeds block 3's max of 7",
+        "$e^{7 - 10} = e^{-3} \\approx 0.05$ — the accumulator is scaled down to match the new, lower maximum",
+        "$e^{10 - 7} = e^3 \\approx 20.1$ — the old accumulator is scaled up because the new block's max is smaller",
         "$e^{7} / e^{10}$ applied only to block 3's terms, while $\\mathbf{O}^{(2)}$ remains unchanged"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "The new running max is $m^{(3)} = \\max(10, 7) = 10$ — unchanged. The correction factor is $e^{m^{(2)} - m^{(3)}} = e^{10 - 10} = e^0 = 1$. No rescaling of the accumulator is needed because the new block didn't introduce a larger maximum. Block 3's own terms are computed as $e^{s_k - 10}$, which are all small since $s_k \\leq 7$. Corrections only occur when a new block has a larger maximum than all previous blocks."
     },
     // Step 11: Info — HBM access complexity
@@ -118,10 +118,10 @@ export const flashAttentionTilingLearning = {
       options: [
         "When $d$ is large relative to $\\sqrt{M}$, maximizing the ratio $d^2/M$",
         "When $N$ is very small, since the quadratic term is negligible",
-        "When $M$ is large relative to $d^2$, making the factor $d^2/M$ much less than 1",
-        "When $N \\approx d$, so that the attention matrix is nearly square and tiling is most efficient"
+        "When $N \\approx d$, so that the attention matrix is nearly square and tiling is most efficient",
+        "When $M$ is large relative to $d^2$, making the factor $d^2/M$ much less than 1"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "The relative improvement is $O(N^2) / O(N^2 d^2/M) = O(M/d^2)$. This ratio grows as SRAM size $M$ increases or head dimension $d$ decreases. Larger SRAM means bigger tiles, which means fewer passes over the data. Typical values give $M/d^2 \\approx 100{,}000 / 128^2 \\approx 6$, so FlashAttention uses roughly 6× fewer HBM accesses. On newer GPUs with more SRAM, the advantage grows."
     },
     // Step 13: MC — FlashAttention properties
@@ -130,11 +130,11 @@ export const flashAttentionTilingLearning = {
       question: "Which statement about FlashAttention's tiling algorithm is correct?",
       options: [
         "It produces approximate attention — the online softmax introduces a controllable error proportional to the number of tiles",
-        "It requires storing the $N \\times N$ attention matrix in HBM for the backward pass, even though the forward pass avoids it",
         "It computes mathematically exact attention while using $O(N)$ additional memory instead of $O(N^2)$ for the attention matrix",
+        "It requires storing the $N \\times N$ attention matrix in HBM for the backward pass, even though the forward pass avoids it",
         "It only works when sequence length $N$ is a multiple of the block size $B_c$, requiring padding that wastes computation"
       ],
-      correct: 2,
+      correct: 1,
       explanation: "FlashAttention computes exact attention — the online softmax produces identical results to standard softmax (up to floating-point non-associativity). It uses $O(N)$ extra memory: just the running statistics $m$ and $\\ell$ per query position, plus the output accumulator. No $N \\times N$ matrix is ever materialized. For the backward pass, it uses recomputation (a separate concept) rather than storing the attention matrix. Sequences not divisible by block size are handled with masking, not wasteful padding."
     }
   ]

@@ -41,12 +41,12 @@ export const ioAwarenessLearning = {
       type: "mc",
       question: "An A100 GPU has ~20 MB of total SRAM across all SMs and 80 GB of HBM. SRAM bandwidth is ~19 TB/s while HBM bandwidth is ~2 TB/s. A kernel needs to store a 50 MB intermediate tensor. What is the performance consequence?",
       options: [
-        "The kernel can split the 50 MB across SMs, fitting entirely in SRAM with no HBM access needed",
         "The intermediate must spill to HBM since 50 MB exceeds SRAM capacity, forcing reads/writes at the slower 2 TB/s rate",
+        "The kernel can split the 50 MB across SMs, fitting entirely in SRAM with no HBM access needed",
         "The GPU automatically compresses the 50 MB tensor to fit in SRAM using hardware-level quantization",
         "SRAM and HBM bandwidth are combined additively, so the effective bandwidth is 21 TB/s regardless of where data resides"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The 50 MB intermediate exceeds the ~20 MB total SRAM capacity, so it must be written to HBM and read back later. This means those memory accesses happen at ~2 TB/s instead of ~19 TB/s — roughly a 10× slowdown for the memory-bound portions. There is no automatic compression; bandwidth doesn't combine across memory levels. This is exactly the problem FlashAttention solves for the attention computation."
     },
     // Step 5: Info — Standard attention's memory problem
@@ -61,11 +61,11 @@ export const ioAwarenessLearning = {
       question: "For standard attention with sequence length $N = 4096$ and head dimension $d = 128$ in FP16, what is the approximate size of the intermediate attention matrix $\\mathbf{S} = \\mathbf{Q}\\mathbf{K}^T$?",
       options: [
         "1 MB — it's $N \\times d = 4096 \\times 128$ elements at 2 bytes each",
-        "32 MB — it's $N \\times N = 4096^2$ elements at 2 bytes each",
+        "512 KB — attention scores are scalar so only $N$ values are stored",
         "128 MB — it's $N^2 \\times d$ elements since each attention score involves a $d$-dimensional dot product",
-        "512 KB — attention scores are scalar so only $N$ values are stored"
+        "32 MB — it's $N \\times N = 4096^2$ elements at 2 bytes each"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "$\\mathbf{S}$ has shape $N \\times N = 4096 \\times 4096 = 16{,}777{,}216$ elements. At 2 bytes per FP16 element, that's $\\approx 32$ MB. This is just for one attention head — with 32 heads, you'd need ~1 GB for the intermediate matrices alone. Compare this to the input/output matrices $\\mathbf{Q}, \\mathbf{K}, \\mathbf{V}, \\mathbf{O}$ which are each only $4096 \\times 128 \\times 2 = 1$ MB."
     },
     // Step 7: Info — The roofline model
@@ -98,12 +98,12 @@ export const ioAwarenessLearning = {
       type: "mc",
       question: "Standard attention executes three separate kernels (matmul, softmax, matmul), writing the $N \\times N$ intermediate matrix to HBM between each step. FlashAttention fuses these into one kernel. What is the primary source of FlashAttention's speedup?",
       options: [
-        "FlashAttention uses an approximate softmax that requires fewer FLOPs than exact softmax",
         "FlashAttention eliminates the $N \\times N$ HBM round-trips by keeping intermediates in SRAM through tiling",
+        "FlashAttention uses an approximate softmax that requires fewer FLOPs than exact softmax",
         "FlashAttention reduces the computational complexity from $O(N^2)$ to $O(N \\log N)$ through sparse approximation",
         "FlashAttention runs the three kernels concurrently on different SMs rather than sequentially"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "FlashAttention computes **exact** attention (not approximate) with the **same** $O(N^2 d)$ FLOPs. Its speedup comes entirely from reducing HBM memory access — by tiling the computation to fit in SRAM and using online softmax, it avoids materializing the $N \\times N$ attention matrix in HBM. The saved memory bandwidth, not saved computation, is what makes it 2–4× faster."
     },
     // Step 11: Info — Implications beyond attention
@@ -118,11 +118,11 @@ export const ioAwarenessLearning = {
       question: "You're profiling a custom transformer layer and find that the RMSNorm operation takes 2ms despite performing very few FLOPs. The norm reads the full hidden state from HBM, computes the norm, then writes the result back. What IO-aware optimization would most likely help?",
       options: [
         "Replace RMSNorm with a mathematically simpler normalization that uses fewer FLOPs",
-        "Fuse the RMSNorm with the preceding linear layer's output so the hidden state stays in SRAM between the two operations",
+        "Switch to FP32 for the normalization to improve numerical precision and reduce rounding operations",
         "Increase the batch size to amortize the kernel launch overhead across more tokens",
-        "Switch to FP32 for the normalization to improve numerical precision and reduce rounding operations"
+        "Fuse the RMSNorm with the preceding linear layer's output so the hidden state stays in SRAM between the two operations"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The symptom (high wall-clock time despite low FLOPs) indicates a memory-bound operation. RMSNorm reads the hidden state from HBM and writes it back — two HBM round-trips. By fusing it with the preceding linear layer, the hidden state can stay in SRAM between operations, eliminating one HBM read and one write. Reducing FLOPs won't help a memory-bound op. Increasing batch size doesn't reduce per-element memory traffic. FP32 would actually increase memory traffic."
     },
     // Step 13: MC — Sequence length and memory
