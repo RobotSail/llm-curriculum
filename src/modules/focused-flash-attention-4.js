@@ -21,12 +21,12 @@ export const flashAttention4Learning = {
       type: "mc",
       question: "On Hopper, FlashAttention-3 is primarily limited by tensor core throughput. On Blackwell, tensor core throughput doubled but MUFU (exponential) throughput and shared memory bandwidth did not change. What is the new primary bottleneck?",
       options: [
-        "HBM bandwidth — Blackwell's larger tiles require more data movement from main memory",
-        "Register file capacity — the wider tensor core instructions consume more registers per operation",
         "Non-matmul operations (softmax exponentials via MUFU, shared memory reads for matmul operands) that run at the same speed as Hopper despite 2× faster matmuls",
+        "Register file capacity — the wider tensor core instructions consume more registers per operation",
+        "HBM bandwidth — Blackwell's larger tiles require more data movement from main memory",
         "Inter-SM communication — the new 2-CTA MMA mode requires cross-SM synchronization that didn't exist on Hopper"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Blackwell's tensor cores do 2.3× more FLOPS than Hopper, but the MUFU unit (which computes $e^x$ for softmax) and shared memory bandwidth are unchanged. The matmul completes in half the time but then waits for softmax exponentials and shared memory loads at the old speed. The bottleneck has shifted from compute to these auxiliary operations. FA4 addresses this by overlapping and partially replacing these bottlenecked operations."
     },
     // Step 3: Info — Software-emulated exponentials
@@ -42,10 +42,10 @@ export const flashAttention4Learning = {
       options: [
         "The polynomial is less accurate than MUFU for FP32 inputs, causing unacceptable numerical error",
         "CUDA cores are slower than MUFU for exponentials — the polynomial is only used when MUFU is saturated",
-        "Each polynomial evaluation requires temporary registers for intermediate values; computing all exponentials this way would cause register spills that slow down the entire kernel",
-        "The CUDA cores are already busy with softmax normalization and cannot handle additional work"
+        "The CUDA cores are already busy with softmax normalization and cannot handle additional work",
+        "Each polynomial evaluation requires temporary registers for intermediate values; computing all exponentials this way would cause register spills that slow down the entire kernel"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "The cubic polynomial needs registers for the intermediate Horner-method values ($p_2 + p_3 f$, etc.). Each in-flight polynomial occupies registers. Computing all exponentials via polynomial simultaneously would exhaust the register file, causing spills to local memory (slow). The 10–25% split is empirically tuned: enough polynomial evaluations to keep the MUFU from bottlenecking, but few enough to avoid register pressure. For BF16 precision, the polynomial matches MUFU accuracy."
     },
     // Step 5: Info — Conditional rescaling
@@ -78,12 +78,12 @@ export const flashAttention4Learning = {
       type: "mc",
       question: "TMEM allows MMA accumulators to be stored on-chip without consuming general-purpose registers. In FA4's forward pass, the $\\mathbf{S} = \\mathbf{QK}^T$ result stays in TMEM, is converted to $\\mathbf{P}$ via softmax, then used as input to $\\mathbf{O} = \\mathbf{PV}$. What does this eliminate?",
       options: [
-        "The need to compute softmax entirely — TMEM can store pre-computed softmax lookup tables",
         "The register pressure from holding the 128×128 accumulator tile, freeing registers for other operations like polynomial exponentials",
+        "The need to compute softmax entirely — TMEM can store pre-computed softmax lookup tables",
         "The HBM round-trip for the attention matrix, which was already eliminated by FlashAttention-1",
         "The shared memory read for the V operand, since TMEM can hold both P and V simultaneously"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Without TMEM, the 128×128 FP32 accumulator ($\\mathbf{S}$) occupies a large chunk of the register file. On Blackwell, FA4 stores it in TMEM instead, freeing registers for other operations — including the polynomial exponential temporaries and the running softmax statistics. TMEM doesn't replace HBM storage (that was FA1's contribution) or softmax computation; it specifically addresses register pressure for MMA accumulators."
     },
     // Step 9: Info — 2-CTA cooperative MMA
@@ -98,11 +98,11 @@ export const flashAttention4Learning = {
       question: "FA4's backward pass uses 2-CTA MMA mode where two CTAs cooperate on one matrix multiply. The primary motivation is that shared memory bandwidth is the backward-pass bottleneck. How does 2-CTA mode address this?",
       options: [
         "It doubles the physical SMEM bandwidth by activating a second memory port on the SM",
-        "Each CTA loads half the operand to SMEM, halving the per-CTA SMEM traffic while the hardware interleaves both CTAs' loads to keep the SMEM pipeline full",
+        "The two CTAs compute independent MMAs on different tiles, doubling throughput without additional SMEM bandwidth",
         "It caches frequently-used operands in TMEM, bypassing SMEM entirely for repeated reads",
-        "The two CTAs compute independent MMAs on different tiles, doubling throughput without additional SMEM bandwidth"
+        "Each CTA loads half the operand to SMEM, halving the per-CTA SMEM traffic while the hardware interleaves both CTAs' loads to keep the SMEM pipeline full"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The physical SMEM bandwidth is unchanged. Instead, 2-CTA mode splits the operand-staging workload: each CTA loads half the data. The hardware schedules both CTAs' loads on alternating cycles, effectively keeping the SMEM pipeline saturated without either CTA needing to provide the full bandwidth alone. The MMAs are cooperative (same tile), not independent — the two CTAs produce complementary halves of the result."
     },
     // Step 11: Info — Performance results
@@ -130,11 +130,11 @@ export const flashAttention4Learning = {
       question: "A team has access to both H100 and B200 GPUs. They want the fastest attention for training a 70B model with 32K context. Which FlashAttention configuration should they use on each GPU?",
       options: [
         "FA4 on both — it is strictly better than FA3 regardless of hardware",
-        "FA3 on H100 (designed for Hopper features: TMA, WGMMA) and FA4 on B200 (designed for Blackwell features: TMEM, 2-CTA MMA, software exp)",
         "FA2 on both — it has the widest hardware compatibility and the differences are marginal",
+        "FA3 on H100 (designed for Hopper features: TMA, WGMMA) and FA4 on B200 (designed for Blackwell features: TMEM, 2-CTA MMA, software exp)",
         "FA4 on H100 because its algorithmic improvements (conditional rescaling) are hardware-independent, and FA3 on B200 because it better utilizes the faster tensor cores"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Each FA version is co-designed with specific hardware. FA3 uses Hopper-specific features (TMA for async loads, WGMMA for async matmuls, ping-pong scheduling) — these don't exist on Blackwell in the same form. FA4 uses Blackwell-specific features (TMEM, 2-CTA cooperative MMA, UMMA instructions). Using FA4 on H100 would fail to compile because the instructions don't exist. Hardware-specific kernel design is the entire point of the FA series."
     }
   ]

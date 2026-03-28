@@ -22,11 +22,11 @@ export const flashAttention3AsyncLearning = {
       question: "FlashAttention-2 achieves ~35% of H100 peak FLOPS despite reaching 50–73% on A100. What is the primary cause of this larger gap?",
       options: [
         "The H100's higher clock speed causes more frequent cache misses, reducing effective bandwidth",
-        "H100 peak FLOPS grew much faster than memory bandwidth, widening the compute-to-bandwidth ratio and making non-overlapped data loading more wasteful",
+        "The H100's tensor cores require FP8 input, and FA2 only supports FP16",
         "FA2's CUDA code is incompatible with Hopper's instruction set and falls back to emulation mode",
-        "The H100's tensor cores require FP8 input, and FA2 only supports FP16"
+        "H100 peak FLOPS grew much faster than memory bandwidth, widening the compute-to-bandwidth ratio and making non-overlapped data loading more wasteful"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The H100 has ~3× the FLOPS of A100 but only ~2× the bandwidth. The compute-to-bandwidth ratio increased from 156 to ~300 FLOPs/byte. FA2's synchronous load-compute-store pattern wastes a larger fraction of each cycle waiting for memory. The fix is overlapping loads with computation using Hopper's TMA, not changing precision — FA3's FP16 path also benefits."
     },
     // Step 3: Info — Warp specialization
@@ -40,12 +40,12 @@ export const flashAttention3AsyncLearning = {
       type: "mc",
       question: "In FA3's warp specialization, producer warps load data via TMA while consumer warps compute with previously loaded data. What would happen if all warps performed both roles (as in FA2)?",
       options: [
-        "Performance would be identical because the total work is the same regardless of how it's distributed among warps",
-        "Performance would improve because each warp can optimize its own memory access patterns locally",
         "Compute warps would stall during data loads and load warps would stall during computation, leaving both resources intermittently idle",
+        "Performance would improve because each warp can optimize its own memory access patterns locally",
+        "Performance would be identical because the total work is the same regardless of how it's distributed among warps",
         "The GPU would run out of registers because each warp needs both compute and load state simultaneously"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Without specialization, a warp issues a load, then must wait for it to complete before computing. During the wait, compute units are idle. Then during computation, the memory pipeline is idle. Warp specialization eliminates this serialization: producer warps keep the memory pipeline busy while consumer warps keep the compute units busy. The total work is the same, but the two pipelines run in parallel."
     },
     // Step 5: Info — TMA and async copies
@@ -99,10 +99,10 @@ export const flashAttention3AsyncLearning = {
       options: [
         "Softmax is replaced with a differentiable approximation that can be expressed as a matmul, eliminating non-matmul ops entirely",
         "Softmax is precomputed for all tiles before any matmuls begin, removing it from the critical path",
-        "Softmax for tile $j$ executes concurrently with the matmul $\\mathbf{Q}_i \\mathbf{K}_{j+1}^T$ for the next tile, because WGMMA is asynchronous",
-        "Softmax is moved to a separate kernel that runs on different SMs than the matmuls"
+        "Softmax is moved to a separate kernel that runs on different SMs than the matmuls",
+        "Softmax for tile $j$ executes concurrently with the matmul $\\mathbf{Q}_i \\mathbf{K}_{j+1}^T$ for the next tile, because WGMMA is asynchronous"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "WGMMA returns control to the warp immediately after dispatching the matmul to tensor cores. The warp can then execute softmax (scaling, exponentiation, normalization) on previously computed scores using the SM's general-purpose units. The tensor cores and general-purpose units operate simultaneously on different data. This effectively hides the non-matmul cost within the matmul latency."
     },
     // Step 11: Info — Putting it all together
@@ -130,11 +130,11 @@ export const flashAttention3AsyncLearning = {
       question: "A team is choosing between FA2 and FA3 for their workload. In which scenario does FA3 provide the largest speedup?",
       options: [
         "Training a small model (125M parameters) with batch size 256 on A100 GPUs, where compute utilization is already high",
-        "Running long-context inference (32K tokens) on H100 GPUs with small batch sizes, where the compute-to-bandwidth ratio is highest and Hopper features are available",
         "Fine-tuning with LoRA on consumer GPUs (RTX 4090), where the model barely fits in memory",
+        "Running long-context inference (32K tokens) on H100 GPUs with small batch sizes, where the compute-to-bandwidth ratio is highest and Hopper features are available",
         "Evaluating a model on short sequences (512 tokens) where attention is a small fraction of total compute"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "FA3's advantages are specific to Hopper GPUs (TMA, WGMMA). The speedup is largest when: (1) running on H100/H200, (2) sequence length is long enough that attention dominates compute, and (3) batch sizes are small enough that FA2 can't saturate the GPU. A100s lack TMA/WGMMA; consumer GPUs lack them too. Short sequences make attention a small fraction of total time, limiting FA3's impact."
     }
   ]

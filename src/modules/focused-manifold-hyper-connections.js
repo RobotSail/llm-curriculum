@@ -21,12 +21,12 @@ export const manifoldHyperConnectionsLearning = {
       type: "mc",
       question: "In a 60-layer transformer with standard residual connections, $\\mathbf{h}_L = \\mathbf{h}_0 + \\sum_{l=1}^{60} f_l(\\cdot)$. If each layer's output $f_l$ has roughly equal norm, how does $\\|\\mathbf{h}_L\\|$ compare to $\\|\\mathbf{h}_0\\|$?",
       options: [
-        "$\\|\\mathbf{h}_L\\| \\approx \\|\\mathbf{h}_0\\|$ — the layer outputs cancel each other out due to random directions",
-        "$\\|\\mathbf{h}_L\\|$ grows roughly as $O(\\sqrt{L})$ due to random walk behavior, reaching about $8\\times \\|\\mathbf{h}_0\\|$",
         "$\\|\\mathbf{h}_L\\|$ grows roughly as $O(L)$ because the layer outputs are not random — they are learned and tend to be positively correlated, reaching up to $60\\times \\|\\mathbf{h}_0\\|$",
+        "$\\|\\mathbf{h}_L\\|$ grows roughly as $O(\\sqrt{L})$ due to random walk behavior, reaching about $8\\times \\|\\mathbf{h}_0\\|$",
+        "$\\|\\mathbf{h}_L\\| \\approx \\|\\mathbf{h}_0\\|$ — the layer outputs cancel each other out due to random directions",
         "$\\|\\mathbf{h}_L\\| = 60 \\|\\mathbf{h}_0\\|$ exactly, because each layer adds exactly one unit of norm"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "Layer outputs are not independent random vectors — they are learned functions that tend to be correlated (they all operate on and modify the same residual stream). In practice, the norm grows roughly linearly with depth, not as $\\sqrt{L}$ (which would hold for truly random, independent additions). This $O(L)$ growth causes PreNorm dilution: later layers' contributions are diluted relative to the accumulated sum."
     },
     // Step 3: Info — Hyper-Connections: expanding the residual stream
@@ -41,11 +41,11 @@ export const manifoldHyperConnectionsLearning = {
       question: "Hyper-Connections use a learned $n \\times n$ mixing matrix $\\mathbf{H}^{\\text{res}}$ to combine $n$ residual streams. With $L = 60$ layers, the effective residual mapping is $(\\mathbf{H}^{\\text{res}})^{60}$. What happens when $\\|\\mathbf{H}^{\\text{res}}\\|_2 = 1.1$ (spectral norm slightly above 1)?",
       options: [
         "The signal is attenuated by a factor of $0.9^{60} \\approx 0.002$, causing vanishing gradients",
-        "The signal is amplified by $1.1^{60} \\approx 304$, potentially causing training instability",
+        "The mixing matrix is applied independently per layer, so the spectral norms don't compound",
         "The effect is negligible — a spectral norm of 1.1 is close enough to 1 to maintain stability",
-        "The mixing matrix is applied independently per layer, so the spectral norms don't compound"
+        "The signal is amplified by $1.1^{60} \\approx 304$, potentially causing training instability"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Matrix powers compound: $\\|(\\mathbf{H}^{\\text{res}})^L\\|_2 \\leq \\|\\mathbf{H}^{\\text{res}}\\|_2^L = 1.1^{60} \\approx 304$. Even a spectral norm slightly above 1 causes exponential amplification across layers. In practice, DeepSeek observed amplifications up to 3000× with unconstrained HC. This is the same instability mechanism as in RNNs (exploding gradients) — the mixing matrices play the role of the recurrent weight matrix."
     },
     // Step 5: Info — The Birkhoff polytope constraint
@@ -98,11 +98,11 @@ export const manifoldHyperConnectionsLearning = {
       question: "mHC expands the residual stream by $n = 4\\times$ but adds only 6.7% training time overhead. How is this possible if the hidden state is 4× larger?",
       options: [
         "The wider residual stream uses FP8 precision, which is 4× cheaper than BF16",
-        "The mixing operations are on $n \\times n = 4 \\times 4$ matrices, which are tiny; the expensive operations (attention, FFN) still operate on the original $C$-dimensional input after compression via $\\mathbf{H}^{\\text{pre}}$",
         "Only every 4th layer uses the expanded stream; the rest use standard residual connections",
+        "The mixing operations are on $n \\times n = 4 \\times 4$ matrices, which are tiny; the expensive operations (attention, FFN) still operate on the original $C$-dimensional input after compression via $\\mathbf{H}^{\\text{pre}}$",
         "The expansion is applied only to the KV cache, not to the full hidden state"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "The key insight is that $\\mathbf{H}^{\\text{pre}}$ compresses the $n$ streams back to 1 before the expensive layer computation ($f_l$). The attention and FFN blocks — which dominate compute — still operate on $C$-dimensional inputs, unchanged. The $n \\times n$ mixing and the $1 \\times n$ compression/expansion are applied per-channel using small learned scalars, adding negligible compute. The 6.7% overhead comes mainly from the 4× larger residual stream occupying more memory bandwidth."
     },
     // Step 11: Info — Connection to depth-wise attention
@@ -116,12 +116,12 @@ export const manifoldHyperConnectionsLearning = {
       type: "mc",
       question: "mHC shows the largest improvements on reasoning benchmarks (BBH +7.2) compared to general knowledge benchmarks (MMLU +2.6). What might explain this pattern?",
       options: [
-        "Reasoning tasks require combining information across many layers, which benefits from learned depth-wise mixing that can emphasize the most relevant intermediate representations",
+        "mHC's expanded residual stream provides extra memory capacity that specifically benefits chain-of-thought reasoning by storing more intermediate states",
         "MMLU questions are easier and any architecture performs well on them, so there is less room for improvement",
         "The reasoning benchmarks were specifically included in mHC's training data, biasing the results",
-        "mHC's expanded residual stream provides extra memory capacity that specifically benefits chain-of-thought reasoning by storing more intermediate states"
+        "Reasoning tasks require combining information across many layers, which benefits from learned depth-wise mixing that can emphasize the most relevant intermediate representations"
       ],
-      correct: 0,
+      correct: 3,
       explanation: "Reasoning tasks (multi-step inference, logical deduction) require the model to selectively combine outputs from specific layers — some layers may extract relevant facts while others perform logical operations. Standard residuals force all layers to contribute equally. mHC's learned mixing can upweight the layers whose outputs are most relevant for the current reasoning step. Knowledge benchmarks like MMLU rely more on retrieval from early layers, where the depth-wise mixing matters less."
     },
     // Step 13: MC — Practical considerations

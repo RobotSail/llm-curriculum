@@ -22,12 +22,12 @@ export const ioAwarenessLearning = {
       type: "mc",
       question: "An operation loads 4 MB of data from HBM and performs $2 \\times 10^8$ FLOPs. On an A100 (312 TFLOPS compute, 2 TB/s bandwidth), is this operation compute-bound or memory-bound?",
       options: [
-        "Compute-bound — $2 \\times 10^8$ FLOPs is a large amount of computation that will saturate the GPU cores",
         "Memory-bound — the arithmetic intensity is 50 FLOPs/byte, well below the 156 FLOPs/byte threshold",
+        "Compute-bound — $2 \\times 10^8$ FLOPs is a large amount of computation that will saturate the GPU cores",
         "Neither — the operation is perfectly balanced between compute and memory",
         "Cannot determine without knowing the kernel's occupancy and thread-block configuration"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Arithmetic intensity = $2 \\times 10^8$ FLOPs / $4 \\times 10^6$ bytes = 50 FLOPs/byte. Since 50 < 156 (the A100's compute-to-bandwidth ratio), the GPU finishes computation before the next batch of data arrives from HBM. The operation is memory-bound: making it faster requires reducing memory traffic, not reducing FLOPs."
     },
     // Step 3: Info — GPU memory hierarchy
@@ -42,11 +42,11 @@ export const ioAwarenessLearning = {
       question: "An A100 GPU has ~20 MB of total SRAM across all SMs and 80 GB of HBM. SRAM bandwidth is ~19 TB/s while HBM bandwidth is ~2 TB/s. A kernel needs to store a 50 MB intermediate tensor. What is the performance consequence?",
       options: [
         "The kernel can split the 50 MB across SMs, fitting entirely in SRAM with no HBM access needed",
-        "The intermediate must spill to HBM since 50 MB exceeds SRAM capacity, forcing reads/writes at the slower 2 TB/s rate",
+        "SRAM and HBM bandwidth are combined additively, so the effective bandwidth is 21 TB/s regardless of where data resides",
         "The GPU automatically compresses the 50 MB tensor to fit in SRAM using hardware-level quantization",
-        "SRAM and HBM bandwidth are combined additively, so the effective bandwidth is 21 TB/s regardless of where data resides"
+        "The intermediate must spill to HBM since 50 MB exceeds SRAM capacity, forcing reads/writes at the slower 2 TB/s rate"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The 50 MB intermediate exceeds the ~20 MB total SRAM capacity, so it must be written to HBM and read back later. This means those memory accesses happen at ~2 TB/s instead of ~19 TB/s — roughly a 10× slowdown for the memory-bound portions. There is no automatic compression; bandwidth doesn't combine across memory levels. This is exactly the problem FlashAttention solves for the attention computation."
     },
     // Step 5: Info — Standard attention's memory problem
@@ -79,12 +79,12 @@ export const ioAwarenessLearning = {
       type: "mc",
       question: "A kernel performs $10^{10}$ FLOPs and accesses $10^8$ bytes from HBM. The GPU's ridge point is at 156 FLOPs/byte. You want to make this kernel 2× faster. Which optimization strategy is most effective?",
       options: [
-        "Reduce the FLOP count by 50% through algorithmic improvements, cutting compute time in half",
-        "Use a lower precision datatype (FP16 → INT8) to double the peak FLOPS throughput",
         "Reduce HBM accesses by 50% through tiling and data reuse in SRAM, since the kernel is memory-bound",
+        "Use a lower precision datatype (FP16 → INT8) to double the peak FLOPS throughput",
+        "Reduce the FLOP count by 50% through algorithmic improvements, cutting compute time in half",
         "Increase GPU clock speed to boost both compute and memory bandwidth proportionally"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "The kernel's arithmetic intensity is $10^{10} / 10^8 = 100$ FLOPs/byte, below the 156 FLOPs/byte ridge point. This means it's memory-bound — execution time is determined by memory access, not computation. Reducing FLOPs (option A) or increasing compute throughput (option B) won't help because the GPU is already waiting on memory. Reducing HBM traffic by tiling into SRAM directly reduces the bottleneck. This is exactly the IO-awareness principle."
     },
     // Step 9: Info — Kernel fusion and IO-awareness
@@ -99,11 +99,11 @@ export const ioAwarenessLearning = {
       question: "Standard attention executes three separate kernels (matmul, softmax, matmul), writing the $N \\times N$ intermediate matrix to HBM between each step. FlashAttention fuses these into one kernel. What is the primary source of FlashAttention's speedup?",
       options: [
         "FlashAttention uses an approximate softmax that requires fewer FLOPs than exact softmax",
-        "FlashAttention eliminates the $N \\times N$ HBM round-trips by keeping intermediates in SRAM through tiling",
+        "FlashAttention runs the three kernels concurrently on different SMs rather than sequentially",
         "FlashAttention reduces the computational complexity from $O(N^2)$ to $O(N \\log N)$ through sparse approximation",
-        "FlashAttention runs the three kernels concurrently on different SMs rather than sequentially"
+        "FlashAttention eliminates the $N \\times N$ HBM round-trips by keeping intermediates in SRAM through tiling"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "FlashAttention computes **exact** attention (not approximate) with the **same** $O(N^2 d)$ FLOPs. Its speedup comes entirely from reducing HBM memory access — by tiling the computation to fit in SRAM and using online softmax, it avoids materializing the $N \\times N$ attention matrix in HBM. The saved memory bandwidth, not saved computation, is what makes it 2–4× faster."
     },
     // Step 11: Info — Implications beyond attention

@@ -23,10 +23,10 @@ export const attentionResidualsLearning = {
       options: [
         "Layer 90 has equal influence to layer 1 because RMSNorm normalizes the input to each layer identically",
         "Layer 90 has greater influence because it can access a richer representation that incorporates all previous layers' processing",
-        "Layer 90's output contributes $\\|f_{90}\\| / \\|\\mathbf{h}_{89}\\|$ of the total signal — a decreasing fraction as the accumulated norm grows, regardless of the layer's importance",
-        "Layer 90's influence depends only on the magnitude of its output, not on the accumulated norm"
+        "Layer 90's influence depends only on the magnitude of its output, not on the accumulated norm",
+        "Layer 90's output contributes $\\|f_{90}\\| / \\|\\mathbf{h}_{89}\\|$ of the total signal — a decreasing fraction as the accumulated norm grows, regardless of the layer's importance"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Layer 90 adds $f_{90}$ to $\\mathbf{h}_{89}$. Its fractional contribution to $\\|\\mathbf{h}_{90}\\|$ is roughly $\\|f_{90}\\| / \\|\\mathbf{h}_{89}\\|$. Since $\\|\\mathbf{h}_{89}\\|$ grows with the number of accumulated layers, each successive layer's relative contribution shrinks — even if $\\|f_l\\|$ is constant. RMSNorm normalizes the input to each layer but doesn't control the output's relative impact on the growing accumulator."
     },
     // Step 3: Info — Attention Residuals core idea
@@ -40,12 +40,12 @@ export const attentionResidualsLearning = {
       type: "mc",
       question: "AttnRes initializes the pseudo-queries $\\mathbf{w}_l$ to zero, so initial attention weights are $\\alpha_{i \\to l} = 1/l$ (uniform). Why is this initialization important?",
       options: [
-        "Zero initialization is standard practice for all transformer parameters and has no special significance here",
         "It ensures the model starts at a known-good configuration (equal-weight averaging, similar to standard residuals) and gradually deviates only where learned depth-weighting improves the loss",
+        "Zero initialization is standard practice for all transformer parameters and has no special significance here",
         "It forces the model to learn depth-wise attention from scratch, preventing interference from pretrained residual connection patterns",
         "Uniform initial weights guarantee that gradients flow equally to all layers during the first training steps, preventing early-layer bias"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "With uniform weights, the initial behavior is a running average of all layer outputs — close to (but not identical to) standard residual connections. This makes AttnRes a smooth generalization: it starts at a reasonable baseline and the model only develops non-uniform depth-weighting where it empirically helps. Starting with random or non-uniform weights would destabilize early training. This is analogous to how LoRA initializes one projection to zero to start at the pretrained model."
     },
     // Step 5: Info — Structured matrix perspective
@@ -79,11 +79,11 @@ export const attentionResidualsLearning = {
       question: "Trained AttnRes models show \"depth-wise attention sinks\" — certain layers consistently receive high weight. This is analogous to sequence-wise attention sinks on early tokens. What does this imply about the structure of residual streams?",
       options: [
         "Most layers are redundant and could be pruned without quality loss",
-        "The transformer develops a hierarchical structure where certain layers produce broadly useful features that many later layers depend on, while others contribute more locally",
+        "The sinks are an artifact of the zero initialization and would disappear with random initialization",
         "All layers produce equally important features, but the attention mechanism is biased toward early layers due to softmax saturation",
-        "The sinks are an artifact of the zero initialization and would disappear with random initialization"
+        "The transformer develops a hierarchical structure where certain layers produce broadly useful features that many later layers depend on, while others contribute more locally"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Depth-wise sinks indicate that some layers produce representations that are broadly useful across many contexts (\"infrastructure\" features), while others contribute more specialized processing that's relevant only to certain layers. This matches interpretability findings that early layers extract basic features (syntax, entity types) used throughout the network, while later layers perform more task-specific reasoning. The sinks persist across different initialization strategies, indicating they reflect genuine network structure."
     },
     // Step 9: Info — Block AttnRes: the practical variant

@@ -22,11 +22,11 @@ export const multiLatentAttentionLearning = {
       question: "A 70B model with 64 heads, $d_h = 128$, and 80 layers uses BF16. What is the KV cache size for a single sequence of 8K tokens?",
       options: [
         "~640 MB — one layer's cache is $2 \\times 64 \\times 128 \\times 2$ bytes per token, times 8K tokens, times 80 layers",
-        "~20 GB — accounting for both keys and values across all layers, heads, and positions",
+        "~160 MB — keys and values are stored in INT4 format to compress the cache",
         "~2.5 GB — the cache only stores the most recent 1K tokens via sliding window attention",
-        "~160 MB — keys and values are stored in INT4 format to compress the cache"
+        "~20 GB — accounting for both keys and values across all layers, heads, and positions"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "Per token per layer: $2 \\times 64 \\times 128 \\times 2 = 32{,}768$ bytes. Per token all layers: $32{,}768 \\times 80 = 2{,}621{,}440$ bytes $\\approx 2.5$ MB. For 8K tokens: $2.5 \\times 8192 \\approx 20$ GB. This is for a single sequence — batch size 8 would need 160 GB. The KV cache often exceeds the model weights themselves for long contexts."
     },
     // Step 3: Info — Prior solutions: MQA and GQA
@@ -40,12 +40,12 @@ export const multiLatentAttentionLearning = {
       type: "mc",
       question: "GQA with $g = 8$ groups and $n_h = 64$ query heads reduces KV cache by 8×. Each group of 8 query heads shares one K and one V head. What expressiveness is lost compared to full MHA?",
       options: [
-        "No expressiveness is lost — the query heads within a group can still compute distinct attention patterns through their different query projections",
         "The 8 query heads in each group are forced to compute identical attention scores over the context, since they share the same keys; only the value mixing differs",
+        "No expressiveness is lost — the query heads within a group can still compute distinct attention patterns through their different query projections",
         "Each group can attend to different positions, but all 8 groups must agree on a single attention distribution",
         "GQA limits the model to attending to at most $g = 8$ distinct positions per layer"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "Attention scores are $\\mathbf{q}^T \\mathbf{k} / \\sqrt{d}$. With shared keys, the 8 query heads in a group attend to the same key vectors. Despite having different $\\mathbf{q}$ projections, they compute $\\mathbf{q}_i^T \\mathbf{k}$ with the same $\\mathbf{k}$ for all $i$ in the group. The attention distributions are identical within a group because the softmax input is the same. Different groups (with different shared keys) can attend differently, but within each group, the 8 heads are constrained to the same attention pattern. In MHA, all 64 heads would be independent."
     },
     // Step 5: Info — MLA core idea: joint low-rank compression
@@ -117,11 +117,11 @@ export const multiLatentAttentionLearning = {
       question: "MLA achieves ~57× KV cache compression while maintaining per-head expressiveness. GQA with $g = 2$ groups achieves 32× compression. Why might MLA be preferred despite GQA's simpler implementation?",
       options: [
         "MLA is always faster because it eliminates the KV cache entirely during inference",
-        "GQA with $g = 2$ forces 64 query heads to share each KV head, severely limiting the model's ability to attend to different context features across heads; MLA gives every head independent key/value reconstructions from the shared latent",
+        "GQA cannot be combined with RoPE, while MLA can via decoupled positional encoding",
         "MLA uses less compute during training because the latent projection is cheaper than GQA's grouped projections",
-        "GQA cannot be combined with RoPE, while MLA can via decoupled positional encoding"
+        "GQA with $g = 2$ forces 64 query heads to share each KV head, severely limiting the model's ability to attend to different context features across heads; MLA gives every head independent key/value reconstructions from the shared latent"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With GQA $g = 2$, 64 query heads share each KV head — within each group, all heads compute identical attention patterns (same keys → same softmax). MLA's per-head up-projections ($\\mathbf{W}_i^{UK}$, $\\mathbf{W}_i^{UV}$) reconstruct distinct keys and values for each head from the shared latent, so all 128 heads can attend independently. GQA does work with RoPE, and MLA doesn't eliminate the cache — it compresses it. The key advantage is expressiveness at comparable compression."
     },
     // Step 13: MC — MLA latent dimension

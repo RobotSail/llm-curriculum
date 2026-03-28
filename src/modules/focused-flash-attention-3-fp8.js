@@ -21,12 +21,12 @@ export const flashAttention3FP8Learning = {
       type: "mc",
       question: "FP8 E4M3 has a 3-bit mantissa while FP8 E5M2 has a 2-bit mantissa. For the $\\mathbf{QK}^T$ matmul in attention, which FP8 format is preferred and why?",
       options: [
-        "E5M2 — the wider exponent range prevents overflow in the dot products, which is the dominant error source",
         "E4M3 — the extra mantissa bit provides better precision for the accumulated dot products, and the scores are scaled by $1/\\sqrt{d}$ to prevent overflow",
+        "E5M2 — the wider exponent range prevents overflow in the dot products, which is the dominant error source",
         "Neither — both formats produce identical results because the matmul accumulates in FP32",
         "E4M3 for Q and E5M2 for K — asymmetric formats balance precision and range across the operands"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "The $\\mathbf{QK}^T$ matmul accumulates many products, where precision matters more than range (the $1/\\sqrt{d}$ scaling keeps values manageable). E4M3's extra mantissa bit reduces the per-element quantization error, leading to a more accurate accumulated result. The accumulation itself typically happens in FP32 inside the tensor cores, so the output precision isn't limited to FP8 — it's the input quantization that matters."
     },
     // Step 3: Info — Block quantization
@@ -42,10 +42,10 @@ export const flashAttention3FP8Learning = {
       options: [
         "Before the data is written to HBM during a preprocessing pass, requiring an extra kernel launch",
         "During the TMA copy from HBM to shared memory, using Hopper's built-in format conversion",
-        "After the FP8 matmul, by multiplying the FP32 accumulator by $s_{Q_i} \\cdot s_{K_j}$ to recover the correct magnitude",
-        "Inside the softmax function, where it adjusts the temperature to compensate for the scale factor"
+        "Inside the softmax function, where it adjusts the temperature to compensate for the scale factor",
+        "After the FP8 matmul, by multiplying the FP32 accumulator by $s_{Q_i} \\cdot s_{K_j}$ to recover the correct magnitude"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "The FP8 matmul produces a result in a higher-precision accumulator (FP32). The per-block scale factors $s_{Q_i}$ and $s_{K_j}$ are scalar multipliers applied to this FP32 result: $\\mathbf{S}_{ij} = s_{Q_i} \\cdot s_{K_j} \\cdot \\text{fp8\\_matmul}(\\mathbf{Q}_i, \\mathbf{K}_j)$. This is a cheap operation on the already-computed tile. The quantization (casting to FP8 with scaling) can happen when loading data."
     },
     // Step 5: Info — The incoherent processing technique
@@ -97,12 +97,12 @@ export const flashAttention3FP8Learning = {
       type: "mc",
       question: "Naive FP8 attention (without incoherent processing) has RMSE ~$10^{-2}$ vs FP16, while with incoherent processing it drops to ~$10^{-3}$–$10^{-4}$. Which downstream effect would you most expect from the naive approach?",
       options: [
-        "Slightly higher perplexity but identical generation quality, since language models are robust to small perturbations",
+        "No observable effect because softmax normalizes away any errors in the attention scores",
         "Complete training divergence within the first 100 steps due to gradient explosion from quantization errors",
-        "Degraded performance specifically on retrieval-heavy tasks (e.g., finding a needle in a haystack) where precise attention patterns matter, while general language modeling is less affected",
-        "No observable effect because softmax normalizes away any errors in the attention scores"
+        "Slightly higher perplexity but identical generation quality, since language models are robust to small perturbations",
+        "Degraded performance specifically on retrieval-heavy tasks (e.g., finding a needle in a haystack) where precise attention patterns matter, while general language modeling is less affected"
       ],
-      correct: 2,
+      correct: 3,
       explanation: "Error of $10^{-2}$ in attention output means attention weights are wrong by ~1%. For general language modeling (where attention is distributed), this may be tolerable. But retrieval tasks require placing nearly all attention weight on one specific token — a 1% error can redirect attention to the wrong token entirely. Incoherent processing's $10^{-3}$–$10^{-4}$ error is small enough that even precise attention patterns are preserved. Softmax does not fix input errors; it can amplify them."
     },
     // Step 11: Info — When to use FP8 attention
@@ -116,12 +116,12 @@ export const flashAttention3FP8Learning = {
       type: "mc",
       question: "You're training a 70B LLM on H100 GPUs with 32K context length. The training is bottlenecked by attention compute. Should you use FA3's FP8 attention with incoherent processing?",
       options: [
-        "No — FP8 introduces quantization errors that will accumulate over thousands of training steps and degrade final model quality",
-        "No — the Hadamard preprocessing doubles the total compute, negating the FP8 throughput advantage",
         "Yes — the ~2× attention speedup significantly reduces training time, and incoherent processing keeps accuracy within ~$10^{-3}$ of FP16, with gradients maintained at higher precision",
+        "No — the Hadamard preprocessing doubles the total compute, negating the FP8 throughput advantage",
+        "No — FP8 introduces quantization errors that will accumulate over thousands of training steps and degrade final model quality",
         "Yes, but only for the first half of training — switch to FP16 attention for the final phase to improve convergence"
       ],
-      correct: 2,
+      correct: 0,
       explanation: "This is an ideal scenario for FP8 attention: H100 GPUs provide FP8 tensor cores, 32K context makes attention a major bottleneck, and the model is large enough that training speed matters. Incoherent processing ensures attention output matches FP16 to ~$10^{-3}$ RMSE. The Hadamard preprocessing is $O(Nd\\log d)$ vs attention's $O(N^2d)$ — negligible at 32K context. Gradients stay at BF16/FP32, so training dynamics are unaffected."
     },
     // Step 13: MC — FP8 vs FP16 scaling

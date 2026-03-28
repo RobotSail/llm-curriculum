@@ -21,12 +21,12 @@ export const flashAttention2Partitioning = {
       type: "mc",
       question: "FlashAttention-1 reaches only 25–40% of peak GPU FLOPS despite being faster than standard attention. On an A100, tensor core matmul throughput is 312 TFLOPS while non-matmul FP16 throughput is ~19.5 TFLOPS. What does this 16× gap imply?",
       options: [
-        "Attention should be computed entirely using integer arithmetic to avoid the FP16 bottleneck",
         "Even a small fraction of non-matmul operations (rescaling, softmax, reductions) can disproportionately reduce hardware utilization because they run at 1/16th the throughput",
+        "Attention should be computed entirely using integer arithmetic to avoid the FP16 bottleneck",
         "The 312 TFLOPS peak is only achievable for batch sizes above 256, making it irrelevant for typical training",
         "FlashAttention should approximate softmax with a matmul-friendly function to eliminate non-matmul operations entirely"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "If 5% of FLOPs are non-matmul, those 5% take as long as 5% × 16 = 80% of matmul FLOPs would. The non-matmul operations become a significant bottleneck even though they're a small fraction of total FLOPs. FA2's strategy is to reduce the number of non-matmul FLOPs rather than replace softmax — the exact computation is preserved."
     },
     // Step 3: Info — Swapping the loop order
@@ -79,11 +79,11 @@ export const flashAttention2Partitioning = {
       question: "During inference with batch size 1 and 32 attention heads on an A100 (108 SMs), FA1 launches $1 \\times 32 = 32$ thread blocks. FA2 with sequence length 8192 and block size 128 launches $32 \\times 64 = 2048$ blocks. What is the practical consequence?",
       options: [
         "FA2 is slower because launching 2048 thread blocks has higher kernel launch overhead than 32 blocks",
-        "FA2 achieves higher SM occupancy — all 108 SMs stay busy because there are many more blocks than SMs to schedule, hiding latency",
+        "The improvement only matters for training; inference doesn't benefit from additional parallelism",
         "FA2 requires 64× more SRAM because each thread block needs its own Q block in shared memory",
-        "The improvement only matters for training; inference doesn't benefit from additional parallelism"
+        "FA2 achieves higher SM occupancy — all 108 SMs stay busy because there are many more blocks than SMs to schedule, hiding latency"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "With only 32 blocks, 76 of 108 SMs sit idle — the GPU is ~30% utilized. With 2048 blocks, the GPU scheduler can keep all 108 SMs busy by assigning ~19 blocks per SM, hiding memory latency through warp switching. SRAM is per-SM (not per-block in total), so each SM's shared memory is time-shared across its blocks. Inference with small batches benefits enormously from this parallelism gain."
     },
     // Step 9: Info — Causal masking optimization
@@ -98,11 +98,11 @@ export const flashAttention2Partitioning = {
       question: "FA2 skips tile computations that fall entirely within the masked (upper-triangular) region of causal attention. For a sequence of length 8192 with block size 128 ($T = 64$ blocks), approximately how many tile computations does this save compared to full bidirectional attention?",
       options: [
         "~64 tiles — only the diagonal tiles contain any masked elements",
-        "~2048 tiles — roughly half of $T^2 = 4096$ tiles are fully masked and skipped",
         "~4096 tiles — three-quarters of tiles are masked in causal attention",
+        "~2048 tiles — roughly half of $T^2 = 4096$ tiles are fully masked and skipped",
         "~32 tiles — only the first and last block rows interact differently under causal masking"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "With $T = 64$ blocks, bidirectional attention computes $T^2 = 4096$ tiles. For causal masking, the lower triangle (including diagonal) has $T(T+1)/2 = 2080$ tiles. The upper triangle has $T(T-1)/2 = 2016$ tiles that are fully masked and can be skipped. This saves approximately half the computation. In practice, the diagonal blocks are partially masked, but that's only 64 tiles — the savings come from skipping the ~2000 fully-masked tiles."
     },
     // Step 11: Info — Warp-level partitioning (within a thread block)
@@ -117,11 +117,11 @@ export const flashAttention2Partitioning = {
       question: "FA1 splits Q rows across warps; FA2 splits K/V columns across warps. Why does splitting K/V lead to fewer shared memory conflicts?",
       options: [
         "K/V blocks are smaller than Q blocks, so each warp accesses less shared memory overall",
-        "Splitting K/V means all warps read the same Q block (which can be broadcast efficiently) while accessing disjoint K/V regions, avoiding concurrent reads to the same addresses",
+        "Modern GPUs have dedicated K/V memory banks that don't conflict, unlike the general-purpose memory used for Q",
         "K/V values are read-only during the forward pass, while Q values require read-write access that causes conflicts",
-        "Modern GPUs have dedicated K/V memory banks that don't conflict, unlike the general-purpose memory used for Q"
+        "Splitting K/V means all warps read the same Q block (which can be broadcast efficiently) while accessing disjoint K/V regions, avoiding concurrent reads to the same addresses"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "When warps split Q rows, each warp needs the full K block — multiple warps reading the same K data simultaneously causes shared memory bank conflicts. When warps split K/V instead, all warps read the same Q data (a broadcast pattern that GPUs handle efficiently) and access disjoint K/V slices (no conflicts). The warps compute independent partial attention outputs that are combined at the end."
     },
     // Step 13: MC — Overall FA2 improvement
@@ -130,11 +130,11 @@ export const flashAttention2Partitioning = {
       question: "FlashAttention-2 achieves 50–73% of A100 peak FLOPS, up from FA1's 25–40%. Which combination of improvements is responsible?",
       options: [
         "Approximate softmax that eliminates all non-matmul operations, plus sparse attention that skips low-weight connections",
-        "Swapping the loop order to keep $\\mathbf{O}$ in SRAM, reducing non-matmul rescaling operations, better warp-level K/V partitioning, and causal masking block skipping",
         "Moving from CUDA to Triton, which provides automatic kernel fusion and memory management superior to hand-written CUDA",
+        "Swapping the loop order to keep $\\mathbf{O}$ in SRAM, reducing non-matmul rescaling operations, better warp-level K/V partitioning, and causal masking block skipping",
         "Using FP8 tensor cores instead of FP16, doubling the effective FLOPS while the algorithm remains unchanged"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "FA2's improvements are all about better utilization of the existing hardware: (1) reversed loop order keeps $\\mathbf{O}$ in SRAM, (2) deferred rescaling reduces non-matmul FLOPs that cost 16× more on tensor cores, (3) K/V warp partitioning reduces shared memory conflicts, and (4) causal block skipping avoids ~50% of wasted tiles. The computation is still exact FP16/BF16 attention — no approximation, no precision change. FA2 is written in CUDA, not Triton."
     }
   ]

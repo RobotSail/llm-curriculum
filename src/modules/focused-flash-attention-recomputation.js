@@ -40,12 +40,12 @@ export const flashAttentionRecomputationLearning = {
       type: "mc",
       question: "Activation checkpointing saves memory by recomputing activations during the backward pass. If full checkpointing is applied to every layer, roughly how much extra forward-pass computation does this add?",
       options: [
-        "100% — the entire forward pass is repeated, doubling total compute",
         "33% — one additional forward pass is needed, but only segments between checkpoints are recomputed rather than the full network",
+        "100% — the entire forward pass is repeated, doubling total compute",
         "0% — recomputation happens on idle GPU cores that would otherwise be unused during backward",
         "50% — exactly half the forward pass must be recomputed on average"
       ],
-      correct: 1,
+      correct: 0,
       explanation: "With standard checkpointing, you do one complete forward pass, then during backward you recompute each segment's forward activations. This adds roughly one extra forward pass worth of compute. Since a standard training step is ~1 forward + ~2 backward (backward ≈ 2× forward FLOPs), the overhead is roughly 1/(1+2) ≈ 33% of total training FLOPs. In practice, the overhead can be hidden by pipelining."
     },
     // Step 5: Info — FlashAttention's recomputation approach
@@ -79,11 +79,11 @@ export const flashAttentionRecomputationLearning = {
       question: "The softmax backward formula uses $d\\mathbf{S}_{ij} = \\mathbf{P}_{ij} \\odot (d\\mathbf{P}_{ij} - D_i)$ where $D_i = \\text{rowsum}(\\mathbf{O}_i \\odot d\\mathbf{O}_i)$. Why is the $D_i$ term needed?",
       options: [
         "It provides numerical stability by centering the gradients, similar to how subtracting the max stabilizes the forward softmax",
-        "It accounts for the fact that softmax outputs sum to 1 — changing one logit affects all probabilities in the row, and $D_i$ captures this coupling",
+        "It compensates for dropout applied to the attention weights during training",
         "It corrects for the online softmax approximation error accumulated during the forward pass",
-        "It compensates for dropout applied to the attention weights during training"
+        "It accounts for the fact that softmax outputs sum to 1 — changing one logit affects all probabilities in the row, and $D_i$ captures this coupling"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The softmax Jacobian is $\\frac{\\partial P_j}{\\partial S_k} = P_j(\\delta_{jk} - P_k)$. Because all probabilities sum to 1, increasing logit $k$ increases $P_k$ but decreases all other $P_j$ — the outputs are coupled. The $D_i = \\sum_j P_{ij} \\cdot dL/dP_{ij} = \\sum_j O_{ij} \\cdot dO_{ij}$ term captures this row-wise coupling. Without it, the gradient would ignore the constraint that attention weights sum to 1."
     },
     // Step 9: Info — Memory vs compute tradeoff analysis
@@ -98,11 +98,11 @@ export const flashAttentionRecomputationLearning = {
       question: "A 30-layer transformer has 32 attention heads per layer with sequence length $N = 4096$ and head dimension $d = 128$ (FP16 training). Roughly how much memory does FlashAttention's recomputation strategy save compared to storing all attention matrices?",
       options: [
         "~480 MB — the attention matrices are small relative to the model weights",
-        "~30 GB — each of the 960 attention heads saves a 32 MB attention matrix",
         "~120 GB — the attention matrices dominate memory at this sequence length",
+        "~30 GB — each of the 960 attention heads saves a 32 MB attention matrix",
         "~1 GB — recomputation only saves the dropout mask, which is small"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Per head: $N^2 \\times 2$ bytes $= 4096^2 \\times 2 \\approx 33.6$ MB. Total heads: $30 \\times 32 = 960$. Total memory: $960 \\times 33.6$ MB $\\approx 32.3$ GB. FlashAttention replaces this with $m, \\ell$ vectors: $960 \\times 4096 \\times 2 \\times 2 \\approx 15$ MB — negligible. The ~30 GB saving is critical: it's often the difference between fitting a training batch in GPU memory or running out."
     },
     // Step 11: Info — Why recomputation is fast in practice
@@ -117,11 +117,11 @@ export const flashAttentionRecomputationLearning = {
       question: "FlashAttention recomputes $\\mathbf{S}$ and $\\mathbf{P}$ during the backward pass instead of reading the saved $\\mathbf{P}$ from HBM. Despite the extra FLOPs, this can be faster. Which explanation is most accurate?",
       options: [
         "GPU cores are underutilized during backward, so the recomputation fills otherwise-idle cycles without adding wall-clock time",
-        "The attention backward pass is memory-bound — eliminating the $O(N^2)$ HBM reads of $\\mathbf{P}$ saves more time than the recomputation costs, because recomputation happens in fast SRAM",
+        "The recomputed values are lower precision, so they require fewer FLOPs than the original computation",
         "Modern GPUs have dedicated recomputation hardware that can replay forward computations at no cost",
-        "The recomputed values are lower precision, so they require fewer FLOPs than the original computation"
+        "The attention backward pass is memory-bound — eliminating the $O(N^2)$ HBM reads of $\\mathbf{P}$ saves more time than the recomputation costs, because recomputation happens in fast SRAM"
       ],
-      correct: 1,
+      correct: 3,
       explanation: "The standard backward pass reads $\\mathbf{P}$ (an $N \\times N$ matrix) from HBM, which is the bottleneck for a memory-bound operation. FlashAttention replaces this with recomputation in SRAM, which is ~10× faster bandwidth. The extra FLOPs are absorbed by the GPU's underutilized compute units during what was a memory-bound operation. The values are the same precision — this is about memory hierarchy, not precision."
     },
     // Step 13: MC — Practical implications
@@ -130,11 +130,11 @@ export const flashAttentionRecomputationLearning = {
       question: "A researcher is training a 7B parameter model and wants to increase context length from 4K to 16K tokens. Without FlashAttention, the $O(N^2)$ attention matrix storage fills GPU memory. With FlashAttention's recomputation, what is the primary benefit?",
       options: [
         "Training becomes 4× faster because FlashAttention eliminates all quadratic operations",
-        "The model can now handle the 16K context because attention memory scales as $O(N)$ instead of $O(N^2)$, at the cost of modest extra compute",
         "The 16K context requires gradient accumulation across 4 micro-batches, which FlashAttention enables by halving the per-step memory",
+        "The model can now handle the 16K context because attention memory scales as $O(N)$ instead of $O(N^2)$, at the cost of modest extra compute",
         "FlashAttention enables 16K context by using sparse attention that skips 75% of token pairs"
       ],
-      correct: 1,
+      correct: 2,
       explanation: "Going from 4K to 16K increases the attention matrix from $O(4096^2)$ to $O(16384^2)$ — a 16× increase in memory. FlashAttention's recomputation reduces this to $O(N \\cdot d)$, growing only linearly with $N$. The saved memory directly enables the longer context. The compute does grow quadratically (attention is still $O(N^2 d)$ FLOPs), but the memory bottleneck is what was preventing the longer context. FlashAttention computes exact, dense attention — no sparsity."
     }
   ]
