@@ -111,6 +111,18 @@ import { mupLearning } from './focused-mup';
 import { toolUseLearning } from './focused-tool-use';
 import { superpositionLearning } from './focused-superposition';
 
+// Attention mechanism modules
+import { ioAwarenessLearning } from './focused-io-awareness';
+import { flashAttentionTilingLearning } from './focused-flash-attention-tiling';
+import { flashAttentionRecomputationLearning } from './focused-flash-attention-recomputation';
+import { flashAttention2Partitioning } from './focused-flash-attention-2';
+import { flashAttention3AsyncLearning } from './focused-flash-attention-3-async';
+import { flashAttention3FP8Learning } from './focused-flash-attention-3-fp8';
+import { flashAttention4Learning } from './focused-flash-attention-4';
+import { multiLatentAttentionLearning } from './focused-multi-latent-attention';
+import { manifoldHyperConnectionsLearning } from './focused-manifold-hyper-connections';
+import { attentionResidualsLearning } from './focused-attention-residuals';
+
 // Modules with optional: true are deep-theory / tangential content.
 // They appear in the UI with an "Optional" badge and are excluded
 // from daily warmup unless the user has started exploring them.
@@ -176,7 +188,7 @@ export const MODULES = {
 
   // Branch B — Pretraining & architecture research
   "B.1": [scalingLawsLearning, scalingLawsAssessment],
-  "B.2": [mixtureOfExpertsLearning, architectureAssessment],
+  "B.2": [mixtureOfExpertsLearning, multiLatentAttentionLearning, manifoldHyperConnectionsLearning, attentionResidualsLearning, architectureAssessment],
   "B.3": [dataMixingLearning, dataCentricAssessment],
   "B.4": [mupLearning, trainingDynamicsAssessment],
   "B.5": [novelObjectivesAssessment],
@@ -208,5 +220,5 @@ export const MODULES = {
   // Branch G — Efficient training & parameter-efficient methods
   "G.1": [loraLearning, peftAssessment],
   "G.2": [memoryEfficientAssessment],
-  "G.3": [hardwareAwareAssessment],
+  "G.3": [ioAwarenessLearning, flashAttentionTilingLearning, flashAttentionRecomputationLearning, flashAttention2Partitioning, flashAttention3AsyncLearning, flashAttention3FP8Learning, flashAttention4Learning, hardwareAwareAssessment],
 };
