@@ -21,10 +21,10 @@ export const multiLatentAttentionLearning = {
       type: "mc",
       question: "A 70B model with 64 heads, $d_h = 128$, and 80 layers uses BF16. What is the KV cache size for a single sequence of 8K tokens?",
       options: [
-        "~640 MB — one layer's cache is $2 \\times 64 \\times 128 \\times 2$ bytes per token, times 8K tokens, times 80 layers",
-        "~160 MB — keys and values are stored in INT4 format to compress the cache",
-        "~2.5 GB — the cache only stores the most recent 1K tokens via sliding window attention",
-        "~20 GB — accounting for both keys and values across all layers, heads, and positions"
+        "~640 MB — the per-token per-layer cache is $2 \\times d_h \\times 2 = 512$ bytes, summed across 8K tokens and 80 layers",
+        "~160 MB — modern inference engines quantize cached keys and values to INT4, compressing the 64-head cache by 4×",
+        "~2.5 GB — sliding window attention retains only the nearest 1K tokens per layer, drastically capping total cache size",
+        "~20 GB — per token per layer the cache stores $2 \\times 64 \\times 128 \\times 2$ bytes, summed across 8K tokens and 80 layers"
       ],
       correct: 3,
       explanation: "Per token per layer: $2 \\times 64 \\times 128 \\times 2 = 32{,}768$ bytes. Per token all layers: $32{,}768 \\times 80 = 2{,}621{,}440$ bytes $\\approx 2.5$ MB. For 8K tokens: $2.5 \\times 8192 \\approx 20$ GB. This is for a single sequence — batch size 8 would need 160 GB. The KV cache often exceeds the model weights themselves for long contexts."

@@ -21,10 +21,10 @@ export const flashAttention2Partitioning = {
       type: "mc",
       question: "FlashAttention-1 reaches only 25–40% of peak GPU FLOPS despite being faster than standard attention. On an A100, tensor core matmul throughput is 312 TFLOPS while non-matmul FP16 throughput is ~19.5 TFLOPS. What does this 16× gap imply?",
       options: [
-        "Even a small fraction of non-matmul operations (rescaling, softmax, reductions) can disproportionately reduce hardware utilization because they run at 1/16th the throughput",
-        "Attention should be computed entirely using integer arithmetic to avoid the FP16 bottleneck",
-        "The 312 TFLOPS peak is only achievable for batch sizes above 256, making it irrelevant for typical training",
-        "FlashAttention should approximate softmax with a matmul-friendly function to eliminate non-matmul operations entirely"
+        "Non-matmul operations like rescaling and softmax run at 1/16th tensor core throughput, so even a small fraction dominates runtime",
+        "Attention should use integer arithmetic to bypass the FP16 throughput gap and keep all computation on tensor cores at peak speed",
+        "The 312 TFLOPS peak requires batch sizes above 256 to saturate, so typical training never reaches the compute-bound regime",
+        "Softmax should be replaced with a matmul-friendly approximation so all operations can run on tensor cores at full throughput"
       ],
       correct: 0,
       explanation: "If 5% of FLOPs are non-matmul, those 5% take as long as 5% × 16 = 80% of matmul FLOPs would. The non-matmul operations become a significant bottleneck even though they're a small fraction of total FLOPs. FA2's strategy is to reduce the number of non-matmul FLOPs rather than replace softmax — the exact computation is preserved."
